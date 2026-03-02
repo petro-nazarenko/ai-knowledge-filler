@@ -1,6 +1,20 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [0.6.0] — 2026-03-02
+
+### Chores
+
+- Bump version to 0.6.0 ([`d882315`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d8823154c7bdb94c2f1424ebe327cc6a2231c95f))
+
+### Documentation
+
+- Update CHANGELOG for v0.5.4 ([`41c869f`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/41c869fd464bf2692b5fda8cb9e16cf48995ea35))
+
+### Features
+
+- MCP server v0.6.0 — akf serve --mcp ([`8040eac`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/8040eacaa6a1f8e6360c533e8f171a86b6e26793))
+
 ## [0.5.4] — 2026-02-28
 
 ### Bug Fixes
