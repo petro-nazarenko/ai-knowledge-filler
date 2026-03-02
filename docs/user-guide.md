@@ -4,12 +4,12 @@ type: guide
 domain: akf-docs
 level: beginner
 status: active
-version: v2.0
-tags: [quickstart, installation, setup, akf, pipeline, validation]
+version: v2.1
+tags: [quickstart, installation, setup, akf, pipeline, validation, mcp]
 related:
   - "docs/cli-reference.md"
 created: 2026-02-19
-updated: 2026-02-27
+updated: 2026-03-02
 ---
 
 ## Purpose
@@ -31,6 +31,11 @@ AKF is a **validation pipeline** — not a note-taking app. It enforces a schema
 
 ```bash
 pip install ai-knowledge-filler
+```
+
+With MCP server support:
+```bash
+pip install 'ai-knowledge-filler[mcp]'
 ```
 
 With all LLM providers:
@@ -143,6 +148,56 @@ Every PR that introduces invalid metadata fails the check.
 
 ---
 
+## Batch Generation
+
+Generate multiple files from a JSON plan:
+
+```bash
+cat plan.json
+```
+```json
+[
+  { "prompt": "JWT authentication guide", "domain": "security", "type": "guide" },
+  { "prompt": "Docker networking concept", "domain": "devops",   "type": "concept" }
+]
+```
+```bash
+akf generate --batch plan.json
+```
+
+---
+
+## MCP Server
+
+AKF exposes four tools for Claude Desktop, Cursor, Zed, and any MCP-compatible client.
+
+```bash
+# Install MCP support
+pip install 'ai-knowledge-filler[mcp]'
+
+# Start server (stdio — for local clients)
+akf serve --mcp
+
+# streamable-http — for remote deployments
+akf serve --mcp --transport streamable-http
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "akf": {
+      "command": "akf",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+Available MCP tools: `akf_generate` · `akf_validate` · `akf_enrich` · `akf_batch`
+
+---
+
 ## REST API
 
 ```bash
@@ -193,3 +248,5 @@ Violations produce typed error codes (E001–E007). No silent failures.
 ## Conclusion
 
 Full workflow: `akf init` → set API key → `akf enrich` (existing files) → `akf generate` (new files) → `akf validate` → CI gate.
+
+MCP workflow: `pip install 'ai-knowledge-filler[mcp]'` → `akf serve --mcp` → connect Claude Desktop.

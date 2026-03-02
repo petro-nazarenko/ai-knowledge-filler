@@ -7,7 +7,7 @@
 [![Validate](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Validate%20Metadata/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/validate.yml)
 [![PyPI](https://img.shields.io/pypi/v/ai-knowledge-filler.svg)](https://pypi.org/project/ai-knowledge-filler/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Coverage](https://img.shields.io/badge/coverage-93.74%25-brightgreen.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-91.50%25-brightgreen.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
@@ -189,7 +189,37 @@ Swagger UI: `http://localhost:8000/docs`
 
 ---
 
-## What Every Committed File Guarantees
+## MCP Server
+
+AKF exposes four MCP tools for Claude Desktop, Cursor, Zed, and any other MCP-compatible client.
+
+```bash
+pip install 'ai-knowledge-filler[mcp]'
+
+# stdio — local clients (Claude Desktop, Cursor, Zed)
+akf serve --mcp
+
+# streamable-http — remote / web deployments
+akf serve --mcp --transport streamable-http
+```
+
+**Claude Desktop** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "akf": {
+      "command": "akf",
+      "args": ["serve", "--mcp"]
+    }
+  }
+}
+```
+
+**Available tools:** `akf_generate` · `akf_validate` · `akf_enrich` · `akf_batch`
+
+All four tools run through the same validation pipeline as the CLI — retry loop, commit gate, telemetry.
+
+---
 
 - Required fields: `title`, `type`, `domain`, `level`, `status`, `tags`, `created`, `updated`
 - Valid enums: `type`, `level`, `status` from controlled sets
@@ -254,6 +284,7 @@ akf validate [--file FILE] [--path PATH] [--strict]
 
 # Server
 akf serve [--host HOST] [--port PORT]
+akf serve --mcp [--transport stdio|streamable-http]
 
 # Models / Init
 akf models
@@ -311,7 +342,7 @@ Rate limits: `POST /v1/generate` 10/min · `POST /v1/validate` 30/min · `POST /
 
 ## Quality
 
-- **542 tests**, 93.74% coverage
+- **563 tests**, 91.50% coverage
 - CI green on Python 3.10 / 3.11 / 3.12
 - Type hints: 100%
 - Pylint: 9.55/10
@@ -328,9 +359,11 @@ Rate limits: `POST /v1/generate` 10/min · `POST /v1/validate` 30/min · `POST /
 - [x] Pipeline API — `from akf import Pipeline`
 - [x] REST API — FastAPI, rate limiting, optional auth
 - [x] Self-documentation — AKF validates its own `docs/` on every PR
+- [x] `akf generate --batch plan.json` — batch generation from JSON plan
+- [x] MCP server — `akf serve --mcp`, 4 tools, stdio + streamable-http
 
 ### Planned
-- [ ] `akf generate --batch topics.txt`
+- [ ] Layered `akf.yaml` with `extends:` (ADR-002)
 - [ ] Graph extraction layer
 - [ ] n8n / Make integration templates
 
@@ -351,4 +384,4 @@ MIT — Free for commercial and personal use.
 
 ---
 
-**PyPI:** https://pypi.org/project/ai-knowledge-filler/ | **Version:** 0.5.0
+**PyPI:** https://pypi.org/project/ai-knowledge-filler/ | **Version:** 0.6.1
