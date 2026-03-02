@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [Unreleased]
+
+### Documentation
+
+- Update CHANGELOG for v0.6.0 ([`2c5978e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/2c5978e964a1bc1aa60d985358ea43b48322347f))
+
+### Features
+
+- MCP --transport flag (stdio/streamable-http) — v0.6.1 ([`4bcbdd5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/4bcbdd5586006bec5161151191b26bd201431662))
+
 ## [0.6.0] — 2026-03-02
 
 ### Chores
