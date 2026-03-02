@@ -593,9 +593,14 @@ def main() -> int:
     # Serve command
 
 
-    srv = sub.add_parser("serve", help="Start REST API server")
+    srv = sub.add_parser("serve", help="Start REST API server or MCP server")
     srv.add_argument("--host", default="0.0.0.0")
     srv.add_argument("--port", type=int, default=8000)
+    srv.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Run as MCP server instead of REST API (requires: pip install ai-knowledge-filler[mcp])",
+    )
 
     args = parser.parse_args()
     if args.command == "init":
@@ -619,7 +624,18 @@ def main() -> int:
 
 
 def cmd_serve(args):
-    """Start AKF REST API server."""
+    """Start AKF as MCP server (--mcp) or REST API (default)."""
+    if getattr(args, "mcp", False):
+        try:
+            from akf.mcp_server import run as mcp_run
+        except ImportError:
+            err("MCP dependencies not installed. Run: pip install ai-knowledge-filler[mcp]")
+            sys.exit(1)
+        info("Starting AKF MCP server...")
+        mcp_run()
+        return
+
+    # REST API (default)
     try:
         import uvicorn
     except ImportError:
