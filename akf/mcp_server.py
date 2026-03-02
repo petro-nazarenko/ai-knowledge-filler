@@ -150,8 +150,14 @@ def akf_batch(
 # ─── entry point ─────────────────────────────────────────────────────────────
 
 
-def run() -> None:
-    """Start the MCP server. Called from cli.py via: akf serve --mcp"""
+def run(transport: str = "stdio") -> None:
+    """Start the MCP server. Called from cli.py via: akf serve --mcp
+
+    Args:
+        transport: MCP transport — 'stdio' (default) or 'streamable-http'.
+                   stdio: for Claude Desktop, Cursor, Zed and other local clients.
+                   streamable-http: for remote/web deployments.
+    """
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:
@@ -164,4 +170,4 @@ def run() -> None:
     mcp.tool()(akf_validate)
     mcp.tool()(akf_enrich)
     mcp.tool()(akf_batch)
-    mcp.run()
+    mcp.run(transport=transport)
