@@ -601,6 +601,12 @@ def main() -> int:
         action="store_true",
         help="Run as MCP server instead of REST API (requires: pip install ai-knowledge-filler[mcp])",
     )
+    srv.add_argument(
+        "--transport",
+        default="stdio",
+        choices=["stdio", "streamable-http"],
+        help="MCP transport: stdio (default, for local clients) or streamable-http (for remote)",
+    )
 
     args = parser.parse_args()
     if args.command == "init":
@@ -631,8 +637,8 @@ def cmd_serve(args):
         except ImportError:
             err("MCP dependencies not installed. Run: pip install ai-knowledge-filler[mcp]")
             sys.exit(1)
-        info("Starting AKF MCP server...")
-        mcp_run()
+        info(f"Starting AKF MCP server (transport: {args.transport})...")
+        mcp_run(transport=args.transport)
         return
 
     # REST API (default)
