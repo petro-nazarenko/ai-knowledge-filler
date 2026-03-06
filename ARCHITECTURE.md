@@ -4,14 +4,14 @@ type: reference
 domain: akf-core
 level: advanced
 status: active
-version: v0.5.2
+version: v0.6.1
 tags: [architecture, pipeline, api, public-api, semver, modules]
 related:
   - "docs/cli-reference.md"
   - "docs/user-guide.md"
   - "CONTRIBUTING.md"
 created: 2026-02-06
-updated: 2026-02-27
+updated: 2026-03-06
 ---
 
 # AKF Architecture
@@ -239,6 +239,7 @@ akf/
   telemetry.py         TelemetryWriter — append-only JSONL (GenerationEvent + EnrichEvent)
   config.py            get_config() — loads akf.yaml or defaults
   server.py            FastAPI REST API
+  mcp_server.py        MCP server (FastMCP) — akf_generate, akf_validate, akf_enrich, akf_batch
   defaults/akf.yaml    Default taxonomy + enums
 
 cli.py                 Entry point
@@ -250,7 +251,7 @@ Scripts/
   validate_yaml.py     Standalone YAML frontmatter validator
   analyze_telemetry.py Telemetry aggregation — retry rate, ontology friction
 
-tests/                 542 tests, 93.74% coverage
+tests/                 560+ tests, 91.5% coverage
 .github/workflows/     ci.yml · tests.yml · lint.yml · validate.yml · changelog.yml · release.yml
 ```
 

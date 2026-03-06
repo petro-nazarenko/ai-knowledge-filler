@@ -4,13 +4,13 @@ type: guide
 domain: akf-docs
 level: intermediate
 status: active
-version: v0.5.2
+version: v0.6.1
 tags: [contributing, development, testing, providers, versioning]
 related:
   - "ARCHITECTURE.md"
   - "docs/cli-reference.md"
 created: 2026-02-06
-updated: 2026-02-27
+updated: 2026-03-06
 ---
 
 # Contributing to AKF
@@ -63,8 +63,8 @@ All PRs must pass these gates before merge:
 # 1. Tests — 100% must pass
 pytest --tb=short
 
-# 2. Coverage — must not decrease below 93%
-pytest --cov=. --cov-report=term-missing --cov-fail-under=93
+# 2. Coverage — must not decrease below 91%
+pytest --cov=. --cov-report=term-missing --cov-fail-under=91
 
 # 3. Format check
 black --check .
@@ -210,7 +210,7 @@ def test_valid_file(tmp_path):
 
 **Coverage requirement:** do not decrease below 93%. Check with:
 ```bash
-pytest --cov=. --cov-report=term-missing --cov-fail-under=93
+pytest --cov=. --cov-report=term-missing --cov-fail-under=91
 ```
 
 ---

@@ -9,7 +9,7 @@ tags: [cli, reference, commands, akf, enrich, validate, generate, mcp, serve]
 related:
   - "docs/user-guide.md"
 created: 2026-02-19
-updated: 2026-03-02
+updated: 2026-03-06
 ---
 
 ## Purpose

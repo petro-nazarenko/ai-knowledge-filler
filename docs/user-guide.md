@@ -9,7 +9,7 @@ tags: [quickstart, installation, setup, akf, pipeline, validation, mcp]
 related:
   - "docs/cli-reference.md"
 created: 2026-02-19
-updated: 2026-03-02
+updated: 2026-03-06
 ---
 
 ## Purpose
