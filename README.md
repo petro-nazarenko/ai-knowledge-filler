@@ -1,50 +1,35 @@
 # AI Knowledge Filler
 
-**Validation pipeline for LLM-generated structured Markdown**
+**Validation pipeline that prevents AI-generated files from reaching disk unless they pass schema checks**
 
 [![Tests](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Tests/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
 [![Lint](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Lint/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/lint.yml)
-[![Validate](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Validate%20Metadata/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/validate.yml)
 [![PyPI](https://img.shields.io/pypi/v/ai-knowledge-filler.svg)](https://pypi.org/project/ai-knowledge-filler/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Coverage](https://img.shields.io/badge/coverage-91.50%25-brightgreen.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
 
 ---
 
 ## The Problem
 
-LLMs generate text. You need structured, schema-compliant files.
+Every time you use an LLM to generate structured knowledge files, the output drifts — wrong enum values, missing fields, dates in the wrong format, tags as strings instead of arrays. The files look fine until something downstream breaks: a search query returning nothing, a CI check failing, a pipeline corrupting.
 
-Without a validation layer, AI-generated Markdown produces:
-
-| Error | Raw LLM output | What you need |
-|-------|---------------|---------------|
-| Enum violation | `level: expert` | `beginner \| intermediate \| advanced` |
-| Domain violation | `domain: Technology` | `domain: system-design` |
-| Type mismatch | `tags: security` | `tags: [security, api, auth]` |
-| Date format | `created: 12-02-2026` | `created: 2026-02-12` |
-
-One file? Fixable manually. A hundred files? The schema collapses.
-
-**AKF enforces the contract at generation time, not review time.**
+The standard fix is post-hoc validation — check after writing, fix manually. That doesn't scale past a few dozen files.
 
 ---
 
 ## How It Works
 
 ```
-Prompt
-  → LLM                  (only non-deterministic component)
-  → Validation Engine    (binary: VALID or INVALID + typed E-codes)
-  → Error Normalizer     (deterministic repair instructions from E-codes)
-  → Retry Controller     (max 3 attempts — aborts on identical failure hash)
-  → Commit Gate          (atomic write — only VALID output reaches disk)
+Prompt → LLM → Validation Engine → Error Normalizer → Retry Controller → Commit Gate → File
 ```
 
-No silent failures. No partial commits. No guessing.
+The LLM is the only non-deterministic component. Everything else is pure functions.
 
-**Retry = ontology signal.** When a domain triggers elevated retries, the taxonomy has a boundary problem — not the model. Telemetry captures this.
+If output fails schema checks, **it never touches disk** — the Error Normalizer converts typed error codes into correction instructions and sends them back to the LLM for a retry.
+
+If the same error fires twice on the same field, the pipeline **aborts instead of looping** — that pattern means your schema has a boundary problem, not the model.
 
 ---
 
@@ -53,335 +38,233 @@ No silent failures. No partial commits. No guessing.
 ```bash
 pip install ai-knowledge-filler
 
-export GROQ_API_KEY="gsk_..."   # free tier, fastest
+export ANTHROPIC_API_KEY="sk-ant-..."  # or GOOGLE_API_KEY, OPENAI_API_KEY, GROQ_API_KEY
 
-# Generate new file
-akf generate "Create a Docker networking guide"
-# → Docker_Networking_Guide.md (validated, schema-compliant)
-
-# Enrich existing files — add YAML to files that have none
-akf enrich docs/
-
-# Validate an entire directory
-akf validate --path docs/
+akf generate "Write a guide on Docker networking"
+akf validate ./vault/
 ```
+
+Works with Claude, GPT-4, Gemini, Ollama.
 
 ---
 
-## AKF Documents Itself
+## External Taxonomy Config
 
-This repo uses AKF to validate its own documentation on every PR.
-
-**Setup:**
-```bash
-# 1. Define your taxonomy
-cat akf.yaml
-```
-```yaml
-schema_version: "1.0.0"
-vault_path: "./docs"
-taxonomy:
-  domains:
-    - akf-core
-    - akf-docs
-    - akf-ops
-    - akf-spec
-```
-
-```bash
-# 2. Enrich existing docs — AKF adds frontmatter via LLM
-akf enrich docs/ --model groq
-
-# 3. Validate
-akf validate --path docs/
-# ✅ docs/cli-reference.md
-# ✅ docs/user-guide.md
-# → Total: 2 | OK: 2 | Errors: 0
-```
-
-**CI gate (`.github/workflows/validate.yml`):**
-```yaml
-- name: Validate docs/
-  run: akf validate --path docs/
-```
-
-Every PR that introduces invalid metadata fails the check. The **Validate** badge above is AKF validating AKF's own docs.
-
----
-
-## `akf enrich`
-
-Add YAML frontmatter to existing Markdown files — bulk or single.
-
-```bash
-akf enrich docs/                    # enrich all .md files
-akf enrich docs/ --dry-run          # preview only, no writes
-akf enrich docs/ --force            # overwrite valid frontmatter
-akf enrich docs/ --output enriched/ # copy to output dir
-```
-
-| File state | Default | `--force` |
-|------------|---------|-----------|
-| No frontmatter | Generate + validate + write | Same |
-| Incomplete frontmatter | Fill missing fields only | Regenerate all |
-| Valid frontmatter | Skip | Regenerate all |
-| Empty file | Skip with warning | Skip |
-
-Enrich runs through the same validation pipeline as `generate` — retry loop, commit gate, telemetry.
-
----
-
-## Python API
-
-```python
-from akf import Pipeline
-
-pipeline = Pipeline(output="./vault/", model="groq")
-
-# Generate new file
-result = pipeline.generate("Create API rate limiting guide")
-print(result.success)        # True
-print(result.path)           # PosixPath('vault/API_Rate_Limiting_Guide.md')
-print(result.attempts)       # 1 (retried if schema violation)
-
-# Enrich existing file
-result = pipeline.enrich("docs/old-note.md")
-print(result.status)         # "enriched" | "skipped" | "failed"
-
-# Enrich directory
-results = pipeline.enrich_dir("docs/")
-
-# Batch generate
-results = pipeline.batch_generate([
-    "Docker deployment best practices",
-    "Kubernetes security hardening",
-    "API authentication strategies",
-])
-
-# Validate
-v = pipeline.validate("vault/my_file.md")
-print(v.valid, v.errors)
-```
-
----
-
-## REST API
-
-```bash
-akf serve --port 8000
-
-curl -X POST http://localhost:8000/v1/generate \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "Create Docker security checklist", "model": "groq"}'
-
-curl -X POST http://localhost:8000/v1/batch \
-  -H "Content-Type: application/json" \
-  -d '{"prompts": ["Docker guide", "Kubernetes guide"]}'
-
-curl -X POST http://localhost:8000/v1/validate \
-  -H "Content-Type: application/json" \
-  -d '{"content": "---\ntitle: Test\n..."}'
-```
-
-Endpoints: `POST /v1/generate` · `POST /v1/enrich` · `POST /v1/validate` · `POST /v1/batch` · `GET /v1/models` · `GET /health`
-
-Swagger UI: `http://localhost:8000/docs`
-
----
-
-## MCP Server
-
-AKF exposes four MCP tools for Claude Desktop, Cursor, Zed, and any other MCP-compatible client.
-
-```bash
-pip install 'ai-knowledge-filler[mcp]'
-
-# stdio — local clients (Claude Desktop, Cursor, Zed)
-akf serve --mcp
-
-# streamable-http — remote / web deployments
-akf serve --mcp --transport streamable-http
-```
-
-**Claude Desktop** (`claude_desktop_config.json`):
-```json
-{
-  "mcpServers": {
-    "akf": {
-      "command": "akf",
-      "args": ["serve", "--mcp"]
-    }
-  }
-}
-```
-
-**Available tools:** `akf_generate` · `akf_validate` · `akf_enrich` · `akf_batch`
-
-All four tools run through the same validation pipeline as the CLI — retry loop, commit gate, telemetry.
-
----
-
-- Required fields: `title`, `type`, `domain`, `level`, `status`, `tags`, `created`, `updated`
-- Valid enums: `type`, `level`, `status` from controlled sets
-- Domain from configured taxonomy (`akf.yaml`) — not hardcoded
-- ISO 8601 dates with `created ≤ updated`
-- `tags` as array (≥3), `title` as string
-
-### Error Codes
-
-| Code | Field | Meaning |
-|------|-------|---------|
-| E001 | type / level / status | Invalid enum value |
-| E002 | any | Required field missing |
-| E003 | created / updated | Date not ISO 8601 |
-| E004 | title / tags | Type mismatch |
-| E005 | frontmatter | General schema violation |
-| E006 | domain | Not in taxonomy |
-| E007 | created / updated | `created > updated` |
-
----
-
-## Configuration
+Your ontology lives in `akf.yaml` — not compiled into the tool:
 
 ```yaml
 # akf.yaml
 schema_version: "1.0.0"
 vault_path: "./vault"
 
-taxonomy:
-  domains:
+enums:
+  type: [concept, guide, reference, checklist, project, roadmap, template, audit]
+  level: [beginner, intermediate, advanced]
+  status: [draft, active, completed, archived]
+  domain:
     - ai-system
     - api-design
     - devops
     - security
     - system-design
-    # add your own
-
-enums:
-  type: [concept, guide, reference, checklist, project, roadmap, template, audit]
-  level: [beginner, intermediate, advanced]
-  status: [draft, active, completed, archived]
 ```
+
+Change your taxonomy without touching code or redeploying:
 
 ```bash
-akf init          # creates akf.yaml in current directory
-akf init --force  # overwrite existing
+akf init          # generates akf.yaml for your vault
+akf validate ./   # validates all files against your config
 ```
 
 ---
 
-## CLI Reference
+## Error Codes
+
+Validation failures produce typed error codes, not free-form messages:
+
+| Code | Field | Meaning |
+|------|-------|---------|
+| E001 | type / level / status | Value not in allowed enum set |
+| E002 | any | Required field missing |
+| E003 | created / updated | Date not ISO 8601 |
+| E004 | title / tags | Type mismatch (e.g. `tags: "security"` instead of `tags: [security]`) |
+| E005 | frontmatter | General schema violation |
+| E006 | domain | Value not in taxonomy |
+| E007 | created / updated | `created` is later than `updated` |
+
+The Error Normalizer translates these codes into deterministic correction instructions for the retry:
+
+```
+E006 on field "domain" (received: "backend")
+→ "The 'domain' field must be one of: [api-design, backend-engineering, devops, ...]
+   You used 'backend' which is not in the taxonomy. Choose the closest match."
+```
+
+---
+
+## Retry as Signal
+
+Retry pressure is not a failure metric.
+
+When a domain value triggers elevated retries, the taxonomy has a **boundary problem** — not the model. The telemetry substrate (append-only JSONL) surfaces which enum values cause friction, so you can refine your ontology based on evidence rather than intuition.
+
+---
+
+## Interfaces
+
+**CLI:**
+```bash
+akf generate "Create a guide on API rate limiting"
+akf generate "Create Docker security checklist" --model gemini
+akf validate ./vault/
+akf validate --file outputs/Guide.md
+akf serve --port 8000        # REST API
+akf serve --mcp              # MCP server (v0.6.x)
+```
+
+**Python API:**
+```python
+from akf import Pipeline
+
+pipeline = Pipeline(output="./vault/")
+result = pipeline.generate("Create a guide on Docker networking")
+results = pipeline.batch_generate(["Guide 1", "Guide 2", "Guide 3"])
+```
+
+**REST API:**
+```
+POST /v1/generate    →  validated file
+POST /v1/validate    →  schema check result
+POST /v1/batch       →  multiple files
+GET  /v1/models      →  available providers
+```
+
+**MCP** (v0.6.x, in progress):
+```bash
+akf serve --mcp
+# Exposes: akf_generate, akf_validate, akf_enrich, akf_batch
+```
+
+---
+
+## What Every Committed File Guarantees
+
+- Required fields present: `title`, `type`, `domain`, `level`, `status`, `tags`, `created`, `updated`
+- Valid enums: `type`, `level`, `status` from controlled sets
+- Domain from your configured taxonomy in `akf.yaml`
+- ISO 8601 dates with `created ≤ updated`
+- `tags` as array with ≥ 3 items, `title` as string — no type mismatches
+
+No file reaches disk without passing all checks.
+
+---
+
+## Example Output
+
+**Input:**
+```
+Create a guide on API rate limiting
+```
+
+**Output** (`vault/API_Rate_Limiting_Strategy.md`):
+```yaml
+---
+title: "API Rate Limiting Strategy"
+type: guide
+domain: api-design
+level: intermediate
+status: active
+version: v1.0
+tags: [api, rate-limiting, performance, architecture]
+related:
+  - "[[API Design Principles]]"
+  - "[[System Scalability Patterns]]"
+created: 2026-03-06
+updated: 2026-03-06
+---
+
+## Purpose
+...
+```
+
+---
+
+## Architecture
+
+```
+akf/
+  pipeline.py          # Pipeline — generate(), validate(), batch_generate()
+  validator.py         # Validation Engine — binary VALID/INVALID, E001–E007
+  validation_error.py  # ValidationError dataclass
+  error_normalizer.py  # Translates errors → LLM retry instructions
+  retry_controller.py  # Convergence protection — aborts on identical error hash
+  commit_gate.py       # Atomic write — only VALID files reach disk
+  telemetry.py         # Append-only JSONL event stream
+  config.py            # Loads akf.yaml or bundled defaults
+  server.py            # FastAPI REST API
+  mcp_server.py        # MCP server (FastMCP)
+  defaults/
+    akf.yaml           # Default taxonomy
+
+cli.py                 # Entry point
+llm_providers.py       # Claude / Gemini / GPT-4 / Ollama
+```
+
+---
+
+## Model Support
+
+| Provider | Key | Notes |
+|----------|-----|-------|
+| Claude | `ANTHROPIC_API_KEY` | Recommended for complex content |
+| Gemini | `GOOGLE_API_KEY` | Fast, cost-effective |
+| GPT-4 | `OPENAI_API_KEY` | General purpose |
+| Groq | `GROQ_API_KEY` | Free tier, fast |
+| Ollama | — | Local, offline, private |
+
+---
+
+## Tests
 
 ```bash
-# Generate
-akf generate "prompt" [--model groq|claude|gemini|gpt4|ollama] [--output PATH]
-
-# Enrich
-akf enrich PATH [--dry-run] [--force] [--model MODEL] [--output DIR]
-
-# Validate
-akf validate [--file FILE] [--path PATH] [--strict]
-
-# Server
-akf serve [--host HOST] [--port PORT]
-akf serve --mcp [--transport stdio|streamable-http]
-
-# Models / Init
-akf models
-akf init [--path DIR] [--force]
+pytest --cov=akf --cov-report=term-missing -v
 ```
 
----
-
-## Model Selection
-
-| Model | Key | Speed | Cost | Notes |
-|-------|-----|-------|------|-------|
-| **Groq** | `GROQ_API_KEY` | ⚡ | Free tier | Recommended for CI, high volume |
-| **Claude** | `ANTHROPIC_API_KEY` | Medium | $$$ | Technical docs, architecture |
-| **Gemini** | `GOOGLE_API_KEY` | Fast | $ | Quick drafts |
-| **GPT-4** | `OPENAI_API_KEY` | Medium | $$ | General purpose |
-| **Grok** | `XAI_API_KEY` | Fast | $$ | General purpose |
-| **Ollama** | — | Fast | Free | Local / offline / private |
-
-Auto-selection order: Groq → Grok → Claude → Gemini → GPT-4 → Ollama.
+560+ tests, 91% coverage, CI green on Python 3.10 / 3.11 / 3.12.
 
 ---
 
-## Telemetry
-
-Each generation appends a structured event to `telemetry/events.jsonl`:
-
-```json
-{
-  "generation_id": "uuid-v4",
-  "document_id": "abc123",
-  "schema_version": "1.0.0",
-  "attempt": 1,
-  "converged": true,
-  "timestamp": "2026-02-27T14:22:01Z",
-  "model": "groq",
-  "temperature": 0
-}
-```
-
-Append-only. Never influences the pipeline at runtime.
-
----
-
-## Security
+## Installation
 
 ```bash
-export AKF_API_KEY="your-secret"          # optional — unset = dev mode
-export AKF_CORS_ORIGINS="https://app.com"
+# PyPI
+pip install ai-knowledge-filler
+
+# With MCP support
+pip install ai-knowledge-filler[mcp]
+
+# From source
+git clone https://github.com/petrnzrnk-creator/ai-knowledge-filler.git
+cd ai-knowledge-filler
+pip install -e .
 ```
-
-Rate limits: `POST /v1/generate` 10/min · `POST /v1/validate` 30/min · `POST /v1/batch` 3/min
-
----
-
-## Quality
-
-- **563 tests**, 91.50% coverage
-- CI green on Python 3.10 / 3.11 / 3.12
-- Type hints: 100%
-- Pylint: 9.55/10
-
----
-
-## Roadmap
-
-### Shipped
-- [x] `akf generate`, `akf enrich`, `akf validate`, `akf serve`, `akf init`
-- [x] Validation pipeline — E001–E007, retry loop, commit gate
-- [x] Telemetry — append-only JSONL, ontology friction metrics
-- [x] Config layer — external `akf.yaml`, no code changes for taxonomy
-- [x] Pipeline API — `from akf import Pipeline`
-- [x] REST API — FastAPI, rate limiting, optional auth
-- [x] Self-documentation — AKF validates its own `docs/` on every PR
-- [x] `akf generate --batch plan.json` — batch generation from JSON plan
-- [x] MCP server — `akf serve --mcp`, 4 tools, stdio + streamable-http
-
-### Planned
-- [ ] Layered `akf.yaml` with `extends:` (ADR-002)
-- [ ] Graph extraction layer
-- [ ] n8n / Make integration templates
 
 ---
 
 ## Documentation
 
-- [Architecture](ARCHITECTURE.md) — Module map, data flow, extension points
-- [CLI Reference](docs/cli-reference.md) — All commands, flags, env vars, exit codes
-- [User Guide](docs/user-guide.md) — Quickstart, enrich workflow, CI integration
-- [Contributing](CONTRIBUTING.md) — Dev setup, adding providers
+- [Architecture](ARCHITECTURE.md) — module map, data flow, pipeline decisions
+- [CLI Reference](docs/cli-reference.md) — all commands, flags, exit codes
+- [User Guide](docs/user-guide.md) — installation, configuration, troubleshooting
+- [Contributing](CONTRIBUTING.md) — dev setup, quality gates, adding providers
 
 ---
 
 ## License
 
-MIT — Free for commercial and personal use.
+MIT — free for commercial and personal use.
 
 ---
 
-**PyPI:** https://pypi.org/project/ai-knowledge-filler/ | **Version:** 0.6.1
+**PyPI:** https://pypi.org/project/ai-knowledge-filler  
+**Version:** 0.6.1
