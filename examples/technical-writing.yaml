@@ -1,0 +1,41 @@
+# akf.yaml — Technical Writing Knowledge Base
+# Use case: docs team generating and validating structured documentation
+# at scale — API references, tutorials, release notes, style guides.
+#
+# Usage:
+#   akf init --path ./vault
+#   cp examples/technical-writing.yaml ./vault/akf.yaml
+#   akf generate "Create a tutorial for authenticating with the Payments API"
+
+schema_version: "1.0.0"
+vault_path: "./vault"
+
+taxonomy:
+  type:
+    - concept     # Conceptual overviews, mental models
+    - guide       # Tutorials, how-to articles, quickstarts
+    - reference   # API references, CLI references, config specs
+    - checklist   # Review checklists, publishing gates
+    - template    # Doc templates for consistent structure
+    - audit       # Doc quality audits, coverage gaps
+
+  level:
+    - beginner      # New users, no prior product knowledge
+    - intermediate  # Familiar with product basics
+    - advanced      # Power users, integration builders
+
+  status:
+    - draft
+    - active
+    - completed
+    - archived
+
+  domain:
+    - api-documentation   # Endpoint references, request/response schemas
+    - tutorials           # Step-by-step learning content
+    - quickstarts         # First-run experiences, getting started
+    - release-notes       # Changelogs, deprecation notices
+    - style-guide         # Voice and tone, formatting standards
+    - architecture-docs   # System diagrams, design explanations
+    - troubleshooting     # Error references, debug guides
+    - sdk-documentation   # Client library docs, code samples

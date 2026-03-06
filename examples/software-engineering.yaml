@@ -1,0 +1,46 @@
+# akf.yaml — Software Engineering Knowledge Base
+# Use case: engineering team documenting architecture, APIs, runbooks, and ADRs
+#
+# Usage:
+#   akf init --path ./vault
+#   cp examples/software-engineering.yaml ./vault/akf.yaml
+#   akf generate "Create an ADR for switching from REST to GraphQL"
+
+schema_version: "1.0.0"
+vault_path: "./vault"
+
+taxonomy:
+  type:
+    - concept
+    - guide
+    - reference
+    - checklist
+    - project
+    - roadmap
+    - template
+    - audit
+
+  level:
+    - beginner
+    - intermediate
+    - advanced
+
+  status:
+    - draft
+    - active
+    - completed
+    - archived
+
+  domain:
+    - api-design          # REST, GraphQL, gRPC, versioning, authentication
+    - backend-engineering # Server-side logic, microservices, databases
+    - frontend-engineering # React, Vue, web performance, accessibility
+    - system-design       # Architecture patterns, scalability, distributed systems
+    - devops              # CI/CD, containerization, monitoring, deployment
+    - security            # AppSec, auth, cryptography, compliance
+    - data-engineering    # Pipelines, ETL, warehousing, stream processing
+    - infrastructure      # Cloud (AWS/GCP/Azure), networking, storage
+    - machine-learning    # ML models, training, feature engineering
+    - testing             # Unit, integration, e2e, performance testing
+    - documentation       # Technical writing, API docs, runbooks
+    - project-management  # Planning, sprints, risk, retrospectives

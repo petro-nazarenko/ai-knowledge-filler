@@ -1,0 +1,41 @@
+# akf.yaml — Legal Operations Knowledge Base
+# Use case: legal team building structured internal knowledge with audit trail requirements.
+# Every committed file is schema-validated — consistent structure for document review.
+#
+# Usage:
+#   akf init --path ./vault
+#   cp examples/legal-ops.yaml ./vault/akf.yaml
+#   akf generate "Create a reference for GDPR data subject request handling"
+
+schema_version: "1.0.0"
+vault_path: "./vault"
+
+taxonomy:
+  type:
+    - concept       # Legal definitions, doctrine overviews
+    - guide         # Step-by-step procedures, intake workflows
+    - reference     # Statutory citations, regulatory standards
+    - checklist     # Due diligence, review checklists
+    - template      # Contract templates, NDA structures
+    - audit         # Compliance audits, gap analyses
+
+  level:
+    - beginner      # General counsel onboarding, business stakeholders
+    - intermediate  # In-house legal team
+    - advanced      # External counsel, compliance officers
+
+  status:
+    - draft
+    - active
+    - completed
+    - archived
+
+  domain:
+    - contracts          # Drafting, review, negotiation, lifecycle management
+    - compliance         # Regulatory requirements, internal policy enforcement
+    - privacy            # GDPR, CCPA, data subject rights, breach response
+    - employment-law     # Hiring, termination, IP assignment, equity
+    - intellectual-property # Patents, trademarks, copyrights, licensing
+    - litigation         # Dispute resolution, discovery, holds
+    - corporate-governance # Board matters, entity management, cap table
+    - vendor-management  # MSA, SLA, third-party risk assessment
