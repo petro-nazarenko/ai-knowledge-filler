@@ -226,3 +226,17 @@ updated: 2026-02-10
         finally:
             os.chdir(original_dir)
             shutil.rmtree(temp_dir)
+
+
+def test_sanitize_filename_blocks_path_traversal(tmp_path):
+    """SEC-M2: sanitize_filename must reject path traversal attempts."""
+    from cli import sanitize_filename
+
+    # Normal filename — must pass
+    result = sanitize_filename("guide_docker.md", tmp_path)
+    assert result == tmp_path / "guide_docker.md"
+
+    # Path traversal — Path.name strips directory components, stays inside output_dir
+    for malicious in ["../../etc/passwd", "../secret.md", "/abs/path.md"]:
+        result = sanitize_filename(malicious, tmp_path)
+        assert result.parent == tmp_path

@@ -265,9 +265,20 @@ def extract_filename(content: str, prompt: str) -> str:
     return "_".join(re.sub(r"[^\w\s]", "", prompt).split()[:4]).lower() + ".md"
 
 
+
+def sanitize_filename(filename: str, output_dir: Path) -> Path:
+    """Prevent path traversal in LLM-derived filenames (SEC-M2)."""
+    safe_name = Path(filename).name
+    if not safe_name.endswith(".md"):
+        safe_name = safe_name + ".md"
+    resolved = (output_dir / safe_name).resolve()
+    if not resolved.is_relative_to(output_dir.resolve()):
+        raise ValueError(f"Path traversal detected: {filename!r}")
+    return resolved
+
 def save_file(content: str, filename: str, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
-    filepath = output_dir / filename
+    filepath = sanitize_filename(filename, output_dir)
     if filepath.exists():
         ts = datetime.now().strftime("%H%M%S")
         filepath = output_dir / f"{filepath.stem}_{ts}.md"
@@ -339,7 +350,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
     out_dir = Path(args.output) if args.output else OUTPUT_DIR
     out_dir.mkdir(parents=True, exist_ok=True)
     filename = extract_filename(content, args.prompt)
-    output_path = out_dir / filename
+    output_path = sanitize_filename(filename, out_dir)
     if output_path.exists():
         ts = datetime.now().strftime("%H%M%S")
         output_path = out_dir / f"{output_path.stem}_{ts}.md"
