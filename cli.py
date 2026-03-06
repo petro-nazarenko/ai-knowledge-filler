@@ -223,7 +223,7 @@ def _cmd_generate_batch(args: argparse.Namespace) -> None:
     fail_count = 0
     for item, result in zip(plan, results):
         prompt_text = item.get("prompt", str(item)) if isinstance(item, dict) else str(item)
-        filename = Path(result.path).name if result.path else prompt_text[:40]
+        filename = Path(result.file_path).name if result.file_path else prompt_text[:40]
         attempts = result.attempts or 1
         attempt_label = f"{attempts} attempt{'s' if attempts != 1 else ''}"
         if result.success:
@@ -417,7 +417,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     # ── Output ────────────────────────────────────────────────────────────────
     if commit_result.committed:
-        ok(f"Saved to: {commit_result.path}")
+        ok(f"Saved to: {commit_result.file_path}")
         ok("Validation passed!")
     else:
         # Fallback: save anyway (pre-Phase 2.3 behaviour) and warn

@@ -118,7 +118,7 @@ def generate(request: Request, req: GenerateRequest):
     )
     return GenerateResponse(
         success=result.success,
-        path=str(result.path) if result.path else None,
+        path=str(result.file_path) if result.file_path else None,
         content=result.content,
         attempts=result.attempts,
         errors=[str(e) for e in result.errors],
@@ -157,7 +157,7 @@ def batch(request: Request, req: BatchRequest):
         "results": [
             {
                 "success": r.success,
-                "path": str(r.path) if r.path else None,
+                "path": str(r.file_path) if r.file_path else None,
                 "attempts": r.attempts,
                 "errors": [str(e) for e in r.errors],
                 "generation_id": r.generation_id,

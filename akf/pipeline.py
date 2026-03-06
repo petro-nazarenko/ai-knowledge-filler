@@ -8,7 +8,7 @@ from pathlib import Path
 class GenerateResult:
     success: bool
     content: str
-    path: object = None
+    file_path: object = None
     attempts: int = 0
     errors: list = field(default_factory=list)
     generation_id: str = ""
@@ -27,20 +27,6 @@ class ValidateResult:
         s = "VALID" if self.valid else "INVALID"
         return f"ValidateResult({s}, errors={len(self.errors)}, warnings={len(self.warnings)})"
 
-
-def _inject_schema_version(content: str, version: str = "1.0.0") -> str:
-    """Inject schema_version into YAML frontmatter if absent."""
-    import re
-    if "schema_version" in content:
-        return content
-    # Insert after first ---\n
-    return re.sub(
-        r"^(---\n)",
-        f"---\nschema_version: \"{version}\"\n",
-        content,
-        count=1,
-        flags=re.MULTILINE,
-    )
 
 
 
@@ -65,6 +51,8 @@ class Pipeline:
         self.output_dir = Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
         self.telemetry_path = Path(telemetry_path).expanduser() if telemetry_path else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
         self._system_prompt = None
+        self.writer = None
+        self.model_name = model
 
     def _log(self, msg):
         if self.verbose:
@@ -177,11 +165,11 @@ class Pipeline:
         )
         if commit_result.committed:
             self._log(f"Saved: {commit_result.path}")
-            return GenerateResult(success=True, content=content, path=commit_result.path,
+            return GenerateResult(success=True, content=content, file_path=commit_result.path,
                 attempts=total_attempts, generation_id=generation_id, duration_ms=total_duration_ms)
         else:
             output_path.write_text(content, encoding="utf-8")
-            return GenerateResult(success=False, content=content, path=output_path,
+            return GenerateResult(success=False, content=content, file_path=output_path,
                 attempts=total_attempts, errors=commit_result.blocking_errors,
                 generation_id=generation_id, duration_ms=total_duration_ms)
 

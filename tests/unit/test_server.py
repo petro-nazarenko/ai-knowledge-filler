@@ -56,7 +56,7 @@ def _make_result(success=True, idx=0):
     return GenerateResult(
         success=success,
         content=VALID_CONTENT,
-        path=Path(f"/tmp/test_{idx}.md"),
+        file_path=Path(f"/tmp/test_{idx}.md"),
         attempts=1,
         errors=[],
         generation_id=f"test-uuid-{idx}",

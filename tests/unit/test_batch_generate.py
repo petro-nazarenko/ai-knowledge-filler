@@ -23,7 +23,7 @@ def _make_result(success: bool, path: Path, attempts: int = 1) -> GenerateResult
     return GenerateResult(
         success=success,
         content="",
-        path=path,
+        file_path=path,
         attempts=attempts,
         errors=[] if success else ["E005 domain mismatch"],
         generation_id="gen-test",

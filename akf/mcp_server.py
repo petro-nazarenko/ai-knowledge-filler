@@ -137,7 +137,7 @@ def akf_batch(
         "failed": len(results) - ok,
         "results": [
             {
-                "prompt": str(plan[i].get("prompt", ""))[:50],
+                "prompt": str(plan[i].get("prompt", "") if isinstance(plan[i], dict) else plan[i])[:50],
                 "success": r.success,
                 "file_path": str(r.file_path) if r.file_path else None,
                 "attempts": r.attempts,

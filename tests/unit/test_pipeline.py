@@ -75,7 +75,7 @@ class TestGenerateResult:
 
     def test_defaults(self):
         r = GenerateResult(success=True, content="x")
-        assert r.path is None
+        assert r.file_path is None
         assert r.errors == []
         assert r.generation_id == ""
         assert r.duration_ms == 0
@@ -195,8 +195,8 @@ class TestPipelineGenerate:
         with patch("akf.pipeline.Pipeline._load_system_prompt", return_value="sys"):
             with patch("llm_providers.get_provider", return_value=make_mock_provider()):
                 result = p.generate("Create a test guide")
-        if result.path:
-            assert Path(result.path).exists()
+        if result.file_path:
+            assert Path(result.file_path).exists()
 
     def test_generate_custom_output(self, tmp_path):
         custom = tmp_path / "custom"
@@ -204,8 +204,8 @@ class TestPipelineGenerate:
         with patch("akf.pipeline.Pipeline._load_system_prompt", return_value="sys"):
             with patch("llm_providers.get_provider", return_value=make_mock_provider()):
                 result = p.generate("Test", output=str(custom))
-        if result.path:
-            assert str(custom) in str(result.path)
+        if result.file_path:
+            assert str(custom) in str(result.file_path)
 
     def test_generate_result_has_generation_id(self, tmp_path):
         p = Pipeline(output=str(tmp_path), verbose=False)
