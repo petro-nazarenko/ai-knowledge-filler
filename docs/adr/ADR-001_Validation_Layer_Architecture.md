@@ -42,7 +42,7 @@ from akf import Pipeline
 
 pipeline = Pipeline(output="./vault/")
 result = pipeline.generate("Create a guide on Docker networking")
-# result.success, result.path, result.content, result.attempts
+# result.success, result.file_path, result.content, result.attempts
 ```
 
 The `Pipeline` class wraps the full repair loop with zero logic duplication. Same `run_retry_loop`, `akf_commit`, `validate` stack — exposed as a Python API.

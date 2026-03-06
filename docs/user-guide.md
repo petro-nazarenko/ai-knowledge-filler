@@ -221,7 +221,7 @@ pipeline = Pipeline(output="./docs")
 
 # Generate new file
 result = pipeline.generate("Create a guide for JWT authentication")
-print(result.path)
+print(result.file_path)
 
 # Enrich existing file
 result = pipeline.enrich("docs/old-note.md")
