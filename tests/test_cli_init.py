@@ -42,3 +42,40 @@ class TestCmdInit:
         (tmp_path / "akf.yaml").write_text("original\n")
         cmd_init(Args(path=str(tmp_path), force=True))
         assert "taxonomy" in (tmp_path / "akf.yaml").read_text()
+
+
+def test_init_force_creates_backup(tmp_path):
+    """SEC-L2: --force must create .bak before overwrite."""
+    from unittest.mock import patch, MagicMock
+    import shutil
+    from pathlib import Path
+
+    # Create existing akf.yaml
+    existing = tmp_path / "akf.yaml"
+    existing.write_text("original content")
+
+    args = MagicMock()
+    args.path = str(tmp_path)
+    args.force = True
+
+    with patch("cli.Path") as mock_path, \
+         patch("shutil.copy") as mock_copy, \
+         patch("akf.__file__", str(tmp_path / "akf/__init__.py")):
+        pass  # Use real implementation
+
+    # Real test via CLI directly
+    import sys, importlib
+    cli = importlib.import_module("cli")
+
+    args2 = MagicMock()
+    args2.path = str(tmp_path)
+    args2.force = True
+
+    try:
+        cli.cmd_init(args2)
+    except SystemExit:
+        pass
+
+    backup = tmp_path / "akf.yaml.bak"
+    assert backup.exists(), "Backup file must be created on --force"
+    assert backup.read_text() == "original content"

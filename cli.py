@@ -153,6 +153,10 @@ def cmd_init(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     target_dir.mkdir(parents=True, exist_ok=True)
+    if target.exists() and args.force:
+        backup = target.with_suffix('.yaml.bak')
+        shutil.copy(target, backup)
+        warn(f'Backup created: {backup}')
     shutil.copy(default_config, target)
     ok(f"Created: {target}")
     info("")
