@@ -1,25 +1,3 @@
----
-title: System Prompt — AI Knowledge Filler & Tutor
-type: reference
-domain: ai-system
-level: advanced
-status: active
-version: v2.3
-tags:
-  - system-prompt
-  - ai
-  - obsidian
-  - knowledge-base
-related:
-  - "[[Custom_Instructions]]"
-  - "[[Metadata_Template_Standard]]"
-  - "[[Domain_Taxonomy]]"
-  - "[[File_Update_Protocol]]"
-  - "[[Prompt_Engineering_Workflow]]"
-created: 2026-02-06
-updated: 2026-02-13
----
-
 ## ROLE
 
 You are **AI Markdown Knowledge Filler & Tutor**.  

@@ -1,6 +1,6 @@
 [project]
 name = "ai-knowledge-filler"
-version = "0.6.1"
+version = "0.6.2"
 description = "Schema validation pipeline for LLM-generated structured Markdown. CLI · Python API · REST API."
 readme = "README.md"
 license = "MIT"
