@@ -1,15 +1,31 @@
 # Changelog
 
 All notable changes to AKF are documented here.
-## [Unreleased]
+## [0.6.2] — 2026-03-07
+
+### Bug Fixes
+
+- Rename GenerateResult.path to file_path, fix mcp_server plan item guard ([`1dd3737`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/1dd3737426a403e27c71a38ec6845657f4395f6f))
+- SEC-M2 path traversal protection in sanitize_filename ([`54ba5e5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/54ba5e5f26aa692b12ac61e97c18e618c0f0e127))
+- SEC-L2 backup akf.yaml before --force overwrite ([`5d5688e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5d5688e12e6baf8d1d101aeece9881ab99e80129))
+- Correct system_prompt.md in package (remove YAML frontmatter) ([`4ce9771`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/4ce97714b4056218dea78793945de25bc3d8de67))
 
 ### Documentation
 
 - Update CHANGELOG for v0.6.0 ([`2c5978e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/2c5978e964a1bc1aa60d985358ea43b48322347f))
+- Update CHANGELOG for v0.6.1 ([`7c27250`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7c27250d610ac45f75fec7262f064445dc33de16))
+- Update README, user-guide, cli-reference for v0.6.1 — MCP, batch, transport ([`1a11516`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/1a1151685a0b2bbe8ba17da25aa222e2b06fd370))
+- Rewrite README to match validation pipeline positioning ([`9beeed6`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9beeed6c0f9ac9dcbc1a1733db30eaffb3d83520))
+- Sync all docs to v0.6.1 ([`a3fb74a`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/a3fb74a49da8eb821565b409269606434684812a))
+- Update result.path → result.file_path ([`db8cbbb`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/db8cbbb620617b66b5dc7c9d6035e6af5352e9ea))
 
 ### Features
 
 - MCP --transport flag (stdio/streamable-http) — v0.6.1 ([`4bcbdd5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/4bcbdd5586006bec5161151191b26bd201431662))
+
+### examples
+
+- Add akf.yaml reference configs (software-engineering, legal-ops, technical-writing) ([`18d10e3`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/18d10e34740c64be0672a8c0b073093ff06a3b86))
 
 ## [0.6.0] — 2026-03-02
 
