@@ -235,9 +235,9 @@ class TelemetryWriter:
             TypeError: if event is not a recognized type.
             OSError: if file cannot be written.
         """
-        if not isinstance(event, (GenerationAttemptEvent, GenerationSummaryEvent)):
+        if not isinstance(event, (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent)):
             raise TypeError(
-                f"Expected GenerationAttemptEvent or GenerationSummaryEvent, "
+                f"Expected GenerationAttemptEvent, GenerationSummaryEvent, or EnrichEvent, "
                 f"got {type(event).__name__}"
             )
 

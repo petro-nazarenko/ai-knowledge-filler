@@ -194,7 +194,7 @@ class ClaudeProvider(LLMProvider):
 
     @property
     def model_name(self) -> str:
-        return "claude-sonnet-4-20250514"
+        return "claude-sonnet-4-5-20251001"
 
 
 # ─── GEMINI PROVIDER ──────────────────────────────────────────────────────────
@@ -265,7 +265,7 @@ class GeminiProvider(LLMProvider):
 
     @property
     def model_name(self) -> str:
-        return "gemini-3-flash-preview"
+        return "gemini-2.0-flash"
 
 
 # ─── OPENAI PROVIDER ──────────────────────────────────────────────────────────

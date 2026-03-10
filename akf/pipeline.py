@@ -78,7 +78,7 @@ class Pipeline:
     @staticmethod
     def _extract_filename(content, prompt):
         import re
-        match = re.search(r'title:\s*["\'\']?(.+?)["\'\']?\s*\n', content)
+        match = re.search(r'title:\s*["\'']?(.+?)["\'']?\s*\n', content)
         if match:
             title = match.group(1).strip().strip("\"'")
             name = re.sub(r"[\s-]+", "_", re.sub(r"[^\w\s-]", "", title))
