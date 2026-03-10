@@ -1,7 +1,7 @@
 """
-tests/test_validator.py — Phase 2.4 validator tests
+tests/test_validator.py — Phase 2.4/2.5 validator tests
 
-Covers CANON-DEFER-001/002/003 changes only.
+Covers CANON-DEFER-001/002/003 changes and typed relationships (E008).
 Existing Phase 2.2/2.3 tests remain untouched.
 
 Fixtures use reset_config() to isolate config state between tests.
@@ -15,8 +15,9 @@ from pathlib import Path
 import pytest
 
 from akf.config import reset_config, load_config, get_config
+from akf.error_normalizer import normalize_errors
 from akf.validator import validate
-from akf.validation_error import ErrorCode
+from akf.validation_error import ErrorCode, Severity
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -40,7 +41,12 @@ def make_doc(**overrides) -> str:
         if isinstance(v, list):
             lines.append(f"{k}:")
             for item in v:
-                lines.append(f"  - {item}")
+                # Always quote strings so YAML doesn't misparse [[WikiLinks]]
+                # as flow sequences.
+                if isinstance(item, str):
+                    lines.append(f'  - "{item}"')
+                else:
+                    lines.append(f"  - {item}")
         else:
             lines.append(f"{k}: {v}")
     lines += ["---", "", "# Body"]
@@ -385,3 +391,175 @@ class TestValidDocumentEndToEnd:
         """)
         errors = validate(doc)
         assert errors == [], f"Unexpected errors: {errors}"
+
+
+# ─── E008: typed relationship validation ─────────────────────────────────────
+
+
+class TestTypedRelationships:
+    """Tests for E008_INVALID_RELATIONSHIP_TYPE (Phase 2.5)."""
+
+    def test_untyped_link_is_valid(self):
+        """[[Note Name]] without type always passes."""
+        doc = make_doc(related=["[[Some Note]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_implements(self):
+        doc = make_doc(related=["[[Auth Service|implements]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_requires(self):
+        doc = make_doc(related=["[[Base Schema|requires]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_extends(self):
+        doc = make_doc(related=["[[Base Pattern|extends]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_references(self):
+        doc = make_doc(related=["[[RFC 7231|references]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_supersedes(self):
+        doc = make_doc(related=["[[Old Design|supersedes]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_valid_typed_link_part_of(self):
+        doc = make_doc(related=["[[Parent System|part-of]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_invalid_typed_link_emits_e008(self):
+        """[[Note|unknown-type]] → E008."""
+        doc = make_doc(related=["[[Some Note|unknown-type]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 1
+        assert rel_errors[0].severity == Severity.ERROR
+
+    def test_invalid_typed_link_received_contains_link(self):
+        """E008 received field includes the full [[Note|type]] string."""
+        doc = make_doc(related=["[[My Note|invalid]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 1
+        assert "[[My Note|invalid]]" == rel_errors[0].received
+
+    def test_invalid_typed_link_expected_contains_valid_types(self):
+        """E008 expected field lists the allowed relationship types."""
+        doc = make_doc(related=["[[X|bogus]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert isinstance(rel_errors[0].expected, list)
+        assert "implements" in rel_errors[0].expected
+
+    def test_mixed_valid_and_invalid_typed_links(self):
+        """One valid typed + one invalid typed → exactly one E008."""
+        doc = make_doc(related=["[[Good Note|implements]]", "[[Bad Note|invented]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 1
+
+    def test_multiple_invalid_typed_links(self):
+        """Two invalid typed links → two E008 errors."""
+        doc = make_doc(related=["[[A|bad1]]", "[[B|bad2]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 2
+
+    def test_untyped_and_typed_mixed_all_valid(self):
+        """Untyped + typed valid links → no E008."""
+        doc = make_doc(related=["[[Plain Note]]", "[[Other|requires]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_custom_config_with_custom_relationship_types(self, tmp_path: Path):
+        """Custom relationship_types in config overrides defaults."""
+        cfg_file = tmp_path / "akf.yaml"
+        cfg_file.write_text(
+            "taxonomy:\n  domains:\n    - ai-system\n"
+            "relationship_types:\n  - uses\n  - defines\n",
+            encoding="utf-8",
+        )
+        reset_config()
+        get_config(path=cfg_file)
+
+        doc = make_doc(related=["[[A|uses]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_custom_config_rejects_default_type_not_in_custom_list(self, tmp_path: Path):
+        """Default types like 'implements' rejected if not in custom list."""
+        cfg_file = tmp_path / "akf.yaml"
+        cfg_file.write_text(
+            "taxonomy:\n  domains:\n    - ai-system\n"
+            "relationship_types:\n  - uses\n",
+            encoding="utf-8",
+        )
+        reset_config()
+        get_config(path=cfg_file)
+
+        doc = make_doc(related=["[[A|implements]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 1
+
+    def test_e008_is_blocking_error(self):
+        """E008 must have ERROR severity — blocks commit."""
+        doc = make_doc(related=["[[A|totally-wrong]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors[0].severity == Severity.ERROR
+
+    def test_e008_field_is_related(self):
+        """E008 reports field='related'."""
+        doc = make_doc(related=["[[A|bad]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors[0].field == "related"
+
+    def test_untyped_link_backward_compat_no_e008(self):
+        """Backward compat: existing [[Note Name]] docs never get E008."""
+        doc = make_doc(related=["[[LLM_Output_Validation_Pipeline_Architecture]]",
+                                 "[[Prompt_Engineering_Techniques]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert rel_errors == []
+
+    def test_e008_normalizer_renders_instruction(self):
+        """E008 errors appear in RetryPayload with correct instruction text."""
+        doc = make_doc(related=["[[A|garbage]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        assert len(rel_errors) == 1
+        payload = normalize_errors(rel_errors)
+        assert payload.has_blocking_errors
+        assert len(payload.instructions) == 1
+        instruction = payload.instructions[0]
+        assert "relationship_type" in instruction
+        assert "implements" in instruction
+
+    def test_e008_normalizer_prompt_text(self):
+        """to_prompt_text() includes the E008 instruction."""
+        doc = make_doc(related=["[[X|not-a-type]]"])
+        errors = validate(doc)
+        rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
+        payload = normalize_errors(rel_errors)
+        text = payload.to_prompt_text()
+        assert "VALIDATION ERRORS" in text
+        assert "relationship_type" in text

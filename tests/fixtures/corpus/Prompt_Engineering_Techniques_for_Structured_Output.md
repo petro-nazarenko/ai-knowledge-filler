@@ -7,8 +7,8 @@ status: active
 version: v1.0
 tags: [prompt-engineering, structured-output, llm, ai-system, techniques]
 related:
-  - "[[Schema_as_Contract_Pattern]]"
-  - "[[LLM_Context_Window_Management]]"
+  - "[[Schema_as_Contract_Pattern|requires]]"
+  - "[[LLM_Context_Window_Management|references]]"
   - "[[Chain_of_Thought_Reasoning]]"
 created: 2026-03-10
 updated: 2026-03-10

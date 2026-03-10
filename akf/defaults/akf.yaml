@@ -52,3 +52,13 @@ enums:
     - active
     - completed
     - archived
+
+# Valid relationship type labels for [[Note|type]] syntax in the related field.
+# Untyped links [[Note]] remain valid regardless of this list.
+relationship_types:
+  - implements
+  - requires
+  - extends
+  - references
+  - supersedes
+  - part-of

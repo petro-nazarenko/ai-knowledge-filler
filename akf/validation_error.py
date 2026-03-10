@@ -16,6 +16,7 @@ class ErrorCode(str, Enum):
     SCHEMA_VIOLATION = "E005_SCHEMA_VIOLATION"
     TAXONOMY_VIOLATION = "E006_TAXONOMY_VIOLATION"
     DATE_SEQUENCE = "E007_DATE_SEQUENCE"  # created > updated semantic violation
+    INVALID_RELATIONSHIP_TYPE = "E008_INVALID_RELATIONSHIP_TYPE"
 
 
 class Severity(str, Enum):
@@ -117,5 +118,18 @@ def date_sequence_violation(created: Any, updated: Any) -> ValidationError:
         field="created/updated",
         expected=f"created ({created}) <= updated ({updated})",
         received=f"created ({created}) > updated ({updated})",
+        severity=Severity.ERROR,
+    )
+
+
+def invalid_relationship_type(
+    link: str, rel_type: str, valid_types: list
+) -> ValidationError:
+    """Construct E008 error for an unrecognized typed relationship."""
+    return ValidationError(
+        code=ErrorCode.INVALID_RELATIONSHIP_TYPE,
+        field="related",
+        expected=valid_types,
+        received=f"[[{link}|{rel_type}]]",
         severity=Severity.ERROR,
     )

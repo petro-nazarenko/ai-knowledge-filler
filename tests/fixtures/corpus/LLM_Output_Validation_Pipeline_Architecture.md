@@ -7,8 +7,8 @@ status: active
 version: v1.0
 tags: [llm, validation, pipeline, architecture, ai-engineering]
 related:
-  - "[[Schema_as_Contract_Pattern]]"
-  - "[[Deterministic_Retry_Logic]]"
+  - "[[Schema_as_Contract_Pattern|extends]]"
+  - "[[Deterministic_Retry_Logic|requires]]"
   - "[[AI_Pipeline_Reliability_Audit]]"
 created: 2026-03-10
 updated: 2026-03-10

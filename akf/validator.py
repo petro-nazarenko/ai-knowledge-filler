@@ -12,6 +12,7 @@ Enforces:
   - Date format ISO 8601 (E003)
   - created ≤ updated (E007) — CANON-DEFER-002 ✅
   - Tags array min 3 items (E004)
+  - Typed related links [[Note|type]] validated against allowed types (E008)
 
 Changelog:
   - Phase 2.2 (Model C): E006 promoted to error, E001–E006 enforced
@@ -19,6 +20,8 @@ Changelog:
       CANON-DEFER-001: enums + taxonomy loaded from get_config() (akf.yaml)
       CANON-DEFER-002: created ≤ updated semantic constraint (E007)
       CANON-DEFER-003: title isinstance str enforcement (E004)
+  - Phase 2.5 (Model E):
+      Typed relationships: [[Note|type]] syntax with E008_INVALID_RELATIONSHIP_TYPE
 """
 
 import re
@@ -36,6 +39,7 @@ from akf.validation_error import (
     date_sequence_violation,
     invalid_date_format,
     invalid_enum,
+    invalid_relationship_type,
     missing_field,
     taxonomy_violation,
     type_mismatch,
@@ -53,6 +57,10 @@ REQUIRED_FIELDS = [
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 TAGS_MIN = 3
+
+# Matches [[Note Name]] (untyped) or [[Note Name|rel-type]] (typed).
+# Group 1: note name; Group 2: relationship type (optional).
+_RELATED_LINK_RE = re.compile(r"^\[\[([^\|\]]+?)(?:\|([^\]]+))?\]\]$")
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +100,7 @@ def validate(document: str, taxonomy_path: Path | None = None) -> list[Validatio
     errors.extend(_check_taxonomy(metadata, valid_domains))
     errors.extend(_check_dates(metadata))                # includes CANON-DEFER-002
     errors.extend(_check_tags(metadata))
-    errors.extend(_check_related(metadata))              # WARNING: recommended field
+    errors.extend(_check_related(metadata, cfg))         # WARNING + E008 typed links
 
     return errors
 
@@ -255,8 +263,26 @@ def _check_tags(metadata: dict) -> list[ValidationError]:
     return []
 
 
-def _check_related(metadata: dict) -> list[ValidationError]:
-    """W001: related field missing or empty — warning only, never blocks commit."""
+def _check_related(metadata: dict, cfg=None) -> list[ValidationError]:
+    """
+    Validate the related field.
+
+    W001: field missing or empty — warning only, never blocks commit.
+    E008: typed link [[Note|type]] uses an unrecognized relationship type.
+
+    Untyped links [[Note]] are always valid (backward compatible).
+
+    Args:
+        metadata: Parsed frontmatter dict.
+        cfg:      AKFConfig providing relationship_types; loaded via get_config()
+                  if not supplied.
+
+    Returns:
+        List of ValidationError (W001 warnings and/or E008 errors).
+    """
+    if cfg is None:
+        cfg = get_config()
+
     related = metadata.get("related")
     if not related:
         return [ValidationError(
@@ -266,7 +292,22 @@ def _check_related(metadata: dict) -> list[ValidationError]:
             received="absent" if related is None else "empty list",
             severity=Severity.WARNING,
         )]
-    return []
+
+    errors: list[ValidationError] = []
+    valid_types = cfg.relationship_types
+
+    for item in related:
+        if not isinstance(item, str):
+            continue
+        match = _RELATED_LINK_RE.match(item.strip())
+        if match is None:
+            continue  # not a WikiLink — ignore (not our schema to enforce here)
+        note_name = match.group(1)
+        rel_type = match.group(2)
+        if rel_type is not None and rel_type not in valid_types:
+            errors.append(invalid_relationship_type(note_name, rel_type, valid_types))
+
+    return errors
 
 
 # ---------------------------------------------------------------------------
