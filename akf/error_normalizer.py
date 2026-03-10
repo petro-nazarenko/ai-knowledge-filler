@@ -88,13 +88,14 @@ def normalize_errors(errors: list[ValidationError]) -> RetryPayload:
 
 def _render_instruction(error: ValidationError) -> str:
     renderers = {
-        ErrorCode.INVALID_ENUM:        _render_invalid_enum,
-        ErrorCode.MISSING_FIELD:       _render_missing_field,
-        ErrorCode.INVALID_DATE_FORMAT: _render_invalid_date_format,
-        ErrorCode.TYPE_MISMATCH:       _render_type_mismatch,
-        ErrorCode.SCHEMA_VIOLATION:    _render_schema_violation,
-        ErrorCode.TAXONOMY_VIOLATION:  _render_taxonomy_violation,
-        ErrorCode.DATE_SEQUENCE:        _render_date_sequence,
+        ErrorCode.INVALID_ENUM:              _render_invalid_enum,
+        ErrorCode.MISSING_FIELD:             _render_missing_field,
+        ErrorCode.INVALID_DATE_FORMAT:       _render_invalid_date_format,
+        ErrorCode.TYPE_MISMATCH:             _render_type_mismatch,
+        ErrorCode.SCHEMA_VIOLATION:          _render_schema_violation,
+        ErrorCode.TAXONOMY_VIOLATION:        _render_taxonomy_violation,
+        ErrorCode.DATE_SEQUENCE:             _render_date_sequence,
+        ErrorCode.INVALID_RELATIONSHIP_TYPE: _render_invalid_relationship_type,
     }
     renderer = renderers.get(error.code, _render_generic)
     return renderer(error)
@@ -170,6 +171,16 @@ def _render_date_sequence(e: ValidationError) -> str:
         f"Field `created`/`updated`: the `created` date must not be after `updated`.\n"
         f"   {e.received}\n"
         f"   Set `updated` to a date >= `created`. Do not modify any other fields."
+    )
+
+
+def _render_invalid_relationship_type(e: ValidationError) -> str:
+    valid_str = _format_list(e.expected)
+    return (
+        f"Field `related`: relationship_type must be one of: {valid_str}.\n"
+        f"   You provided: {e.received!r}.\n"
+        f"   Use [[Note|type]] format with a valid type, or [[Note]] without type.\n"
+        f"   Do not modify any other fields."
     )
 
 

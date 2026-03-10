@@ -7,8 +7,8 @@ status: active
 version: v1.0
 tags: [schema, contract, structured-output, llm, validation]
 related:
-  - "[[LLM_Output_Validation_Pipeline_Architecture]]"
-  - "[[Prompt_Engineering_Techniques]]"
+  - "[[LLM_Output_Validation_Pipeline_Architecture|implements]]"
+  - "[[Prompt_Engineering_Techniques|requires]]"
   - "[[Deterministic_Retry_Logic]]"
 created: 2026-03-10
 updated: 2026-03-10

@@ -6,9 +6,9 @@ level: advanced
 status: active
 tags: [chain-of-thought, reasoning, ai-agents, prompting, llm]
 related:
-  - "[[Prompt_Engineering_Techniques_for_Structured_Output]]"
+  - "[[Prompt_Engineering_Techniques_for_Structured_Output|supersedes]]"
   - "[[LLM_Context_Window_Management]]"
-  - "[[LLM_Output_Validation_Pipeline_Architecture]]"
+  - "[[LLM_Output_Validation_Pipeline_Architecture|references]]"
 created: 2026-03-10
 updated: 2026-03-10
 ---

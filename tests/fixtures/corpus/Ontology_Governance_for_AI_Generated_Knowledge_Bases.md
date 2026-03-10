@@ -6,8 +6,8 @@ level: advanced
 status: active
 tags: [ontology, governance, knowledge-base, taxonomy, ai-system]
 related:
-  - "[[Domain_Taxonomy]]"
-  - "[[Knowledge_Management_Architecture]]"
+  - "[[Domain_Taxonomy|part-of]]"
+  - "[[Knowledge_Management_Architecture|extends]]"
   - "[[Schema_as_Contract_Pattern]]"
 created: 2026-03-10
 updated: 2026-03-10

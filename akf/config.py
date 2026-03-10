@@ -31,6 +31,15 @@ import yaml
 # Canonical defaults — mirrored in akf/defaults/akf.yaml
 # These are the single source of truth when no config file is found.
 
+_DEFAULT_RELATIONSHIP_TYPES: list[str] = [
+    "implements",
+    "requires",
+    "extends",
+    "references",
+    "supersedes",
+    "part-of",
+]
+
 _DEFAULT_DOMAINS: list[str] = [
     "ai-system",
     "api-design",
@@ -92,13 +101,17 @@ class AKFConfig:
     Resolved AKF configuration.
 
     Attributes:
-        domains:        Valid values for the `domain` metadata field.
-        enums:          Valid values for `type`, `level`, and `status` fields.
-        schema_version: Version of the akf.yaml schema used.
-        source:         Path to the loaded config file, or None if using defaults.
+        domains:             Valid values for the `domain` metadata field.
+        enums:               Valid values for `type`, `level`, and `status` fields.
+        relationship_types:  Valid typed relationship labels for the `related` field.
+        schema_version:      Version of the akf.yaml schema used.
+        source:              Path to the loaded config file, or None if using defaults.
     """
     domains: list[str] = field(default_factory=lambda: list(_DEFAULT_DOMAINS))
     enums: AKFEnums = field(default_factory=AKFEnums)
+    relationship_types: list[str] = field(
+        default_factory=lambda: list(_DEFAULT_RELATIONSHIP_TYPES)
+    )
     schema_version: str = "1.0.0"
     source: Optional[Path] = None
 
@@ -131,6 +144,7 @@ def _defaults() -> AKFConfig:
             level=list(_DEFAULT_ENUMS["level"]),
             status=list(_DEFAULT_ENUMS["status"]),
         ),
+        relationship_types=list(_DEFAULT_RELATIONSHIP_TYPES),
         schema_version="1.0.0",
         source=None,
     )
@@ -170,9 +184,17 @@ def _parse_yaml(path: Path) -> AKFConfig:
         status=_enum("status"),
     )
 
+    # ── relationship_types ────────────────────────────────────────────────────
+    rel_types_raw = raw.get("relationship_types", None)
+    if isinstance(rel_types_raw, list) and rel_types_raw:
+        relationship_types = [str(r) for r in rel_types_raw]
+    else:
+        relationship_types = list(_DEFAULT_RELATIONSHIP_TYPES)
+
     return AKFConfig(
         domains=domains,
         enums=enums,
+        relationship_types=relationship_types,
         schema_version=schema_version,
         source=path.resolve(),
     )

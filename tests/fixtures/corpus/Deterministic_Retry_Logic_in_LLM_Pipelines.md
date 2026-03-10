@@ -7,8 +7,8 @@ status: active
 version: v1.0
 tags: [retry, llm, pipeline, determinism, error-handling]
 related:
-  - "[[LLM_Output_Validation_Pipeline_Architecture]]"
-  - "[[Schema_as_Contract_Pattern]]"
+  - "[[LLM_Output_Validation_Pipeline_Architecture|implements]]"
+  - "[[Schema_as_Contract_Pattern|references]]"
   - "[[AI_Pipeline_Reliability_Audit]]"
 created: 2026-03-10
 updated: 2026-03-10
