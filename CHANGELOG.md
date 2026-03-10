@@ -1,6 +1,23 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [0.7.0] — 2026-03-10
+
+### Features
+
+- Three-stage market analysis pipeline (`akf/market_pipeline.py`):
+  - Stage 1: Market analysis — size, trends, segments, customer landscape, regulatory factors
+  - Stage 2: Competitor comparison — key players, SWOT, comparison matrix, whitespace detection
+  - Stage 3: Positioning determination — USP, messaging pillars, go-to-market, risk mitigations
+  - Each stage passes context to the next; downstream stages auto-skip on upstream failure
+  - Stage 3 guards require both market and competitor context (only runs when market request is present)
+- New CLI command: `akf market-analysis "<request>"` with `--model`, `--output`, `--stages` flags
+
+### Tests
+
+- 32 new tests for `MarketAnalysisPipeline` (92% coverage on the new module)
+- Covers: full pipeline success, cascade failure, empty-request guard, path traversal, safe filenames
+
 ## [0.6.2] — 2026-03-07
 
 ### Bug Fixes

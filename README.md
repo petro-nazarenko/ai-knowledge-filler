@@ -110,12 +110,67 @@ When a domain value triggers elevated retries, the taxonomy has a **boundary pro
 
 ---
 
+## Market Analysis Pipeline
+
+Run a three-stage AI research pipeline that produces structured, validated Markdown reports:
+
+```
+Market Request → Stage 1: Market Analysis
+                         ↓ (context)
+               Stage 2: Competitor Comparison
+                         ↓ (context)
+               Stage 3: Positioning Determination
+```
+
+Each stage feeds its output as context into the next. If an earlier stage fails, downstream stages are automatically skipped.
+
+```bash
+# Full pipeline (all 3 stages)
+akf market-analysis "B2B SaaS project management tools for SMEs"
+
+# Select LLM and output directory
+akf market-analysis "EdTech market in Eastern Europe" --model claude --output ./reports/
+
+# Run only the market analysis stage
+akf market-analysis "Fintech payments" --stages market
+```
+
+**What each stage produces:**
+
+| Stage | Report | Key sections |
+|-------|--------|-------------|
+| 1 — Market Analysis | `market_analysis_*.md` | Size & CAGR, segments, customer pain points, tech trends, regulatory factors |
+| 2 — Competitor Analysis | `market_competitors_*.md` | Key players, SWOT per player, comparison matrix, whitespace / gaps |
+| 3 — Positioning | `market_positioning_*.md` | USP, positioning statement, messaging pillars, differentiation, go-to-market |
+
+**Python API:**
+
+```python
+from akf.market_pipeline import MarketAnalysisPipeline
+
+pipeline = MarketAnalysisPipeline(output="./reports/", model="claude")
+result = pipeline.analyze("B2B SaaS project management tools for SMEs")
+
+for fp in result.files:
+    print(fp)  # three validated Markdown files
+
+# Run individual stages
+stage1 = pipeline.analyze_market(request)
+stage2 = pipeline.analyze_competitors(request, stage1.content)
+stage3 = pipeline.determine_positioning(request, stage1.content, stage2.content)
+```
+
+Stage 3 requires a concrete market request — it validates that both market and competitor context are present before calling the LLM.
+
+---
+
 ## Interfaces
 
 **CLI:**
 ```bash
 akf generate "Create a guide on API rate limiting"
 akf generate "Create Docker security checklist" --model gemini
+akf market-analysis "B2B SaaS tools for SMEs" --output ./reports/
 akf validate ./vault/
 akf validate --file outputs/Guide.md
 akf serve --port 8000        # REST API
@@ -125,6 +180,7 @@ akf serve --mcp              # MCP server (v0.6.x)
 **Python API:**
 ```python
 from akf import Pipeline
+from akf.market_pipeline import MarketAnalysisPipeline
 
 pipeline = Pipeline(output="./vault/")
 result = pipeline.generate("Create a guide on Docker networking")
@@ -139,7 +195,7 @@ POST /v1/batch       →  multiple files
 GET  /v1/models      →  available providers
 ```
 
-**MCP** (v0.6.x, in progress):
+**MCP** (v0.6.x):
 ```bash
 akf serve --mcp
 # Exposes: akf_generate, akf_validate, akf_enrich, akf_batch
@@ -194,6 +250,7 @@ updated: 2026-03-06
 ```
 akf/
   pipeline.py          # Pipeline — generate(), validate(), batch_generate()
+  market_pipeline.py   # MarketAnalysisPipeline — 3-stage market analysis
   validator.py         # Validation Engine — binary VALID/INVALID, E001–E007
   validation_error.py  # ValidationError dataclass
   error_normalizer.py  # Translates errors → LLM retry instructions
@@ -207,7 +264,7 @@ akf/
     akf.yaml           # Default taxonomy
 
 cli.py                 # Entry point
-llm_providers.py       # Claude / Gemini / GPT-4 / Ollama
+llm_providers.py       # Claude / Gemini / GPT-4 / Groq / Ollama
 ```
 
 ---
@@ -266,5 +323,5 @@ MIT — free for commercial and personal use.
 
 ---
 
-**PyPI:** https://pypi.org/project/ai-knowledge-filler  
-**Version:** 0.6.1
+**PyPI:** https://pypi.org/project/ai-knowledge-filler
+**Version:** 0.7.0
