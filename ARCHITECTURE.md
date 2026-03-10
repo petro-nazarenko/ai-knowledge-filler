@@ -4,19 +4,19 @@ type: reference
 domain: akf-core
 level: advanced
 status: active
-version: v0.6.1
+version: v1.0.0
 tags: [architecture, pipeline, api, public-api, semver, modules]
 related:
   - "docs/cli-reference.md"
   - "docs/user-guide.md"
   - "CONTRIBUTING.md"
 created: 2026-02-06
-updated: 2026-03-06
+updated: 2026-03-10
 ---
 
 # AKF Architecture
 
-**ai-knowledge-filler** · v0.5.2 · [CHANGELOG](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md)
+**ai-knowledge-filler** · v1.0.0 · [CHANGELOG](CHANGELOG.md) · [CONTRIBUTING](CONTRIBUTING.md)
 
 ---
 
@@ -240,6 +240,7 @@ akf/
   config.py            get_config() — loads akf.yaml or defaults
   server.py            FastAPI REST API
   mcp_server.py        MCP server (FastMCP) — akf_generate, akf_validate, akf_enrich, akf_batch
+  market_pipeline.py   Three-stage market analysis pipeline (market → competitors → positioning)
   defaults/akf.yaml    Default taxonomy + enums
 
 cli.py                 Entry point
@@ -271,11 +272,11 @@ The following are internal and may change without a MAJOR increment:
 
 ## Known Issues
 
-| ID | Issue | Severity | Target |
+| ID | Issue | Severity | Status |
 |----|-------|----------|--------|
-| BUG-1 | `akf generate` from repo directory uses local `akf/` instead of installed package | Medium | v0.6.x |
-| SEC-M2 | `--output` path traversal not sanitized | Medium | v0.6.x |
-| SEC-L2 | `akf init --force` no backup before overwrite | Low | v0.6.x |
-| SEC-L3 | Windows reserved filename check missing | Low | v0.6.x |
-| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | v1.0.0 |
-| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | v1.0.0 |
+| BUG-1 | `akf generate` from repo directory uses local `akf/` instead of installed package | Medium | Fixed v1.0.0 |
+| SEC-M2 | `--output` path traversal not sanitized | Medium | Fixed v0.6.2 |
+| SEC-L2 | `akf init --force` no backup before overwrite | Low | Fixed v0.6.2 |
+| SEC-L3 | Windows reserved filename check missing | Low | Fixed v1.0.0 |
+| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | Open |
+| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | Open |

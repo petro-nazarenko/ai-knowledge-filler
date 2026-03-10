@@ -203,6 +203,7 @@ akf/
   config.py            # Loads akf.yaml or bundled defaults
   server.py            # FastAPI REST API
   mcp_server.py        # MCP server (FastMCP)
+  market_pipeline.py   # Three-stage market analysis pipeline
   defaults/
     akf.yaml           # Default taxonomy
 
@@ -266,5 +267,5 @@ MIT — free for commercial and personal use.
 
 ---
 
-**PyPI:** https://pypi.org/project/ai-knowledge-filler  
-**Version:** 0.6.1
+**PyPI:** https://pypi.org/project/ai-knowledge-filler
+**Version:** 1.0.0

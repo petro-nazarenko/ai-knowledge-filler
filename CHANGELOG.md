@@ -3,9 +3,20 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
+## [1.0.0] — 2026-03-10
+
+### Bug Fixes
+
+- BUG-1: Prevent local `akf/` from shadowing installed package when running from repo directory
+- SEC-L3: Add Windows reserved filename check in `sanitize_filename`
+
 ### Features
 
-- Add three-stage market analysis pipeline ([`412e24e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/412e24e9d123121c168fe13f79cd7aeb51d50228))
+- Three-stage market analysis pipeline (`akf market "<request>"`) — market → competitors → positioning ([`412e24e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/412e24e9d123121c168fe13f79cd7aeb51d50228))
+
+### Documentation
+
+- Bump version to 1.0.0, update ARCHITECTURE.md module map and known issues
 
 ## [0.7.0] — 2026-03-07
 
