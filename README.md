@@ -91,6 +91,7 @@ Validation failures produce typed error codes, not free-form messages:
 | E005 | frontmatter | General schema violation |
 | E006 | domain | Value not in taxonomy |
 | E007 | created / updated | `created` is later than `updated` |
+| E008 | related | Typed relationship label not in `relationship_types` |
 
 The Error Normalizer translates these codes into deterministic correction instructions for the retry:
 
