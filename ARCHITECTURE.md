@@ -150,7 +150,7 @@ GET  /docs
 ```python
 @dataclass
 class ValidationError:
-    code: str        # E001–E007
+    code: str        # E001–E008
     field: str       # YAML field name
     expected: Any    # allowed values or type
     received: Any    # what was found
@@ -168,6 +168,7 @@ class ValidationError:
 | E005 | frontmatter | General schema violation |
 | E006 | domain | Not in configured taxonomy |
 | E007 | created / updated | `created > updated` |
+| E008 | related | Typed relationship label not in `relationship_types` |
 
 **Breaking changes (require MAJOR):** removing an E-code, renaming fields in `ValidationError`, changing severity of an existing code (e.g. warning → error for existing users).
 
@@ -191,6 +192,14 @@ enums:
   type: [concept, guide, ...]   # file type enum
   level: [beginner, ...]        # level enum
   status: [draft, active, ...]  # status enum
+
+relationship_types:             # valid labels for [[Note|type]] syntax
+  - implements
+  - requires
+  - extends
+  - references
+  - supersedes
+  - part-of
 ```
 
 `schema_version: "1.0.0"` — frozen at this value until a breaking change to the config schema occurs, at which point it increments to `"2.0.0"`.

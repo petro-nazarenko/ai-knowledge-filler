@@ -3,6 +3,11 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
+### Documentation
+
+- Update ARCHITECTURE.md and README to document E008 typed relationship validation and `relationship_types` config key
+
+
 ## [1.0.0] — 2026-03-10
 
 ### Bug Fixes
