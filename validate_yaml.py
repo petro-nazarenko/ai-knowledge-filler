@@ -32,7 +32,8 @@ EXCLUDED_FILES = {
     'CONTRIBUTING.md',
     'DEPLOYMENT_READY.md',
     'LICENSE.md',
-    'CHANGELOG.md'
+    'CHANGELOG.md',
+    'CLAUDE.md'
 }
 
 EXCLUDED_DIRS = {
