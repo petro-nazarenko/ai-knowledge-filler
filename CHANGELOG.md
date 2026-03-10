@@ -1,6 +1,18 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [Unreleased]
+
+### Features
+
+- Add three-stage market analysis pipeline ([`412e24e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/412e24e9d123121c168fe13f79cd7aeb51d50228))
+
+## [0.7.0] — 2026-03-07
+
+### Documentation
+
+- Update CHANGELOG for v0.6.2 ([`88c0e4f`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/88c0e4fc49bd592f8e4862973266b8df1ff0ee69))
+
 ## [0.6.2] — 2026-03-07
 
 ### Bug Fixes
