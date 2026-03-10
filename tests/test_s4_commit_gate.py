@@ -116,21 +116,23 @@ class TestSchemaVersionEnforcement:
     def test_missing_schema_version_blocks_commit(self, tmp_path):
         out = tmp_path / "out.md"
         result = commit(NO_SCHEMA_DOC, out, [])
-        assert result.committed is True
-        assert out.exists()
+        assert result.committed is False
+        assert not out.exists()
 
     def test_missing_schema_version_error_has_E005(self, tmp_path):
         result = commit(NO_SCHEMA_DOC, tmp_path / "out.md", [])
-        assert len(result.blocking_errors) == 0
+        assert len(result.blocking_errors) == 1
+        assert result.blocking_errors[0].code == ErrorCode.SCHEMA_VIOLATION
 
     def test_wrong_schema_version_blocks_commit(self, tmp_path):
         out = tmp_path / "out.md"
         result = commit(WRONG_SCHEMA_DOC, out, [])
-        assert result.committed is True
+        assert result.committed is False
 
     def test_wrong_schema_version_received_matches(self, tmp_path):
         result = commit(WRONG_SCHEMA_DOC, tmp_path / "out.md", [])
-        assert len(result.blocking_errors) == 0
+        assert len(result.blocking_errors) == 1
+        assert result.blocking_errors[0].received == "2.0.0"
 
     def test_correct_schema_version_passes(self, tmp_path):
         out = tmp_path / "out.md"

@@ -200,12 +200,12 @@ class TestSummaryOnSchemaVersionMismatch:
     def test_converged_false_on_mismatch(self, tmp_path):
         writer = make_writer(tmp_path)
         run_commit(WRONG_VERSION_DOC, tmp_path / "out.md", [], writer)
-        assert read_events(writer)[0]["converged"] is True
+        assert read_events(writer)[0]["converged"] is False
 
     def test_abort_reason_schema_version_mismatch(self, tmp_path):
         writer = make_writer(tmp_path)
         run_commit(WRONG_VERSION_DOC, tmp_path / "out.md", [], writer)
-        assert read_events(writer)[0]["abort_reason"] is None
+        assert read_events(writer)[0]["abort_reason"] == "blocking_errors"
 
 
 # ─── writer=None and generation_id=None ───────────────────────────────────────
