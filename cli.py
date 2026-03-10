@@ -650,6 +650,46 @@ def cmd_market_analysis(args: argparse.Namespace) -> None:
     sys.exit(0 if result.success else 1)
 
 
+# ─── CANVAS ───────────────────────────────────────────────────────────────────
+
+
+def cmd_canvas(args: argparse.Namespace) -> None:
+    """Generate an Obsidian Canvas JSON file from a validated corpus directory.
+
+    Reads all .md files in *args.input*, parses YAML frontmatter and ``related``
+    wiki-links, then writes a ``.canvas`` file compatible with Obsidian Canvas.
+
+    Args:
+        args: Parsed CLI arguments with ``input``, ``output``, and
+            ``group_by`` attributes.
+    """
+    from akf.canvas_generator import CanvasGenerator
+
+    input_dir = Path(args.input)
+    output_file = Path(args.output)
+    group_by: str = getattr(args, "group_by", "domain") or "domain"
+
+    if not input_dir.exists():
+        err(f"Input directory not found: {input_dir}")
+        sys.exit(1)
+
+    if not input_dir.is_dir():
+        err(f"--input must be a directory: {input_dir}")
+        sys.exit(1)
+
+    info(f"Canvas  →  input: {input_dir}  |  group-by: {group_by}")
+
+    try:
+        canvas = CanvasGenerator().generate(input_dir, output_file, group_by=group_by)
+    except Exception as exc:  # pylint: disable=broad-except
+        err(f"Canvas generation failed: {exc}")
+        sys.exit(1)
+
+    n_nodes = len(canvas.get("nodes", []))
+    n_edges = len(canvas.get("edges", []))
+    ok(f"Canvas written → {output_file}  ({n_nodes} nodes, {n_edges} edges)")
+
+
 # ─── ENTRY POINT ──────────────────────────────────────────────────────────────
 
 
@@ -722,6 +762,16 @@ def main() -> int:
     # Models command
     models = sub.add_parser("models", help="List available LLM providers")
 
+    # Canvas command
+    cnv = sub.add_parser("canvas", help="Generate Obsidian Canvas JSON from validated corpus")
+    cnv.add_argument("--input", "-i", required=True, metavar="INPUT_DIR",
+                     help="Directory containing validated .md files")
+    cnv.add_argument("--output", "-o", required=True, metavar="OUTPUT_FILE",
+                     help="Output .canvas file path")
+    cnv.add_argument("--group-by", default="domain",
+                     choices=["domain", "type", "level"],
+                     help="Frontmatter field used to group nodes into columns (default: domain)")
+
     # Serve command
 
 
@@ -751,6 +801,8 @@ def main() -> int:
         cmd_enrich(args)
     elif args.command == "models":
         cmd_models(args)
+    elif args.command == "canvas":
+        cmd_canvas(args)
     elif args.command == "market-analysis":
         cmd_market_analysis(args)
     elif args.command == "serve":
