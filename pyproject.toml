@@ -3,7 +3,7 @@ name = "ai-knowledge-filler"
 version = "0.7.0"
 description = "Schema validation pipeline for LLM-generated structured Markdown. CLI · Python API · REST API · Market Analysis."
 readme = "README.md"
-license = "MIT"
+license = {text = "MIT"}
 requires-python = ">=3.10"
 authors = [{ name = "Petro Nzrnk" }]
 keywords = ["obsidian", "knowledge-base", "llm", "markdown", "ai"]
@@ -27,7 +27,7 @@ akf = "cli:main"
 Homepage = "https://github.com/petrnzrnk-creator/ai-knowledge-filler"
 
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=68,<69", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
