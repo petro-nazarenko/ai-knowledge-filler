@@ -12,6 +12,8 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+import yaml
+
 import pytest
 
 from akf.config import reset_config, load_config, get_config
@@ -36,21 +38,8 @@ def make_doc(**overrides) -> str:
     }
     fields.update(overrides)
 
-    lines = ["---"]
-    for k, v in fields.items():
-        if isinstance(v, list):
-            lines.append(f"{k}:")
-            for item in v:
-                # Always quote strings so YAML doesn't misparse [[WikiLinks]]
-                # as flow sequences.
-                if isinstance(item, str):
-                    lines.append(f'  - "{item}"')
-                else:
-                    lines.append(f"  - {item}")
-        else:
-            lines.append(f"{k}: {v}")
-    lines += ["---", "", "# Body"]
-    return "\n".join(lines)
+    frontmatter = yaml.safe_dump(fields, default_flow_style=False, allow_unicode=True)
+    return f"---\n{frontmatter}---\n\n# Body"
 
 
 @pytest.fixture(autouse=True)
@@ -563,3 +552,28 @@ class TestTypedRelationships:
         text = payload.to_prompt_text()
         assert "VALIDATION ERRORS" in text
         assert "relationship_type" in text
+
+    def test_related_non_list_emits_type_mismatch(self):
+        """related: 'a string' (not a list) → E004_TYPE_MISMATCH immediately."""
+        doc = textwrap.dedent("""\
+            ---
+            title: Test Document
+            type: concept
+            domain: ai-system
+            level: beginner
+            status: active
+            tags:
+              - a
+              - b
+              - c
+            related: "[[Some Note]]"
+            created: "2026-01-01"
+            updated: "2026-01-02"
+            ---
+
+            # Body
+        """)
+        errors = validate(doc)
+        related_errors = [e for e in errors if e.field == "related"]
+        assert len(related_errors) == 1
+        assert related_errors[0].code == ErrorCode.TYPE_MISMATCH

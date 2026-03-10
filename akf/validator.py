@@ -293,6 +293,9 @@ def _check_related(metadata: dict, cfg=None) -> list[ValidationError]:
             severity=Severity.WARNING,
         )]
 
+    if not isinstance(related, list):
+        return [type_mismatch("related", list, related)]
+
     errors: list[ValidationError] = []
     valid_types = cfg.relationship_types
 
