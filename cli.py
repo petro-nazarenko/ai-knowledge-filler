@@ -10,6 +10,16 @@ import argparse
 import time
 from datetime import datetime
 from pathlib import Path
+
+# BUG-1: When cli.py is run as a script from the repo directory, Python prepends
+# the script's parent directory to sys.path[0], causing the local akf/ package
+# directory to shadow the installed package. Moving it to the end ensures the
+# installed package is resolved first while still allowing llm_providers, etc.
+# to be found from the same directory.
+_here = str(Path(__file__).parent.absolute())
+if sys.path and sys.path[0] == _here:
+    sys.path.append(sys.path.pop(0))
+
 from llm_providers import get_provider, list_providers, PROVIDERS
 
 # ─── CONFIGURATION ────────────────────────────────────────────────────────────
@@ -270,11 +280,19 @@ def extract_filename(content: str, prompt: str) -> str:
 
 
 
+_WINDOWS_RESERVED = re.compile(
+    r"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", re.IGNORECASE
+)
+
+
 def sanitize_filename(filename: str, output_dir: Path) -> Path:
-    """Prevent path traversal in LLM-derived filenames (SEC-M2)."""
+    """Prevent path traversal (SEC-M2) and Windows reserved names (SEC-L3)."""
     safe_name = Path(filename).name
     if not safe_name.endswith(".md"):
         safe_name = safe_name + ".md"
+    stem = Path(safe_name).stem
+    if _WINDOWS_RESERVED.match(stem):
+        raise ValueError(f"Windows reserved filename not allowed: {filename!r}")
     resolved = (output_dir / safe_name).resolve()
     if not resolved.is_relative_to(output_dir.resolve()):
         raise ValueError(f"Path traversal detected: {filename!r}")
