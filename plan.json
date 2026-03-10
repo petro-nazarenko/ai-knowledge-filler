@@ -1,0 +1,66 @@
+[
+  {"prompt": "Create a reference on LLM output validation pipeline architecture for AI engineers"},
+  {"prompt": "Create a guide on schema-as-contract pattern for structured AI output"},
+  {"prompt": "Create a concept on ontology governance for AI-generated knowledge bases"},
+  {"prompt": "Create a checklist for AI pipeline reliability audit before production deployment"},
+  {"prompt": "Create a guide on deterministic retry logic in LLM pipelines"},
+
+  {"prompt": "Create a reference on REST API versioning strategies for backend services"},
+  {"prompt": "Create a guide on API rate limiting implementation with FastAPI"},
+  {"prompt": "Create a concept on GraphQL vs REST API design trade-offs"},
+
+  {"prompt": "Create a reference on microservices architecture patterns for distributed systems"},
+  {"prompt": "Create a guide on event-driven architecture design with message queues"},
+  {"prompt": "Create a concept on CAP theorem and distributed consistency trade-offs"},
+
+  {"prompt": "Create a guide on CI/CD pipeline design with GitHub Actions"},
+  {"prompt": "Create a reference on Docker multi-stage builds for production optimization"},
+  {"prompt": "Create a checklist for Kubernetes deployment readiness review"},
+
+  {"prompt": "Create a reference on application security checklist for REST APIs"},
+  {"prompt": "Create a guide on OAuth 2.0 implementation for API authentication"},
+  {"prompt": "Create a concept on zero-trust architecture principles"},
+
+  {"prompt": "Create a guide on ETL pipeline design for data warehousing"},
+  {"prompt": "Create a reference on data modeling patterns for analytical databases"},
+  {"prompt": "Create a concept on stream processing vs batch processing trade-offs"},
+
+  {"prompt": "Create a guide on prompt engineering techniques for structured output generation"},
+  {"prompt": "Create a reference on LLM context window management strategies"},
+  {"prompt": "Create a concept on chain-of-thought reasoning in AI agents"},
+
+  {"prompt": "Create a guide on Python packaging best practices for PyPI publishing"},
+  {"prompt": "Create a reference on backend service architecture with FastAPI and async Python"},
+  {"prompt": "Create a checklist for backend API production readiness review"},
+
+  {"prompt": "Create a guide on React component architecture patterns for frontend engineers"},
+  {"prompt": "Create a concept on web performance optimization strategies"},
+
+  {"prompt": "Create a reference on cloud infrastructure cost optimization on AWS"},
+  {"prompt": "Create a guide on observability stack design with metrics, logs, and traces"},
+
+  {"prompt": "Create a guide on machine learning model deployment patterns"},
+  {"prompt": "Create a reference on feature engineering best practices for ML pipelines"},
+
+  {"prompt": "Create a concept on knowledge management architecture for technical teams"},
+  {"prompt": "Create a guide on Obsidian vault structure for AI-augmented workflows"},
+  {"prompt": "Create a reference on personal knowledge management system design"},
+
+  {"prompt": "Create a guide on technical documentation standards for open-source projects"},
+  {"prompt": "Create a reference on API documentation structure with OpenAPI spec"},
+
+  {"prompt": "Create a reference on product roadmap prioritization frameworks"},
+  {"prompt": "Create a guide on writing technical product requirements documents"},
+
+  {"prompt": "Create a concept on AI consulting engagement framework for enterprise clients"},
+  {"prompt": "Create a reference on consulting deliverable standards for architecture projects"},
+
+  {"prompt": "Create a guide on workflow automation design with Python and webhooks"},
+  {"prompt": "Create a reference on no-code integration patterns with Zapier and Make"},
+
+  {"prompt": "Create a reference on competitive analysis framework for AI developer tools"},
+  {"prompt": "Create a guide on go-to-market strategy for open-source developer tools"},
+
+  {"prompt": "Create a guide on Agile project management for solo developers"},
+  {"prompt": "Create a reference on risk management in software projects"}
+]
