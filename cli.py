@@ -559,6 +559,79 @@ def cmd_models(args: argparse.Namespace) -> None:
         print()
 
 
+# ─── MARKET ANALYSIS ──────────────────────────────────────────────────────────
+
+
+def cmd_market_analysis(args: argparse.Namespace) -> None:
+    """Run the three-stage market analysis pipeline.
+
+    Stage 1 — Market Analysis (size, trends, segments)
+    Stage 2 — Competitor Comparison (players, SWOT, gaps)
+    Stage 3 — Positioning (USP, messaging, strategy)
+    """
+    from akf.market_pipeline import MarketAnalysisPipeline
+
+    request: str = args.request
+    model: str = getattr(args, "model", "auto") or "auto"
+    out_dir = Path(args.output) if getattr(args, "output", None) else OUTPUT_DIR / "market-analysis"
+    stages_arg: str = getattr(args, "stages", "all") or "all"
+
+    if not request or not request.strip():
+        err("Market request is required.")
+        sys.exit(1)
+
+    pipeline = MarketAnalysisPipeline(output=str(out_dir), model=model, verbose=True)
+
+    info(f"Market Analysis Pipeline  —  model: {model}")
+    info(f"Request : {request[:80]}")
+    info(f"Output  : {out_dir}")
+    info(f"Stages  : {stages_arg}")
+    print()
+
+    if stages_arg == "market":
+        stage = pipeline.analyze_market(request)
+        if stage.success:
+            ok(f"Stage 1 complete → {stage.file_path}")
+        else:
+            err(f"Stage 1 failed: {stage.error}")
+            sys.exit(1)
+        return
+
+    if stages_arg == "competitors":
+        err("Stage 2 requires market context. Run with --stages all or provide context.")
+        sys.exit(1)
+
+    if stages_arg == "positioning":
+        err("Stage 3 requires market + competitor context. Run with --stages all.")
+        sys.exit(1)
+
+    # Default: full pipeline
+    result = pipeline.analyze(request)
+    print()
+
+    statuses = [
+        ("Stage 1 — Market Analysis", result.market_analysis),
+        ("Stage 2 — Competitor Analysis", result.competitor_analysis),
+        ("Stage 3 — Positioning", result.positioning),
+    ]
+    for label, stage in statuses:
+        if stage.success:
+            ok(f"{label} → {stage.file_path.name if stage.file_path else 'ok'}")
+        else:
+            err(f"{label} — {stage.error}")
+
+    print()
+    total_s = result.total_duration_ms / 1000
+    info(f"Total duration: {total_s:.1f}s | Files written: {len(result.files)}")
+
+    if result.files:
+        info("Output files:")
+        for fp in result.files:
+            info(f"  {fp}")
+
+    sys.exit(0 if result.success else 1)
+
+
 # ─── ENTRY POINT ──────────────────────────────────────────────────────────────
 
 
@@ -602,6 +675,32 @@ def main() -> int:
                      default="auto")
     enr.add_argument("--output", "-o", help="Output directory (copies, no overwrite)")
 
+    # Market Analysis command
+    mkt = sub.add_parser(
+        "market-analysis",
+        help="Run three-stage market analysis pipeline (market → competitors → positioning)",
+    )
+    mkt.add_argument(
+        "request",
+        help='Market request, e.g. "B2B SaaS project management tools for SMEs"',
+    )
+    mkt.add_argument(
+        "--model", "-m",
+        choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
+        default="auto",
+        help="LLM provider (default: auto-select)",
+    )
+    mkt.add_argument(
+        "--output", "-o",
+        help="Output directory (default: ./market-analysis/)",
+    )
+    mkt.add_argument(
+        "--stages",
+        choices=["all", "market", "competitors", "positioning"],
+        default="all",
+        help="Which stages to run (default: all three)",
+    )
+
     # Models command
     models = sub.add_parser("models", help="List available LLM providers")
 
@@ -634,6 +733,8 @@ def main() -> int:
         cmd_enrich(args)
     elif args.command == "models":
         cmd_models(args)
+    elif args.command == "market-analysis":
+        cmd_market_analysis(args)
     elif args.command == "serve":
         cmd_serve(args)
     return 0
