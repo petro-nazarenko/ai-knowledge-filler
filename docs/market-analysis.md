@@ -1,3 +1,17 @@
+---
+title: "Market Analysis Documentation"
+type: reference
+domain: akf-docs
+level: intermediate
+status: active
+version: v1.0
+tags: [market-analysis, trends, sectors, technology, healthcare, retail]
+related:
+  - "docs/user-guide.md"
+created: 2026-03-10
+updated: 2026-03-10
+---
+
 # Market Analysis Documentation
 
 ## Introduction
