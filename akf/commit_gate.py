@@ -96,8 +96,11 @@ def commit(
     """
     _schema_ver = schema_version or expected_schema_version
 
-    # 1. Check for blocking errors
+    # 1. Check for blocking errors (validation errors + schema version mismatch)
+    schema_err = _check_schema_version(document, expected_schema_version)
     blocking = [e for e in errors if e.severity == Severity.ERROR]
+    if schema_err:
+        blocking = [schema_err] + blocking
     if blocking:
         _emit_summary(
             writer=writer,

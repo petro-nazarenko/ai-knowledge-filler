@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 from typing import Optional
 
@@ -48,15 +49,18 @@ app.add_middleware(
 )
 
 _pipeline = None
+_pipeline_lock = threading.Lock()
 
 
 def get_pipeline() -> Pipeline:
     global _pipeline
     if _pipeline is None:
-        _pipeline = Pipeline(
-            output=os.getenv("AKF_OUTPUT_DIR", "./output"),
-            verbose=False,
-        )
+        with _pipeline_lock:
+            if _pipeline is None:
+                _pipeline = Pipeline(
+                    output=os.getenv("AKF_OUTPUT_DIR", "./output"),
+                    verbose=False,
+                )
     return _pipeline
 
 

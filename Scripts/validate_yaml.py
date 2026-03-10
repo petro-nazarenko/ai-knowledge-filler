@@ -48,27 +48,25 @@ VALID_TYPES = [
 VALID_LEVELS = ["beginner", "intermediate", "advanced"]
 VALID_STATUSES = ["draft", "active", "completed", "archived"]
 
-# Valid domains (Domain_Taxonomy — canonical source)
+# Valid domains — must stay in sync with akf/config.py _DEFAULT_DOMAINS
 VALID_DOMAINS = [
     "ai-system",
-    "system-design",
     "api-design",
-    "data-engineering",
-    "security",
-    "devops",
-    "product-management",
-    "consulting",
-    "workflow-automation",
-    "prompt-engineering",
-    "business-strategy",
-    "project-management",
-    "knowledge-management",
-    "documentation",
-    "frontend-engineering",
     "backend-engineering",
-    "infrastructure",
+    "business-strategy",
+    "consulting",
+    "data-engineering",
+    "devops",
+    "frontend-engineering",
     "machine-learning",
-    "data-science",
+    "mobile-engineering",
+    "ontology",
+    "product-management",
+    "project-management",
+    "security",
+    "system-design",
+    "testing",
+    "ux-design",
 ]
 
 # Paths excluded from validation

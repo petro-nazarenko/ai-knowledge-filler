@@ -1,5 +1,6 @@
 from __future__ import annotations
 import re, os, time
+import yaml
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -126,7 +127,7 @@ class Pipeline:
         document_id = output_path.stem
         try:
             initial_errors = validate(content)
-        except Exception:
+        except yaml.YAMLError:
             initial_errors = []
         blocking = [e for e in initial_errors if e.severity == Severity.ERROR]
         rejected_candidates = []
@@ -137,7 +138,7 @@ class Pipeline:
             def validate_fn(doc):
                 try:
                     return validate(doc)
-                except Exception:
+                except yaml.YAMLError:
                     return []
             retry_result = run_retry_loop(
                 document=content, errors=blocking,
@@ -154,7 +155,7 @@ class Pipeline:
         total_duration_ms = int((time.monotonic() - t_start) * 1000)
         try:
             final_errors = validate(content)
-        except Exception:
+        except yaml.YAMLError:
             final_errors = []
         commit_result = akf_commit(
             document=content, output_path=output_path, errors=final_errors,
@@ -226,6 +227,7 @@ class Pipeline:
         from akf.retry_controller import run_retry_loop
         from akf.config import get_config
         from akf.telemetry import EnrichEvent, new_generation_id
+        from akf.validation_error import Severity
         from akf.enricher import (
             REQUIRED_FIELDS, build_prompt, derive_title,
             extract_missing_fields, merge_yaml, read_file,
@@ -304,10 +306,10 @@ class Pipeline:
 
         try:
             initial_errors = validate(document)
-        except Exception:
+        except yaml.YAMLError:
             initial_errors = []
 
-        blocking = [e for e in initial_errors if e.severity.value == "error"]
+        blocking = [e for e in initial_errors if e.severity == Severity.ERROR]
         total_attempts = 1
         converged = not blocking
 
@@ -318,7 +320,7 @@ class Pipeline:
             def _val_fn(doc: str) -> list:
                 try:
                     return validate(doc)
-                except Exception:
+                except yaml.YAMLError:
                     return []
 
             retry_result = run_retry_loop(
@@ -331,7 +333,7 @@ class Pipeline:
             document = retry_result.document
             total_attempts = retry_result.attempts
             converged = retry_result.converged
-            blocking = [e for e in retry_result.errors if e.severity.value == "error"]
+            blocking = [e for e in retry_result.errors if e.severity == Severity.ERROR]
 
         yaml_match = _re.match(r"^---\n(.*?)---\n", document, _re.DOTALL)
         if yaml_match:
