@@ -284,17 +284,26 @@ def _check_related(metadata: dict, cfg=None) -> list[ValidationError]:
         cfg = get_config()
 
     related = metadata.get("related")
-    if not related:
+    if related is None:
         return [ValidationError(
             code=ErrorCode.SCHEMA_VIOLATION,
             field="related",
             expected="list with >= 1 WikiLink",
-            received="absent" if related is None else "empty list",
+            received="absent",
             severity=Severity.WARNING,
         )]
 
     if not isinstance(related, list):
         return [type_mismatch("related", list, related)]
+
+    if related == []:
+        return [ValidationError(
+            code=ErrorCode.SCHEMA_VIOLATION,
+            field="related",
+            expected="list with >= 1 WikiLink",
+            received="empty list",
+            severity=Severity.WARNING,
+        )]
 
     errors: list[ValidationError] = []
     valid_types = cfg.relationship_types

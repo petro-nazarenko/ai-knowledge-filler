@@ -553,6 +553,82 @@ class TestTypedRelationships:
         assert "VALIDATION ERRORS" in text
         assert "relationship_type" in text
 
+    def test_related_empty_string_emits_type_mismatch(self):
+        """related: '' (empty string, not a list) → E004_TYPE_MISMATCH."""
+        doc = textwrap.dedent("""\
+            ---
+            title: Test Document
+            type: concept
+            domain: ai-system
+            level: beginner
+            status: active
+            tags:
+              - a
+              - b
+              - c
+            related: ''
+            created: '2026-01-01'
+            updated: '2026-01-02'
+            ---
+
+            # Body
+        """)
+        errors = validate(doc)
+        related_errors = [e for e in errors if e.field == "related"]
+        assert len(related_errors) == 1
+        assert related_errors[0].code == ErrorCode.TYPE_MISMATCH
+
+    def test_related_zero_emits_type_mismatch(self):
+        """related: 0 (integer, not a list) → E004_TYPE_MISMATCH."""
+        doc = textwrap.dedent("""\
+            ---
+            title: Test Document
+            type: concept
+            domain: ai-system
+            level: beginner
+            status: active
+            tags:
+              - a
+              - b
+              - c
+            related: 0
+            created: '2026-01-01'
+            updated: '2026-01-02'
+            ---
+
+            # Body
+        """)
+        errors = validate(doc)
+        related_errors = [e for e in errors if e.field == "related"]
+        assert len(related_errors) == 1
+        assert related_errors[0].code == ErrorCode.TYPE_MISMATCH
+
+    def test_related_none_emits_schema_violation_warning(self):
+        """related absent (None) → W001 SCHEMA_VIOLATION warning, not E004."""
+        doc = textwrap.dedent("""\
+            ---
+            title: Test Document
+            type: concept
+            domain: ai-system
+            level: beginner
+            status: active
+            tags:
+              - a
+              - b
+              - c
+            created: '2026-01-01'
+            updated: '2026-01-02'
+            ---
+
+            # Body
+        """)
+        errors = validate(doc)
+        related_errors = [e for e in errors if e.field == "related"]
+        assert len(related_errors) == 1
+        assert related_errors[0].code == ErrorCode.SCHEMA_VIOLATION
+        assert related_errors[0].severity == Severity.WARNING
+        assert related_errors[0].code != ErrorCode.TYPE_MISMATCH
+
     def test_related_non_list_emits_type_mismatch(self):
         """related: 'a string' (not a list) → E004_TYPE_MISMATCH immediately."""
         doc = textwrap.dedent("""\
