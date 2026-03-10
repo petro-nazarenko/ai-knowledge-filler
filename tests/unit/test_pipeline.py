@@ -246,3 +246,44 @@ class TestPipelineBatchGenerate:
         p = Pipeline(output=str(tmp_path), verbose=False)
         results = p.batch_generate([])
         assert results == []
+
+    def test_batch_dict_with_hints(self, tmp_path):
+        """Dict items with domain/type hints are forwarded to generate()."""
+        mock_result = GenerateResult(success=True, content="x", attempts=1)
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        with patch.object(Pipeline, "generate", return_value=mock_result) as mock_gen:
+            results = p.batch_generate(
+                [{"prompt": "Docker guide", "domain": "devops", "type": "guide"}]
+            )
+        assert len(results) == 1
+        _, kwargs = mock_gen.call_args
+        assert kwargs.get("hints") == {"domain": "devops", "type": "guide"}
+
+    def test_batch_dict_no_hints(self, tmp_path):
+        """Dict with only 'prompt' key → hints=None via the 'or None' fallback."""
+        mock_result = GenerateResult(success=True, content="x", attempts=1)
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        with patch.object(Pipeline, "generate", return_value=mock_result) as mock_gen:
+            results = p.batch_generate([{"prompt": "Some prompt"}])
+        assert len(results) == 1
+        _, kwargs = mock_gen.call_args
+        assert kwargs.get("hints") is None
+
+    def test_batch_dict_empty_prompt(self, tmp_path):
+        """Dict with empty 'prompt' value → prompt_text='' via item.get() default."""
+        mock_result = GenerateResult(success=True, content="x", attempts=1)
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        with patch.object(Pipeline, "generate", return_value=mock_result) as mock_gen:
+            results = p.batch_generate([{"prompt": ""}])
+        assert len(results) == 1
+        mock_gen.assert_called_once_with("", output=None, model=None, hints=None)
+
+    def test_batch_mixed_types(self, tmp_path):
+        """Mix of plain string and dict prompts exercises both branches."""
+        mock_result = GenerateResult(success=True, content="x", attempts=1)
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        with patch.object(Pipeline, "generate", return_value=mock_result):
+            results = p.batch_generate(
+                ["Plain string", {"prompt": "Dict prompt", "domain": "devops"}]
+            )
+        assert len(results) == 2

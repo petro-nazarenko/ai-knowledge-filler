@@ -3,6 +3,13 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
+## [1.0.1] — 2026-03-10
+
+### Tests
+
+- COV-1: add `batch_generate()` dict-item edge cases — empty prompt, no hints, with hints, mixed string/dict
+- COV-2: confirmed covered by `test_coverage_gaps.py::TestLegacyTaxonomy`, marked fixed in ARCHITECTURE.md
+
 ## [1.0.0] — 2026-03-10
 
 ### Bug Fixes

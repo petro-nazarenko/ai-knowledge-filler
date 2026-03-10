@@ -278,5 +278,5 @@ The following are internal and may change without a MAJOR increment:
 | SEC-M2 | `--output` path traversal not sanitized | Medium | Fixed v0.6.2 |
 | SEC-L2 | `akf init --force` no backup before overwrite | Low | Fixed v0.6.2 |
 | SEC-L3 | Windows reserved filename check missing | Low | Fixed v1.0.0 |
-| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | Open |
-| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | Open |
+| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | Fixed v1.0.1 |
+| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | Fixed v1.0.0 |
