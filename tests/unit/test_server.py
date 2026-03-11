@@ -286,7 +286,11 @@ class TestAsk:
         fake_writer = MagicMock()
         with patch("rag.copilot.answer_question", return_value=fake), \
              patch("akf.server.get_telemetry_writer", return_value=fake_writer):
-            r = client.post("/v1/ask", json={"query": "How to rate limit?", "top_k": 3})
+            r = client.post(
+                "/v1/ask",
+                json={"query": "How to rate limit?", "top_k": 3},
+                headers={"X-AKF-Tenant-ID": "team-a"},
+            )
 
         assert r.status_code == 200
         data = r.json()
@@ -296,6 +300,8 @@ class TestAsk:
         assert data["hits_used"] == 2
         assert data["insufficient_context"] is False
         assert fake_writer.write.called
+        evt = fake_writer.write.call_args[0][0]
+        assert evt.tenant_id == "team-a"
 
     def test_ask_retrieval_only_success(self):
         fake = RetrievalResult(
@@ -322,6 +328,7 @@ class TestAsk:
             r = client.post(
                 "/v1/ask",
                 json={"query": "How to rate limit?", "top_k": 2, "no_llm": True},
+                headers={"X-AKF-Tenant-ID": "team-b"},
             )
 
         assert r.status_code == 200
@@ -333,6 +340,8 @@ class TestAsk:
         assert data["hits"][0]["chunk_id"] == "c1"
         assert data["insufficient_context"] is False
         assert fake_writer.write.called
+        evt = fake_writer.write.call_args[0][0]
+        assert evt.tenant_id == "team-b"
 
     def test_ask_retrieval_only_max_distance_insufficient_context(self):
         fake = RetrievalResult(

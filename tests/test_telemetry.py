@@ -351,6 +351,7 @@ class TestAskQueryEvent:
     def test_event_type_fixed(self):
         evt = AskQueryEvent(
             generation_id=str(uuid.uuid4()),
+            tenant_id="team-a",
             mode="retrieval-only",
             model="none",
             top_k=5,
@@ -365,6 +366,7 @@ class TestAskQueryEvent:
     def test_writer_accepts_ask_event(self, writer):
         evt = AskQueryEvent(
             generation_id=str(uuid.uuid4()),
+            tenant_id="team-a",
             mode="synthesis",
             model="claude",
             top_k=3,
@@ -378,3 +380,4 @@ class TestAskQueryEvent:
         data = json.loads(writer.path.read_text().strip())
         assert data["event_type"] == "ask_query"
         assert data["mode"] == "synthesis"
+        assert data["tenant_id"] == "team-a"

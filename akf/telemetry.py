@@ -211,6 +211,7 @@ class AskQueryEvent:
     """Telemetry event for RAG ask requests (API/CLI)."""
 
     generation_id: str
+    tenant_id: str
     mode: str                    # synthesis | retrieval-only
     model: str
     top_k: int
@@ -229,6 +230,7 @@ class AskQueryEvent:
             "event_id": self.event_id,
             "timestamp": self.timestamp,
             "generation_id": self.generation_id,
+            "tenant_id": self.tenant_id,
             "mode": self.mode,
             "model": self.model,
             "top_k": self.top_k,

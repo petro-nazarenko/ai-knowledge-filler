@@ -72,6 +72,15 @@ def get_telemetry_writer():
     return _telemetry_writer
 
 
+def _extract_tenant_id(request: Request) -> str:
+    """Resolve tenant id from headers for usage analytics/billing prep."""
+    return (
+        request.headers.get("X-AKF-Tenant-ID")
+        or request.headers.get("X-Tenant-ID")
+        or os.getenv("AKF_DEFAULT_TENANT", "default")
+    )
+
+
 # ─── SCHEMAS ──────────────────────────────────────────────────────────────────
 
 class GenerateRequest(BaseModel):
@@ -218,6 +227,7 @@ def ask(request: Request, req: AskRequest):
     """
     t_start = time.monotonic()
     mode = "retrieval-only" if req.no_llm else "synthesis"
+    tenant_id = _extract_tenant_id(request)
 
     try:
         if req.no_llm:
@@ -252,6 +262,7 @@ def ask(request: Request, req: AskRequest):
                 get_telemetry_writer().write(
                     AskQueryEvent(
                         generation_id=new_generation_id(),
+                        tenant_id=tenant_id,
                         mode=mode,
                         model="none",
                         top_k=req.top_k,
@@ -291,6 +302,7 @@ def ask(request: Request, req: AskRequest):
             get_telemetry_writer().write(
                 AskQueryEvent(
                     generation_id=new_generation_id(),
+                    tenant_id=tenant_id,
                     mode=mode,
                     model=response.model,
                     top_k=req.top_k,

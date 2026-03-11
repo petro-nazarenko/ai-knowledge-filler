@@ -34,6 +34,14 @@ Authorization: Bearer your-secret-key
 
 If `AKF_API_KEY` is not set, all requests pass without auth (development mode).
 
+For tenant-level usage analytics (and future billing), send optional header:
+
+```http
+X-AKF-Tenant-ID: team-alpha
+```
+
+If omitted, server uses `AKF_DEFAULT_TENANT` or falls back to `default`.
+
 ---
 
 ## Rate Limits

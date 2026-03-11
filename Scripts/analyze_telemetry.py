@@ -9,12 +9,15 @@ Three reports derived from telemetry/events.jsonl:
                       unique document count per rejected value.
   C. convergence    — Convergence time per domain: mean attempts (converged
                       only) + non-convergence rate.
+    D. ask-usage      — Tenant-level RAG usage: total asks, no-answer rate,
+                                            retrieval-only/synthesis split, avg latency.
 
 Usage:
     python scripts/analyze_telemetry.py                        # all reports
     python scripts/analyze_telemetry.py --report retry-rate
     python scripts/analyze_telemetry.py --report candidates
     python scripts/analyze_telemetry.py --report convergence
+    python scripts/analyze_telemetry.py --report ask-usage
     python scripts/analyze_telemetry.py --input telemetry/events.jsonl
     python scripts/analyze_telemetry.py --flag-threshold 0.20  # custom threshold
 
@@ -48,14 +51,14 @@ NC     = "\033[0m"
 
 # ─── LOADER ───────────────────────────────────────────────────────────────────
 
-def load_events(path: Path) -> tuple[list[dict], list[dict]]:
+def load_events(path: Path) -> tuple[list[dict], list[dict], list[dict]]:
     """Load and split events into attempt and summary lists.
 
     Args:
         path: Path to JSONL telemetry file.
 
     Returns:
-        Tuple of (attempt_events, summary_events).
+        Tuple of (attempt_events, summary_events, ask_events).
 
     Raises:
         SystemExit: If file not found or unreadable.
@@ -65,7 +68,7 @@ def load_events(path: Path) -> tuple[list[dict], list[dict]]:
         print(f"   Run 'akf generate ...' first to produce telemetry data.")
         sys.exit(1)
 
-    attempts, summaries = [], []
+    attempts, summaries, asks = [], [], []
     errors = 0
 
     for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
@@ -78,6 +81,8 @@ def load_events(path: Path) -> tuple[list[dict], list[dict]]:
                 attempts.append(event)
             elif event.get("event_type") == "generation_summary":
                 summaries.append(event)
+            elif event.get("event_type") == "ask_query":
+                asks.append(event)
         except json.JSONDecodeError:
             errors += 1
             print(f"{YELLOW}⚠  Line {i}: invalid JSON — skipped{NC}")
@@ -85,7 +90,7 @@ def load_events(path: Path) -> tuple[list[dict], list[dict]]:
     if errors:
         print(f"{YELLOW}⚠  {errors} malformed line(s) skipped{NC}\n")
 
-    return attempts, summaries
+    return attempts, summaries, asks
 
 
 # ─── REPORT A — Retry Rate ────────────────────────────────────────────────────
@@ -337,6 +342,72 @@ def report_convergence(summaries: list[dict]) -> None:
     print()
 
 
+# ─── REPORT D — Ask Usage (Tenant) ──────────────────────────────────────────
+
+def report_ask_usage(asks: list[dict]) -> None:
+    """Tenant-level usage report for RAG ask telemetry events."""
+    print(f"{BOLD}━━━ Report D — Ask Usage by Tenant ━━━{NC}\n")
+
+    if not asks:
+        print("  No ask events found.\n")
+        return
+
+    # tenant -> counters
+    by_tenant: dict[str, dict[str, float]] = defaultdict(lambda: {
+        "total": 0,
+        "insufficient": 0,
+        "retrieval_only": 0,
+        "synthesis": 0,
+        "hits_sum": 0,
+        "duration_sum": 0,
+    })
+
+    for evt in asks:
+        tenant = str(evt.get("tenant_id", "default"))
+        mode = str(evt.get("mode", "unknown"))
+        insufficient = bool(evt.get("insufficient_context", False))
+        hits_used = int(evt.get("hits_used", 0) or 0)
+        duration_ms = int(evt.get("duration_ms", 0) or 0)
+
+        by_tenant[tenant]["total"] += 1
+        by_tenant[tenant]["hits_sum"] += hits_used
+        by_tenant[tenant]["duration_sum"] += duration_ms
+        if insufficient:
+            by_tenant[tenant]["insufficient"] += 1
+        if mode == "retrieval-only":
+            by_tenant[tenant]["retrieval_only"] += 1
+        elif mode == "synthesis":
+            by_tenant[tenant]["synthesis"] += 1
+
+    header = (
+        f"  {'Tenant':<20}  {'Total':>5}  {'Insufficient':>12}  "
+        f"{'No-LLM':>6}  {'Synthesis':>9}  {'Avg hits':>8}  {'Avg ms':>7}"
+    )
+    print(header)
+    print("  " + "─" * (len(header) - 2))
+
+    for tenant, s in sorted(by_tenant.items(), key=lambda x: -x[1]["total"]):
+        total = int(s["total"])
+        insuff = int(s["insufficient"])
+        no_llm = int(s["retrieval_only"])
+        synth = int(s["synthesis"])
+        avg_hits = (s["hits_sum"] / total) if total else 0
+        avg_ms = int((s["duration_sum"] / total) if total else 0)
+        insuff_pct = insuff / total if total else 0
+
+        status = f"{GREEN}ok{NC}"
+        if insuff_pct > 0.30:
+            status = f"{RED}high no-answer{NC}"
+        elif insuff_pct > 0.15:
+            status = f"{YELLOW}watch{NC}"
+
+        print(
+            f"  {tenant:<20}  {total:>5}  {insuff:>12}  "
+            f"{no_llm:>6}  {synth:>9}  {avg_hits:>8.2f}  {avg_ms:>7}  {status}"
+        )
+    print()
+
+
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 def _pct(rate: float) -> str:
@@ -366,7 +437,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--report", "-r",
-        choices=["retry-rate", "candidates", "convergence", "all"],
+        choices=["retry-rate", "candidates", "convergence", "ask-usage", "all"],
         default="all",
         help="Which report to run (default: all)",
     )
@@ -379,11 +450,11 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    attempts, summaries = load_events(args.input)
+    attempts, summaries, asks = load_events(args.input)
 
     # Extract environmental control fields for header
-    models = {e.get("model", "unknown") for e in attempts + summaries}
-    temps  = {e.get("temperature", 0) for e in attempts + summaries}
+    models = {e.get("model", "unknown") for e in attempts + summaries + asks}
+    temps  = {e.get("temperature", 0) for e in attempts + summaries + asks}
 
     _print_header(args.input, models, temps)
 
@@ -397,6 +468,9 @@ def main() -> None:
 
     if run_all or args.report == "convergence":
         report_convergence(summaries)
+
+    if run_all or args.report == "ask-usage":
+        report_ask_usage(asks)
 
 
 if __name__ == "__main__":

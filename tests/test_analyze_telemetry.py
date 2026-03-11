@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "Scripts"))
 from analyze_telemetry import (
     FLAG_THRESHOLD,
     load_events,
+    report_ask_usage,
     report_convergence,
     report_rejected_candidates,
     report_retry_rate,
@@ -101,22 +102,60 @@ def write_jsonl(path: Path, events: list[dict]) -> None:
     path.write_text("\n".join(json.dumps(e) for e in events), encoding="utf-8")
 
 
+def ask_event(
+    tenant_id="team-a",
+    mode="synthesis",
+    model="claude",
+    top_k=5,
+    no_llm=False,
+    max_distance=None,
+    hits_used=3,
+    insufficient_context=False,
+    duration_ms=120,
+) -> dict:
+    return {
+        "event_type": "ask_query",
+        "event_id": "evt-a1",
+        "generation_id": "gen-ask-1",
+        "tenant_id": tenant_id,
+        "mode": mode,
+        "model": model,
+        "top_k": top_k,
+        "no_llm": no_llm,
+        "max_distance": max_distance,
+        "hits_used": hits_used,
+        "insufficient_context": insufficient_context,
+        "duration_ms": duration_ms,
+        "timestamp": "2026-03-11T10:00:00.000Z",
+    }
+
+
 # ─── load_events ──────────────────────────────────────────────────────────────
 
 class TestLoadEvents:
     def test_splits_attempt_and_summary(self, tmp_path):
         path = tmp_path / "events.jsonl"
         write_jsonl(path, [attempt(), summary()])
-        attempts, summaries = load_events(path)
+        attempts, summaries, asks = load_events(path)
         assert len(attempts) == 1
         assert len(summaries) == 1
+        assert len(asks) == 0
+
+    def test_splits_ask_events(self, tmp_path):
+        path = tmp_path / "events.jsonl"
+        write_jsonl(path, [attempt(), summary(), ask_event()])
+        attempts, summaries, asks = load_events(path)
+        assert len(attempts) == 1
+        assert len(summaries) == 1
+        assert len(asks) == 1
 
     def test_multiple_attempts(self, tmp_path):
         path = tmp_path / "events.jsonl"
         write_jsonl(path, [attempt(attempt_num=1), attempt(attempt_num=2)])
-        attempts, summaries = load_events(path)
+        attempts, summaries, asks = load_events(path)
         assert len(attempts) == 2
         assert len(summaries) == 0
+        assert len(asks) == 0
 
     def test_skips_malformed_lines(self, tmp_path, capsys):
         path = tmp_path / "events.jsonl"
@@ -124,9 +163,10 @@ class TestLoadEvents:
             json.dumps(attempt()) + "\nnot valid json\n" + json.dumps(summary()),
             encoding="utf-8",
         )
-        attempts, summaries = load_events(path)
+        attempts, summaries, asks = load_events(path)
         assert len(attempts) == 1
         assert len(summaries) == 1
+        assert len(asks) == 0
         captured = capsys.readouterr()
         assert "invalid JSON" in captured.out
 
@@ -136,9 +176,10 @@ class TestLoadEvents:
             json.dumps(attempt()) + "\n\n\n" + json.dumps(summary()),
             encoding="utf-8",
         )
-        attempts, summaries = load_events(path)
+        attempts, summaries, asks = load_events(path)
         assert len(attempts) == 1
         assert len(summaries) == 1
+        assert len(asks) == 0
 
     def test_missing_file_exits(self, tmp_path):
         with pytest.raises(SystemExit):
@@ -150,9 +191,37 @@ class TestLoadEvents:
             json.dumps({"event_type": "unknown", "data": "x"}),
             encoding="utf-8",
         )
-        attempts, summaries = load_events(path)
+        attempts, summaries, asks = load_events(path)
         assert attempts == []
         assert summaries == []
+        assert asks == []
+
+
+class TestReportAskUsage:
+    def test_no_ask_events_prints_message(self, capsys):
+        report_ask_usage([])
+        assert "No ask events" in capsys.readouterr().out
+
+    def test_groups_by_tenant(self, capsys):
+        events = [
+            ask_event(tenant_id="team-a", mode="synthesis", insufficient_context=False),
+            ask_event(tenant_id="team-a", mode="retrieval-only", no_llm=True),
+            ask_event(tenant_id="team-b", mode="synthesis", insufficient_context=True),
+        ]
+        report_ask_usage(events)
+        out = capsys.readouterr().out
+        assert "team-a" in out
+        assert "team-b" in out
+
+    def test_high_no_answer_flag(self, capsys):
+        events = [
+            ask_event(tenant_id="team-a", insufficient_context=True),
+            ask_event(tenant_id="team-a", insufficient_context=True),
+            ask_event(tenant_id="team-a", insufficient_context=False),
+        ]
+        report_ask_usage(events)
+        out = capsys.readouterr().out.lower()
+        assert "high no-answer" in out
 
 
 # ─── report_retry_rate ────────────────────────────────────────────────────────
