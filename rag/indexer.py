@@ -7,7 +7,11 @@ from pathlib import Path
 from typing import Any
 import hashlib
 
-from rag.config import RAGConfig, load_config
+try:
+    from rag.config import RAGConfig, load_config
+except ModuleNotFoundError:
+    # Support direct execution: `python rag/indexer.py`
+    from config import RAGConfig, load_config
 
 
 @dataclass
