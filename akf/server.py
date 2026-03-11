@@ -280,7 +280,7 @@ def ready():
     return {"status": "ready"}
 
 
-@app.get("/metrics")
+@app.get("/metrics", dependencies=[Depends(verify_key)])
 def metrics():
     with app.state.metrics_lock:
         requests_total = app.state.metrics["requests_total"]
