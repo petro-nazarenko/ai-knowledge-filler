@@ -14,6 +14,7 @@ class _Args:
     query: str
     top_k: int = 5
     model: str = "auto"
+    no_llm: bool = False
 
 
 def test_cmd_ask_prints_answer_and_sources(monkeypatch, capsys):
@@ -61,3 +62,47 @@ def test_cmd_ask_runtime_error_exits(monkeypatch, capsys):
     assert exc.value.code == 1
     out = capsys.readouterr().out
     assert "RAG ask failed" in out
+
+
+def test_cmd_ask_no_llm_outputs_chunks(monkeypatch, capsys):
+    from rag.retriever import RetrievalHit, RetrievalResult
+
+    retrieval = RetrievalResult(
+        query="How to rate limit FastAPI?",
+        top_k=2,
+        hits=[
+            RetrievalHit(
+                chunk_id="c1",
+                content="Use SlowAPI limiter.",
+                metadata={"source": "api.md", "section": "Implementation"},
+                distance=0.1,
+            ),
+            RetrievalHit(
+                chunk_id="c2",
+                content="Return headers.",
+                metadata={"source": "api.md", "section": "Headers"},
+                distance=0.2,
+            ),
+        ],
+    )
+
+    monkeypatch.setattr("rag.retriever.retrieve", lambda query, top_k: retrieval)
+
+    cmd_ask(_Args(query="How to rate limit FastAPI?", top_k=2, no_llm=True))
+
+    out = capsys.readouterr().out
+    assert "Retrieved 2 chunk(s)" in out
+    assert "Use SlowAPI limiter" in out
+    assert "source=api.md" in out
+
+
+def test_cmd_ask_no_llm_no_hits(monkeypatch, capsys):
+    from rag.retriever import RetrievalResult
+
+    retrieval = RetrievalResult(query="q", top_k=3, hits=[])
+    monkeypatch.setattr("rag.retriever.retrieve", lambda query, top_k: retrieval)
+
+    cmd_ask(_Args(query="q", no_llm=True))
+
+    out = capsys.readouterr().out
+    assert "No relevant chunks found" in out

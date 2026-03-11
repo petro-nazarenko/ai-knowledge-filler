@@ -117,6 +117,7 @@ When a domain value triggers elevated retries, the taxonomy has a **boundary pro
 ```bash
 akf generate "Create a guide on API rate limiting"
 akf ask "How do I implement API rate limiting in FastAPI?" --top-k 5
+akf ask "How do I implement API rate limiting in FastAPI?" --top-k 5 --no-llm
 akf generate "Create Docker security checklist" --model gemini
 akf validate ./vault/
 akf validate --file outputs/Guide.md

@@ -80,12 +80,14 @@ akf ask QUERY [--top-k N] [--model MODEL]
 |------|-------|---------|-------------|
 | `--top-k` | — | `5` | Number of retrieved chunks |
 | `--model` | `-m` | `auto` | LLM provider for synthesis |
+| `--no-llm` | — | `False` | Retrieval-only mode (no synthesis) |
 
 **Examples:**
 ```bash
 akf ask "How do I implement API rate limiting in FastAPI?"
 akf ask "What is schema-as-contract?" --top-k 7
 akf ask "How to design retry loops?" --model claude
+akf ask "How to design retry loops?" --top-k 5 --no-llm
 ```
 
 ---

@@ -584,6 +584,7 @@ def cmd_ask(args: argparse.Namespace) -> None:
     """Answer a question using local RAG retrieval + synthesis."""
     try:
         from rag.copilot import answer_question
+        from rag.retriever import retrieve
     except Exception as exc:
         err(f"RAG modules unavailable: {exc}")
         info("Install RAG dependencies: pip install -e .[rag]")
@@ -596,8 +597,32 @@ def cmd_ask(args: argparse.Namespace) -> None:
 
     top_k = max(1, int(getattr(args, "top_k", 5) or 5))
     model = getattr(args, "model", "auto") or "auto"
+    no_llm = bool(getattr(args, "no_llm", False))
 
-    info(f"RAG Copilot  →  model: {model}  |  top-k: {top_k}")
+    mode = "retrieval-only" if no_llm else f"model: {model}"
+    info(f"RAG Copilot  →  {mode}  |  top-k: {top_k}")
+
+    if no_llm:
+        try:
+            retrieval = retrieve(query=query, top_k=top_k)
+        except Exception as exc:
+            err(f"RAG ask failed: {exc}")
+            sys.exit(1)
+
+        if not retrieval.hits:
+            print()
+            warn("No relevant chunks found.")
+            return
+
+        print()
+        print(f"Retrieved {len(retrieval.hits)} chunk(s):")
+        for idx, hit in enumerate(retrieval.hits, 1):
+            source = hit.metadata.get("source", "unknown")
+            section = hit.metadata.get("section", "")
+            print(f"{idx}. distance={hit.distance:.4f} source={source} section={section}")
+            print(hit.content)
+            print()
+        return
 
     try:
         result = answer_question(query=query, top_k=top_k, model=model)
@@ -812,6 +837,8 @@ def main() -> int:
                      choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
                      default="auto",
                      help="LLM provider for synthesis (default: auto-select)")
+    ask.add_argument("--no-llm", action="store_true",
+                     help="Retrieval-only mode: return top-k chunks without synthesis")
 
     # Canvas command
     cnv = sub.add_parser("canvas", help="Generate Obsidian Canvas JSON from validated corpus")

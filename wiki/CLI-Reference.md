@@ -68,6 +68,33 @@ akf generate --batch plan.json --model groq --output ./vault
 
 ---
 
+## `akf ask`
+
+Ask a natural-language question over your local RAG index.
+
+**Usage:**
+```bash
+akf ask QUERY [--top-k N] [--model MODEL] [--no-llm]
+```
+
+**Options:**
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--top-k` | — | `5` | Number of retrieved chunks |
+| `--model` | `-m` | `auto` | LLM provider for synthesis |
+| `--no-llm` | — | `False` | Retrieval-only mode (no synthesis) |
+
+**Examples:**
+```bash
+akf ask "How do I implement API rate limiting in FastAPI?"
+akf ask "What is schema-as-contract?" --top-k 7
+akf ask "How to design retry loops?" --model claude
+akf ask "How to design retry loops?" --top-k 5 --no-llm
+```
+
+---
+
 ## `akf enrich`
 
 Add YAML frontmatter to existing Markdown files that have missing or incomplete metadata.
