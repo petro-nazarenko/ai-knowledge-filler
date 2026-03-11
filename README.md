@@ -148,6 +148,52 @@ akf serve --mcp
 
 ---
 
+## RAG Copilot (Phase 1: Indexer)
+
+Phase 1 adds local corpus indexing for semantic search preparation.
+
+Current scope:
+- Parse Markdown files from `corpus/` with `python-frontmatter`
+- Split content by H2 headers using `MarkdownHeaderTextSplitter`
+- Generate embeddings with `sentence-transformers/all-MiniLM-L6-v2`
+- Store vectors in local Chroma collection `akf_corpus`
+
+Out of scope (planned for later phases):
+- Retriever/query layer
+- Dedicated CLI commands
+- Claude API integration for Q&A
+
+Install dependencies:
+
+```bash
+pip install -e .[rag]
+```
+
+Run indexer:
+
+```bash
+python rag/indexer.py
+```
+
+Optional environment variables:
+
+```bash
+export RAG_CORPUS_DIR="corpus"
+export RAG_CHROMA_PATH="rag/.chroma"
+export RAG_COLLECTION_NAME="akf_corpus"
+export RAG_EMBEDDING_MODEL="sentence-transformers/all-MiniLM-L6-v2"
+export RAG_MARKDOWN_GLOB="*.md"
+export RAG_BATCH_SIZE="64"
+```
+
+Expected output format:
+
+```text
+Indexed files=<N>, chunks=<M>, collection_count=<K>
+```
+
+---
+
 ## What Every Committed File Guarantees
 
 - Required fields present: `title`, `type`, `domain`, `level`, `status`, `tags`, `created`, `updated`
