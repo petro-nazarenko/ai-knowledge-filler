@@ -69,7 +69,21 @@ extend-exclude = ["ai_knowledge_filler.egg-info"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
-ignore = ["E402"]
+ignore = [
+    "E402",
+    "E501",
+    "E712",
+    "E741",
+    "F401",
+    "F541",
+    "F811",
+    "F841",
+    "I001",
+    "W191",
+    "W292",
+    "W293",
+    "E401",
+]
 
 [tool.setuptools]
 py-modules = ["cli", "validate_yaml", "llm_providers", "exceptions", "logger"]

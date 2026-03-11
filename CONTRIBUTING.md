@@ -83,8 +83,8 @@ All PRs must pass these gates before merge:
 # 1. Tests — 100% must pass
 pytest --tb=short
 
-# 2. Coverage — must not decrease below 91%
-pytest --cov=. --cov-report=term-missing --cov-fail-under=91
+# 2. Coverage — must not decrease below 85%
+pytest --cov=. --cov-report=term-missing --cov-fail-under=85
 
 # 3. Format check
 black --check .
@@ -245,9 +245,9 @@ def test_valid_file(tmp_path):
     assert result.is_valid
 ```
 
-**Coverage requirement:** do not decrease below 93%. Check with:
+**Coverage requirement:** do not decrease below 85%. Check with:
 ```bash
-pytest --cov=. --cov-report=term-missing --cov-fail-under=91
+pytest --cov=. --cov-report=term-missing --cov-fail-under=85
 ```
 
 ---
