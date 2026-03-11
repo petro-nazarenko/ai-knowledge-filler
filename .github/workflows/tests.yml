@@ -41,7 +41,7 @@ jobs:
         pytest --cov=akf --cov-report=term-missing --cov-report=xml --cov-fail-under=75 -v
     - name: Upload coverage to Codecov
       continue-on-error: true
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.xml
         flags: unittests
