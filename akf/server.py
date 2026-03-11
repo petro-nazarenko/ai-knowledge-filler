@@ -5,7 +5,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Optional, Generator
+from typing import Optional
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Security, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,6 +79,7 @@ app.state.metrics = {
     "status_codes": {},
     "latency_ms_sum": 0,
 }
+_CONCURRENCY_PATHS = {"/v1/generate", "/v1/validate", "/v1/batch", "/v1/ask"}
 
 app.add_middleware(
     CORSMiddleware,
@@ -125,7 +126,20 @@ async def request_context_middleware(request: Request, call_next):
         _update_metrics(request.url.path, response.status_code, 0)
         return response
 
-    response = await call_next(request)
+    sem = app.state.concurrency_semaphore
+    requires_slot = request.method == "POST" and request.url.path in _CONCURRENCY_PATHS
+    if requires_slot and not sem.acquire(blocking=False):
+        response = Response(status_code=429, content="Server is busy, try again later")
+        response.headers["X-Request-ID"] = request_id
+        _update_metrics(request.url.path, response.status_code, 0)
+        return response
+
+    try:
+        response = await call_next(request)
+    finally:
+        if requires_slot:
+            sem.release()
+
     latency_ms = int((time.monotonic() - start) * 1000)
     _update_metrics(request.url.path, response.status_code, latency_ms)
     response.headers["X-Request-ID"] = request_id
@@ -140,16 +154,6 @@ async def request_context_middleware(request: Request, call_next):
         },
     )
     return response
-
-
-def _acquire_concurrency_slot() -> Generator[None, None, None]:
-    sem = app.state.concurrency_semaphore
-    if not sem.acquire(blocking=False):
-        raise HTTPException(status_code=429, detail="Server is busy, try again later")
-    try:
-        yield
-    finally:
-        sem.release()
 
 
 @app.on_event("startup")
@@ -306,7 +310,7 @@ def models():
 @app.post(
     "/v1/generate",
     response_model=GenerateResponse,
-    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+    dependencies=[Depends(verify_key)],
 )
 @limiter.limit(_RATE_LIMIT_GENERATE)
 def generate(request: Request, req: GenerateRequest):
@@ -330,7 +334,7 @@ def generate(request: Request, req: GenerateRequest):
 @app.post(
     "/v1/validate",
     response_model=ValidateResponse,
-    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+    dependencies=[Depends(verify_key)],
 )
 @limiter.limit(_RATE_LIMIT_VALIDATE)
 def validate(request: Request, req: ValidateRequest):
@@ -346,7 +350,7 @@ def validate(request: Request, req: ValidateRequest):
     return ValidateResponse(valid=len(errors) == 0, errors=errors, warnings=warnings)
 
 
-@app.post("/v1/batch", dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)])
+@app.post("/v1/batch", dependencies=[Depends(verify_key)])
 @limiter.limit(_RATE_LIMIT_BATCH)
 def batch(request: Request, req: BatchRequest):
     safe_output = _safe_output_path(req.output)
@@ -376,7 +380,7 @@ def batch(request: Request, req: BatchRequest):
 @app.post(
     "/v1/ask",
     response_model=AskResponse,
-    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+    dependencies=[Depends(verify_key)],
 )
 @limiter.limit(_RATE_LIMIT_ASK)
 def ask(request: Request, req: AskRequest):
