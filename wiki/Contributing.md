@@ -36,7 +36,7 @@ akf --help             # CLI available
 pip install -e ".[dev]"
 
 # Or install specific tools
-pip install pytest pytest-cov black pylint mypy
+pip install pytest pytest-cov ruff black mypy
 
 # Set at least one API key
 export GROQ_API_KEY="gsk_..."       # free tier, recommended for dev
@@ -59,8 +59,8 @@ pytest --cov=. --cov-report=term-missing --cov-fail-under=91
 # 3. Format check
 black --check .
 
-# 4. Lint — score ≥ 9.0
-pylint cli.py llm_providers.py exceptions.py logger.py akf/ --fail-under=9.0
+# 4. Lint
+ruff check .
 
 # 5. Type check
 mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports
@@ -69,16 +69,29 @@ mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-impor
 akf validate --path docs/
 ```
 
+Tooling source-of-truth policy:
+- `pyproject.toml` is the single source of truth for linting/formatting/type-check configuration.
+- Primary tools are `ruff`, `black`, and `mypy`.
+- Legacy configs (`.flake8`, `.pylintrc`, `.pydocstyle`) are intentionally removed.
 Run all at once:
 ```bash
-black . && \
-pylint cli.py llm_providers.py exceptions.py logger.py akf/ --fail-under=9.0 && \
+black --check . && \
+ruff check . && \
 mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports && \
 pytest && \
 akf validate --path docs/
 ```
 
 CI runs the same gates on every push via `.github/workflows/ci.yml`, `tests.yml`, and `validate.yml`.
+
+Codecov policy (stabilization phase):
+- Codecov upload runs only on `push` to `main` and is non-blocking.
+- PR coverage remains blocking through `pytest --cov-fail-under=...`.
+
+GitHub Actions runtime policy:
+- Workflows use Node 24-compatible action majors.
+- If using self-hosted runners, keep runner version `>=2.327.1`.
+- For Docker container action credential-persistence scenarios, use `>=2.329.0`.
 
 ---
 

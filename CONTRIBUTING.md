@@ -89,8 +89,8 @@ pytest --cov=. --cov-report=term-missing --cov-fail-under=91
 # 3. Format check
 black --check .
 
-# 4. Lint — score ≥ 9.0
-pylint cli.py llm_providers.py exceptions.py logger.py akf/ --fail-under=9.0
+# 4. Lint
+ruff check .
 
 # 5. Type check
 mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports
@@ -104,15 +104,26 @@ pre-commit run --all-files
 
 Run all at once:
 ```bash
-black . && pylint cli.py llm_providers.py exceptions.py logger.py akf/ --fail-under=9.0 && \
+black --check . && \
+ruff check . && \
 mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports && pytest && \
 akf validate --path docs/ && pre-commit run --all-files
 ```
 
+Tooling source-of-truth policy:
+- `pyproject.toml` is the single source of truth for linting/formatting/type-check configuration.
+- Primary tools are `ruff`, `black`, and `mypy`.
+- Legacy configs (`.flake8`, `.pylintrc`, `.pydocstyle`) are intentionally removed to avoid conflicting rules.
+
+Codecov policy (stabilization phase):
+- Codecov upload is enabled only on `push` to `main` and remains non-blocking.
+- PR quality gate uses `pytest --cov-fail-under=...` as the blocking coverage check.
+- Target policy after stabilization: make Codecov status blocking via branch protection.
+
 CI runs the same gates on every push via `.github/workflows/ci.yml`, `tests.yml`, and `validate.yml`.
 
 > GitHub Actions dependency updates may migrate actions to Node.js 24 runtime.
-> If this repository ever moves to self-hosted runners, keep runner version at `>=2.327.1`.
+> If this repository ever moves to self-hosted runners, keep runner version at `>=2.327.1` (and `>=2.329.0` for Docker container action credential-persistence scenarios).
 
 ---
 

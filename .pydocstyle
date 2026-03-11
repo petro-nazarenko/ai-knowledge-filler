@@ -1,5 +1,0 @@
-[pydocstyle]
-convention = google
-add-ignore = D100,D104,D105,D107
-match = .*\.py
-match-dir = ^(?!\.|__pycache__|\.git).*

@@ -2,6 +2,8 @@
 
 AKF includes a FastAPI-based REST server that exposes the full pipeline over HTTP. This page documents all endpoints, request/response schemas, authentication, and rate limits.
 
+For endpoint exposure and abuse analysis, see [REST API Threat Model](REST-API-Threat-Model).
+
 ---
 
 ## Starting the Server
@@ -59,6 +61,13 @@ If omitted, server uses `AKF_DEFAULT_TENANT` or falls back to `default`.
 | `POST /v1/batch` | `AKF_RATE_LIMIT_BATCH` (default `3/minute`) |
 
 Exceeding limits returns **HTTP 429** with a `Retry-After` header.
+
+## Security Policy Notes
+
+- In production, run with `AKF_ENV=prod` and set `AKF_API_KEY`.
+- Restrict `/metrics` and non-public endpoints by network policy/reverse proxy.
+- Use strict CORS allowlist via `AKF_CORS_ORIGINS`.
+- Review `401`/`429` spikes in logs for abuse detection.
 
 ---
 

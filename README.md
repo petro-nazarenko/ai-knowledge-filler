@@ -46,6 +46,34 @@ akf validate ./vault/
 
 Works with Claude, GPT-4, Gemini, Ollama.
 
+### Quickstart by Interface
+
+**CLI:**
+```bash
+akf init
+akf generate "Create a guide on API rate limiting"
+akf validate --path ./docs
+```
+
+**Python API:**
+```python
+from akf import Pipeline
+
+pipeline = Pipeline(output="./output")
+result = pipeline.generate("Create a guide on API rate limiting")
+print(result.success, result.file_path)
+```
+
+**REST API:**
+```bash
+akf serve --port 8000
+curl -X POST http://127.0.0.1:8000/v1/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt":"Create a guide on API rate limiting"}'
+```
+
+Minimal runnable examples are in `examples/cli_quickstart.sh`, `examples/python_api_quickstart.py`, and `examples/rest_api_quickstart.sh`.
+
 ---
 
 ## External Taxonomy Config
@@ -339,6 +367,24 @@ pytest --cov=akf --cov-report=term-missing -v
 
 ---
 
+## Tooling Policy
+
+- Source of truth for lint/format rules: `pyproject.toml`
+- Primary local quality tools: `ruff`, `black`, `mypy`
+- Legacy configs `.flake8`, `.pylintrc`, `.pydocstyle` are removed to avoid conflicting rules
+- Codecov policy (stabilization): upload on `main` pushes only, non-blocking
+- Node 24 GitHub Actions compatibility: self-hosted runners must be `>=2.327.1`
+
+Recommended local checks:
+
+```bash
+ruff check .
+black --check .
+mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports
+```
+
+---
+
 ## Installation
 
 ```bash
@@ -354,6 +400,12 @@ cd ai-knowledge-filler
 pip install -e .
 ```
 
+Installation policy:
+
+- Canonical dependency declaration path: `pyproject.toml`
+- `requirements.txt` is a thin compatibility entrypoint used to install from the locked constraints in `requirements.lock`
+- CI and release jobs install with `pip install -c requirements.lock -e ".[all,dev]"`
+
 ---
 
 ## Documentation
@@ -361,6 +413,7 @@ pip install -e .
 - [Architecture](ARCHITECTURE.md) — module map, data flow, pipeline decisions
 - [CLI Reference](docs/cli-reference.md) — all commands, flags, exit codes
 - [User Guide](docs/user-guide.md) — installation, configuration, troubleshooting
+- [REST API Threat Model](docs/rest-api-threat-model.md) — auth, endpoint exposure, limits, logging/PII
 - [Contributing](CONTRIBUTING.md) — dev setup, quality gates, adding providers
 
 ---

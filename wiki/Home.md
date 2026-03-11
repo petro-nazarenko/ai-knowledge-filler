@@ -34,6 +34,37 @@ akf generate "Write a guide on Docker networking"
 akf validate ./vault/
 ```
 
+### Quickstart by Interface
+
+```bash
+# CLI
+akf init
+akf generate "Create a guide on API rate limiting"
+akf validate --path ./docs
+```
+
+```python
+# Python API
+from akf import Pipeline
+
+pipeline = Pipeline(output="./output")
+result = pipeline.generate("Create a guide on API rate limiting")
+print(result.success, result.file_path)
+```
+
+```bash
+# REST API
+akf serve --port 8000
+curl -X POST http://127.0.0.1:8000/v1/generate \
+	-H "Content-Type: application/json" \
+	-d '{"prompt":"Create a guide on API rate limiting"}'
+```
+
+Minimal examples are in:
+- `examples/cli_quickstart.sh`
+- `examples/python_api_quickstart.py`
+- `examples/rest_api_quickstart.sh`
+
 ---
 
 ## Wiki Pages
@@ -45,6 +76,7 @@ akf validate ./vault/
 | [CLI Reference](CLI-Reference) | All commands, flags, environment variables, exit codes |
 | [Python API](Python-API) | Python SDK — `Pipeline` class, methods, result types |
 | [REST API](REST-API) | HTTP endpoints, request/response schemas, auth, rate limits |
+| [REST API Threat Model](REST-API-Threat-Model) | Public/internal endpoints, auth, limits, logging, PII |
 | [MCP Server](MCP-Server) | Model Context Protocol server for Claude Desktop, Cursor, Zed |
 | [Error Codes](Error-Codes) | E001–E008 error codes, meanings, and repair instructions |
 | [Architecture](Architecture) | Pipeline architecture, module map, determinism boundary |
@@ -97,3 +129,12 @@ No file reaches disk without passing all checks.
 - **PyPI:** https://pypi.org/project/ai-knowledge-filler
 - **Issues:** https://github.com/petro-nazarenko/ai-knowledge-filler/issues
 - **License:** MIT
+
+---
+
+## CI and Coverage Policy
+
+- Codecov upload runs on `push` to `main` only and is non-blocking during stabilization.
+- Blocking coverage gate for PRs is enforced by `pytest --cov-fail-under=...` in CI.
+- GitHub Actions workflow stack uses Node 24-compatible action majors.
+- Self-hosted runners must be `>=2.327.1` (and `>=2.329.0` for container-action credential persistence scenarios).
