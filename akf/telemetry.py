@@ -206,6 +206,40 @@ class EnrichEvent:
         }
 
 
+@dataclass
+class AskQueryEvent:
+    """Telemetry event for RAG ask requests (API/CLI)."""
+
+    generation_id: str
+    mode: str                    # synthesis | retrieval-only
+    model: str
+    top_k: int
+    no_llm: bool
+    max_distance: Optional[float]
+    hits_used: int
+    insufficient_context: bool
+    duration_ms: int
+    event_type: str = field(default="ask_query", init=False)
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: str = field(default_factory=lambda: _utc_now())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "event_type": self.event_type,
+            "event_id": self.event_id,
+            "timestamp": self.timestamp,
+            "generation_id": self.generation_id,
+            "mode": self.mode,
+            "model": self.model,
+            "top_k": self.top_k,
+            "no_llm": self.no_llm,
+            "max_distance": self.max_distance,
+            "hits_used": self.hits_used,
+            "insufficient_context": self.insufficient_context,
+            "duration_ms": self.duration_ms,
+        }
+
+
 class TelemetryWriter:
     """Append-only thread-safe JSONL writer for AKF telemetry events.
 
@@ -225,7 +259,10 @@ class TelemetryWriter:
         self._path = Path(path)
         self._lock = threading.Lock()
 
-    def write(self, event: GenerationAttemptEvent | GenerationSummaryEvent | EnrichEvent) -> None:
+    def write(
+        self,
+        event: GenerationAttemptEvent | GenerationSummaryEvent | EnrichEvent | AskQueryEvent,
+    ) -> None:
         """Serialize event to JSONL and append to telemetry file.
 
         Args:
@@ -235,7 +272,10 @@ class TelemetryWriter:
             TypeError: if event is not a recognized type.
             OSError: if file cannot be written.
         """
-        if not isinstance(event, (GenerationAttemptEvent, GenerationSummaryEvent)):
+        if not isinstance(
+            event,
+            (GenerationAttemptEvent, GenerationSummaryEvent, AskQueryEvent),
+        ):
             raise TypeError(
                 f"Expected GenerationAttemptEvent or GenerationSummaryEvent, "
                 f"got {type(event).__name__}"

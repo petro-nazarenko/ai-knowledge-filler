@@ -283,7 +283,9 @@ class TestAsk:
             top_k=3,
             hits_used=2,
         )
-        with patch("rag.copilot.answer_question", return_value=fake):
+        fake_writer = MagicMock()
+        with patch("rag.copilot.answer_question", return_value=fake), \
+             patch("akf.server.get_telemetry_writer", return_value=fake_writer):
             r = client.post("/v1/ask", json={"query": "How to rate limit?", "top_k": 3})
 
         assert r.status_code == 200
@@ -292,6 +294,8 @@ class TestAsk:
         assert data["answer"] == "Use SlowAPI and return headers."
         assert data["sources"] == ["a.md", "b.md"]
         assert data["hits_used"] == 2
+        assert data["insufficient_context"] is False
+        assert fake_writer.write.called
 
     def test_ask_retrieval_only_success(self):
         fake = RetrievalResult(
@@ -312,7 +316,9 @@ class TestAsk:
                 ),
             ],
         )
-        with patch("rag.retriever.retrieve", return_value=fake):
+        fake_writer = MagicMock()
+        with patch("rag.retriever.retrieve", return_value=fake), \
+             patch("akf.server.get_telemetry_writer", return_value=fake_writer):
             r = client.post(
                 "/v1/ask",
                 json={"query": "How to rate limit?", "top_k": 2, "no_llm": True},
@@ -325,6 +331,58 @@ class TestAsk:
         assert data["hits_used"] == 2
         assert len(data["hits"]) == 2
         assert data["hits"][0]["chunk_id"] == "c1"
+        assert data["insufficient_context"] is False
+        assert fake_writer.write.called
+
+    def test_ask_retrieval_only_max_distance_insufficient_context(self):
+        fake = RetrievalResult(
+            query="How to rate limit?",
+            top_k=1,
+            hits=[
+                RetrievalHit(
+                    chunk_id="c1",
+                    content="Far chunk",
+                    metadata={"source": "a.md"},
+                    distance=0.95,
+                )
+            ],
+        )
+        with patch("rag.retriever.retrieve", return_value=fake):
+            r = client.post(
+                "/v1/ask",
+                json={
+                    "query": "How to rate limit?",
+                    "top_k": 1,
+                    "no_llm": True,
+                    "max_distance": 0.5,
+                },
+            )
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["hits_used"] == 0
+        assert data["insufficient_context"] is True
+
+    def test_ask_synthesis_insufficient_context_from_guardrail(self):
+        fake = CopilotAnswer(
+            query="How to rate limit?",
+            answer="Insufficient relevant context in the local index for a grounded answer.",
+            sources=[],
+            model="none",
+            top_k=3,
+            hits_used=0,
+            insufficient_context=True,
+        )
+        with patch("rag.copilot.answer_question", return_value=fake):
+            r = client.post(
+                "/v1/ask",
+                json={"query": "How to rate limit?", "top_k": 3, "max_distance": 0.1},
+            )
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["model"] == "none"
+        assert data["insufficient_context"] is True
 
     def test_ask_missing_query_422(self):
         r = client.post("/v1/ask", json={})

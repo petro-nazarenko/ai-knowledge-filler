@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from akf.telemetry import (
+    AskQueryEvent,
     GenerationAttemptEvent,
     GenerationSummaryEvent,
     TelemetryWriter,
@@ -342,3 +343,38 @@ class TestNewGenerationId:
 
     def test_unique_per_call(self):
         assert new_generation_id() != new_generation_id()
+
+
+# ─── AskQueryEvent ───────────────────────────────────────────────────────────
+
+class TestAskQueryEvent:
+    def test_event_type_fixed(self):
+        evt = AskQueryEvent(
+            generation_id=str(uuid.uuid4()),
+            mode="retrieval-only",
+            model="none",
+            top_k=5,
+            no_llm=True,
+            max_distance=0.5,
+            hits_used=2,
+            insufficient_context=False,
+            duration_ms=12,
+        )
+        assert evt.event_type == "ask_query"
+
+    def test_writer_accepts_ask_event(self, writer):
+        evt = AskQueryEvent(
+            generation_id=str(uuid.uuid4()),
+            mode="synthesis",
+            model="claude",
+            top_k=3,
+            no_llm=False,
+            max_distance=None,
+            hits_used=3,
+            insufficient_context=False,
+            duration_ms=89,
+        )
+        writer.write(evt)
+        data = json.loads(writer.path.read_text().strip())
+        assert data["event_type"] == "ask_query"
+        assert data["mode"] == "synthesis"

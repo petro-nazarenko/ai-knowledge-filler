@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -48,6 +49,7 @@ app.add_middleware(
 )
 
 _pipeline = None
+_telemetry_writer = None
 
 
 def get_pipeline() -> Pipeline:
@@ -58,6 +60,16 @@ def get_pipeline() -> Pipeline:
             verbose=False,
         )
     return _pipeline
+
+
+def get_telemetry_writer():
+    global _telemetry_writer
+    if _telemetry_writer is None:
+        from akf.telemetry import TelemetryWriter
+
+        path = Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
+        _telemetry_writer = TelemetryWriter(path=path)
+    return _telemetry_writer
 
 
 # ─── SCHEMAS ──────────────────────────────────────────────────────────────────
@@ -100,6 +112,7 @@ class AskRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=20)
     model: str = Field(default="auto")
     no_llm: bool = False
+    max_distance: Optional[float] = Field(default=None, ge=0)
 
 
 class AskHit(BaseModel):
@@ -118,6 +131,7 @@ class AskResponse(BaseModel):
     hits_used: int = 0
     hits: list[AskHit] = Field(default_factory=list)
     model: str
+    insufficient_context: bool = False
 
 
 # ─── ENDPOINTS ────────────────────────────────────────────────────────────────
@@ -202,11 +216,19 @@ def ask(request: Request, req: AskRequest):
       - no_llm=False (default): retrieve + synthesize answer with LLM
       - no_llm=True: retrieval-only, returns top-k hits without LLM
     """
+    t_start = time.monotonic()
+    mode = "retrieval-only" if req.no_llm else "synthesis"
+
     try:
         if req.no_llm:
             from rag.retriever import retrieve
+            from akf.telemetry import AskQueryEvent, new_generation_id
 
             retrieval = retrieve(query=req.query, top_k=req.top_k)
+            hits_raw = retrieval.hits
+            if req.max_distance is not None:
+                hits_raw = [hit for hit in hits_raw if hit.distance <= req.max_distance]
+
             hits = [
                 AskHit(
                     chunk_id=h.chunk_id,
@@ -214,25 +236,47 @@ def ask(request: Request, req: AskRequest):
                     metadata=h.metadata,
                     distance=h.distance,
                 )
-                for h in retrieval.hits
+                for h in hits_raw
             ]
-            return AskResponse(
+            response = AskResponse(
                 mode="retrieval-only",
                 query=retrieval.query,
                 top_k=retrieval.top_k,
                 hits_used=len(hits),
                 hits=hits,
                 model="none",
+                insufficient_context=(len(hits) == 0),
             )
 
+            try:
+                get_telemetry_writer().write(
+                    AskQueryEvent(
+                        generation_id=new_generation_id(),
+                        mode=mode,
+                        model="none",
+                        top_k=req.top_k,
+                        no_llm=req.no_llm,
+                        max_distance=req.max_distance,
+                        hits_used=response.hits_used,
+                        insufficient_context=response.insufficient_context,
+                        duration_ms=int((time.monotonic() - t_start) * 1000),
+                    )
+                )
+            except Exception:
+                pass
+
+            return response
+
         from rag.copilot import answer_question
+        from akf.telemetry import AskQueryEvent, new_generation_id
 
         result = answer_question(
             query=req.query,
             top_k=req.top_k,
             model=req.model,
+            max_distance=req.max_distance,
         )
-        return AskResponse(
+        response = AskResponse(
             mode="synthesis",
             query=result.query,
             top_k=result.top_k,
@@ -240,7 +284,27 @@ def ask(request: Request, req: AskRequest):
             sources=result.sources,
             hits_used=result.hits_used,
             model=result.model,
+            insufficient_context=result.insufficient_context,
         )
+
+        try:
+            get_telemetry_writer().write(
+                AskQueryEvent(
+                    generation_id=new_generation_id(),
+                    mode=mode,
+                    model=response.model,
+                    top_k=req.top_k,
+                    no_llm=req.no_llm,
+                    max_distance=req.max_distance,
+                    hits_used=response.hits_used,
+                    insufficient_context=response.insufficient_context,
+                    duration_ms=int((time.monotonic() - t_start) * 1000),
+                )
+            )
+        except Exception:
+            pass
+
+        return response
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:

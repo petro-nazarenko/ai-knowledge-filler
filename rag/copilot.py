@@ -32,6 +32,7 @@ class CopilotAnswer:
     model: str
     top_k: int
     hits_used: int
+    insufficient_context: bool = False
 
 
 def _format_context(hits: list[RetrievalHit]) -> str:
@@ -68,30 +69,49 @@ def _build_user_prompt(query: str, retrieval: RetrievalResult) -> str:
     )
 
 
-def answer_question(query: str, top_k: int = 5, model: str = "auto") -> CopilotAnswer:
+def _filter_hits_by_distance(hits: list[RetrievalHit], max_distance: float | None) -> list[RetrievalHit]:
+    if max_distance is None:
+        return hits
+    return [hit for hit in hits if hit.distance <= max_distance]
+
+
+def answer_question(
+    query: str,
+    top_k: int = 5,
+    model: str = "auto",
+    max_distance: float | None = None,
+) -> CopilotAnswer:
     """Retrieve relevant chunks and synthesize a final answer via selected LLM."""
 
     retrieval = retrieve(query=query, top_k=top_k)
-    if not retrieval.hits:
+    filtered_hits = _filter_hits_by_distance(retrieval.hits, max_distance)
+    if not filtered_hits:
         return CopilotAnswer(
             query=query,
             answer=(
-                "I could not find relevant context in the local index. "
-                "Try re-running indexing or broadening the query."
+                "Insufficient relevant context in the local index for a grounded answer. "
+                "Try re-running indexing, broadening the query, or relaxing max_distance."
             ),
             sources=[],
             model="none",
             top_k=top_k,
             hits_used=0,
+            insufficient_context=True,
         )
 
+    filtered_retrieval = RetrievalResult(
+        query=retrieval.query,
+        top_k=retrieval.top_k,
+        hits=filtered_hits,
+    )
+
     provider = get_provider(model)
-    user_prompt = _build_user_prompt(query, retrieval)
+    user_prompt = _build_user_prompt(query, filtered_retrieval)
     answer = provider.generate(user_prompt, _SYSTEM_PROMPT).strip()
 
     source_set = {
         str(hit.metadata.get("source", "unknown"))
-        for hit in retrieval.hits
+        for hit in filtered_hits
         if hit.metadata.get("source")
     }
     sources = sorted(source_set)
@@ -101,8 +121,8 @@ def answer_question(query: str, top_k: int = 5, model: str = "auto") -> CopilotA
         answer=answer,
         sources=sources,
         model=provider.name,
-        top_k=retrieval.top_k,
-        hits_used=len(retrieval.hits),
+        top_k=filtered_retrieval.top_k,
+        hits_used=len(filtered_hits),
     )
 
 

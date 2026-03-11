@@ -56,4 +56,57 @@ def test_answer_question_no_hits(monkeypatch):
 
     assert result.model == "none"
     assert result.hits_used == 0
-    assert "could not find relevant context" in result.answer.lower()
+    assert result.insufficient_context is True
+    assert "insufficient relevant context" in result.answer.lower()
+
+
+def test_answer_question_max_distance_filters_hits(monkeypatch):
+    retrieval = RetrievalResult(
+        query="How to rate limit?",
+        top_k=2,
+        hits=[
+            RetrievalHit(
+                chunk_id="c1",
+                content="Use limiter",
+                metadata={"source": "a.md"},
+                distance=0.2,
+            ),
+            RetrievalHit(
+                chunk_id="c2",
+                content="Irrelevant",
+                metadata={"source": "b.md"},
+                distance=0.9,
+            ),
+        ],
+    )
+
+    monkeypatch.setattr("rag.copilot.retrieve", lambda query, top_k: retrieval)
+    monkeypatch.setattr("rag.copilot.get_provider", lambda model: _FakeProvider())
+
+    result = answer_question("How to rate limit?", top_k=2, max_distance=0.5)
+
+    assert result.hits_used == 1
+    assert result.sources == ["a.md"]
+
+
+def test_answer_question_max_distance_insufficient(monkeypatch):
+    retrieval = RetrievalResult(
+        query="How to rate limit?",
+        top_k=1,
+        hits=[
+            RetrievalHit(
+                chunk_id="c1",
+                content="Far chunk",
+                metadata={"source": "a.md"},
+                distance=0.95,
+            )
+        ],
+    )
+
+    monkeypatch.setattr("rag.copilot.retrieve", lambda query, top_k: retrieval)
+
+    result = answer_question("How to rate limit?", top_k=1, max_distance=0.5)
+
+    assert result.model == "none"
+    assert result.hits_used == 0
+    assert result.insufficient_context is True

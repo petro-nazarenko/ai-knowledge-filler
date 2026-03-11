@@ -153,7 +153,8 @@ Two modes are supported:
   "query": "How do I implement API rate limiting in FastAPI?",
   "top_k": 5,
   "model": "auto",
-  "no_llm": false
+  "no_llm": false,
+  "max_distance": 0.5
 }
 ```
 
@@ -163,6 +164,7 @@ Two modes are supported:
 | `top_k` | `integer` | No | `5` | Number of retrieved chunks (1..20) |
 | `model` | `string` | No | `auto` | LLM provider for synthesis |
 | `no_llm` | `boolean` | No | `false` | Retrieval-only mode |
+| `max_distance` | `number` | No | `null` | Guardrail: keep chunks with `distance <= max_distance` |
 
 **Response (200 OK — synthesis):**
 ```json
@@ -176,7 +178,8 @@ Two modes are supported:
   ],
   "hits_used": 5,
   "hits": [],
-  "model": "claude"
+  "model": "claude",
+  "insufficient_context": false
 }
 ```
 
@@ -200,7 +203,8 @@ Two modes are supported:
       "distance": 0.1529
     }
   ],
-  "model": "none"
+  "model": "none",
+  "insufficient_context": false
 }
 ```
 
