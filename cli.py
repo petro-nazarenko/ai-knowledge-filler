@@ -577,6 +577,47 @@ def cmd_models(args: argparse.Namespace) -> None:
         print()
 
 
+# ─── ASK (RAG COPILOT) ──────────────────────────────────────────────────────
+
+
+def cmd_ask(args: argparse.Namespace) -> None:
+    """Answer a question using local RAG retrieval + synthesis."""
+    try:
+        from rag.copilot import answer_question
+    except Exception as exc:
+        err(f"RAG modules unavailable: {exc}")
+        info("Install RAG dependencies: pip install -e .[rag]")
+        sys.exit(1)
+
+    query = (args.query or "").strip()
+    if not query:
+        err("Query must not be empty.")
+        sys.exit(1)
+
+    top_k = max(1, int(getattr(args, "top_k", 5) or 5))
+    model = getattr(args, "model", "auto") or "auto"
+
+    info(f"RAG Copilot  →  model: {model}  |  top-k: {top_k}")
+
+    try:
+        result = answer_question(query=query, top_k=top_k, model=model)
+    except Exception as exc:
+        err(f"RAG ask failed: {exc}")
+        sys.exit(1)
+
+    print()
+    print(result.answer)
+
+    if result.sources:
+        print()
+        print("Sources:")
+        for source in result.sources:
+            print(f"- {source}")
+    else:
+        print()
+        warn("No sources returned.")
+
+
 # ─── MARKET ANALYSIS ──────────────────────────────────────────────────────────
 
 
@@ -762,6 +803,16 @@ def main() -> int:
     # Models command
     models = sub.add_parser("models", help="List available LLM providers")
 
+    # Ask command (RAG copilot)
+    ask = sub.add_parser("ask", help="Ask a question over local RAG index")
+    ask.add_argument("query", help="Natural-language question")
+    ask.add_argument("--top-k", type=int, default=5,
+                     help="Number of retrieved chunks (default: 5)")
+    ask.add_argument("--model", "-m",
+                     choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
+                     default="auto",
+                     help="LLM provider for synthesis (default: auto-select)")
+
     # Canvas command
     cnv = sub.add_parser("canvas", help="Generate Obsidian Canvas JSON from validated corpus")
     cnv.add_argument("--input", "-i", required=True, metavar="INPUT_DIR",
@@ -801,6 +852,8 @@ def main() -> int:
         cmd_enrich(args)
     elif args.command == "models":
         cmd_models(args)
+    elif args.command == "ask":
+        cmd_ask(args)
     elif args.command == "canvas":
         cmd_canvas(args)
     elif args.command == "market-analysis":

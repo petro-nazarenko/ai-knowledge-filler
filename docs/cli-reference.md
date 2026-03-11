@@ -26,6 +26,7 @@ akf <command> [options]
 
 Commands:
   generate    Generate a structured Markdown knowledge file from a prompt
+   ask         Ask a question over local RAG index (retrieval + synthesis)
   enrich      Add YAML frontmatter to existing Markdown files
   validate    Validate YAML frontmatter in Markdown files
   init        Create akf.yaml config in target directory
@@ -60,6 +61,31 @@ akf generate -m groq "Create a guide for Docker multi-stage builds"
 akf generate -m claude -o ./docs "Create a security checklist"
 akf generate --batch plan.json
 akf generate --batch plan.json --model groq --output ./vault
+```
+
+---
+
+## `akf ask`
+
+Ask a natural-language question over your local RAG index.
+
+**Usage:**
+```bash
+akf ask QUERY [--top-k N] [--model MODEL]
+```
+
+**Options:**
+
+| Flag | Short | Default | Description |
+|------|-------|---------|-------------|
+| `--top-k` | — | `5` | Number of retrieved chunks |
+| `--model` | `-m` | `auto` | LLM provider for synthesis |
+
+**Examples:**
+```bash
+akf ask "How do I implement API rate limiting in FastAPI?"
+akf ask "What is schema-as-contract?" --top-k 7
+akf ask "How to design retry loops?" --model claude
 ```
 
 ---

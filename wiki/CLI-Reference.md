@@ -11,6 +11,7 @@ akf <command> [options]
 
 Commands:
   generate    Generate a structured Markdown knowledge file from a prompt
+   ask         Ask a question over local RAG index (retrieval + synthesis)
   enrich      Add YAML frontmatter to existing Markdown files
   validate    Validate YAML frontmatter in Markdown files
   init        Create akf.yaml config in target directory
