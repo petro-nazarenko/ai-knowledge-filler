@@ -3,25 +3,35 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
-### Documentation
-
-- Update ARCHITECTURE.md and README to document E008 typed relationship validation and `relationship_types` config key
-
-
-## [1.0.0] — 2026-03-10
-
 ### Bug Fixes
 
-- BUG-1: Prevent local `akf/` from shadowing installed package when running from repo directory
-- SEC-L3: Add Windows reserved filename check in `sanitize_filename`
+- Add YAML frontmatter to docs/market-analysis.md ([`638e696`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/638e696dd28f0f66da7922233f41ab84924778ea))
+- Add isinstance(related, list) guard in _check_related and use yaml.safe_dump in make_doc ([`5408bca`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5408bca2cc4e676fd1ace987d434f17fd6e6587a))
+- Support direct script execution for indexer ([`be4ebc5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/be4ebc526e8ab71fcd02030a581e11a4691ed443))
+
+### Documentation
+
+- Update CHANGELOG for v0.7.0 ([`49b127d`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/49b127d6143e413d940bda33bc0738c90770d3b6))
+- Update current state — add E008 typed relationships to ARCHITECTURE and README ([`7530680`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7530680746ee28baf94777ce6bccf6674a618173))
+- Create wiki pages for repo ([`b6fa422`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b6fa422f9a8da89ab5cc6263b7dcc91f63a3a688))
 
 ### Features
 
-- Three-stage market analysis pipeline (`akf market "<request>"`) — market → competitors → positioning ([`412e24e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/412e24e9d123121c168fe13f79cd7aeb51d50228))
+- Add three-stage market analysis pipeline ([`412e24e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/412e24e9d123121c168fe13f79cd7aeb51d50228))
+- Generate test fixture corpus from plan.json via Claude provider ([`b1cd88d`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b1cd88df40efdad5f6ba99f8fabe651cd2b0c60e))
+- Add typed relationships support with E008 validation ([`7b30683`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7b30683abe241ec9ebd9f60d178e84bf35e80b7a))
+- Add phase 1 corpus indexer with chroma storage ([`3f457bc`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3f457bce862fe5682ffab8395108cfef5997dba8))
+- Add phase 2 retriever query layer ([`d489ea7`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d489ea7d6b5d4c8f1fbb79c47632a864d3796d67))
+- Add phase 3 copilot answer synthesis ([`f7e688a`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f7e688a99aee85679791742285814bf56fe814e1))
+- Add akf ask command for rag copilot ([`06e76ff`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/06e76ffeb1423ab44cfebfb01ec426e4c10386b2))
+- Add no-llm retrieval mode for ask ([`484e8e1`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/484e8e1f0dfb7373cb760099f00c85953b19734d))
+- Add /v1/ask endpoint for rag qa ([`4601893`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/4601893e4bacbfd3dce07a81f5e0a960b2a85bb0))
+- Add ask guardrails and telemetry events ([`6f09238`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/6f09238f251ca0c34634e397b83da983b2c67856))
+- Add tenant-level ask usage tracking ([`f2cf2c8`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f2cf2c8dc8d34b117864d0affd2d2f3d6c1cd8cd))
 
-### Documentation
+### release
 
-- Bump version to 1.0.0, update ARCHITECTURE.md module map and known issues
+- Bump to v1.0.0 — fix BUG-1, SEC-L3, sync all docs ([`157b5f1`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/157b5f189ef2770324750a61966b47fc65bdffa4))
 
 ## [0.7.0] — 2026-03-07
 
