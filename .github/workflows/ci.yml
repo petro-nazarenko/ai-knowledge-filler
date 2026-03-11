@@ -59,9 +59,9 @@ jobs:
       - name: Ruff
         if: steps.targets.outputs.py_files != ''
         run: |
-          echo "Lint targets:" 
+          echo "Lint targets:"
           echo "${{ steps.targets.outputs.py_files }}"
-          ruff check ${{ steps.targets.outputs.py_files }}
+          printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r ruff check
 
       - name: Ruff (no Python changes)
         if: steps.targets.outputs.py_files == ''
@@ -69,11 +69,11 @@ jobs:
 
       - name: Black
         if: steps.targets.outputs.py_files != ''
-        run: black --check ${{ steps.targets.outputs.py_files }}
+        run: printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r black --check
 
       - name: Mypy
         if: steps.targets.outputs.runtime_files != ''
-        run: mypy ${{ steps.targets.outputs.runtime_files }}
+        run: printf '%s\n' "${{ steps.targets.outputs.runtime_files }}" | xargs -r mypy
 
       - name: Mypy (no runtime Python changes)
         if: steps.targets.outputs.runtime_files == ''
