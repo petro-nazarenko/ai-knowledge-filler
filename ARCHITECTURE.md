@@ -137,7 +137,7 @@ GET  /docs
      → Swagger UI
 ```
 
-**Auth:** `Authorization: Bearer <AKF_API_KEY>` — required when `AKF_API_KEY` env var is set. If unset, all requests pass (dev mode).
+**Auth:** `Authorization: Bearer <AKF_API_KEY>` — required in `AKF_ENV=prod` (startup fails without key). In `AKF_ENV=dev`, auth is optional unless key is set.
 
 **Rate limits:** `POST /v1/generate` 10/min · `POST /v1/validate` 30/min · `POST /v1/batch` 3/min.
 
