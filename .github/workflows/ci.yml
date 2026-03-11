@@ -42,7 +42,12 @@ jobs:
             git fetch --depth=1 origin "${{ github.base_ref }}"
             PY_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -E '\\.py$' || true)
           else
-            PY_FILES=$(git ls-files '*.py')
+            BEFORE_SHA="${{ github.event.before }}"
+            if [ -n "$BEFORE_SHA" ] && [ "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+              PY_FILES=$(git diff --name-only "$BEFORE_SHA...${{ github.sha }}" | grep -E '\\.py$' || true)
+            else
+              PY_FILES=$(git ls-files '*.py')
+            fi
           fi
 
           RUNTIME_FILES=$(printf '%s\n' "$PY_FILES" | grep -E '^(akf/|rag/|cli.py|llm_providers.py|logger.py|exceptions.py)' || true)
@@ -61,7 +66,7 @@ jobs:
         run: |
           echo "Lint targets:"
           echo "${{ steps.targets.outputs.py_files }}"
-          printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r ruff check
+          printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r ruff check --
 
       - name: Ruff (no Python changes)
         if: steps.targets.outputs.py_files == ''
@@ -69,11 +74,11 @@ jobs:
 
       - name: Black
         if: steps.targets.outputs.py_files != ''
-        run: printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r black --check
+        run: printf '%s\n' "${{ steps.targets.outputs.py_files }}" | xargs -r black --check --
 
       - name: Mypy
         if: steps.targets.outputs.runtime_files != ''
-        run: printf '%s\n' "${{ steps.targets.outputs.runtime_files }}" | xargs -r mypy
+        run: printf '%s\n' "${{ steps.targets.outputs.runtime_files }}" | xargs -r mypy --
 
       - name: Mypy (no runtime Python changes)
         if: steps.targets.outputs.runtime_files == ''
