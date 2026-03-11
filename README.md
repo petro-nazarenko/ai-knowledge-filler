@@ -219,6 +219,33 @@ Still out of scope:
 - Dedicated AKF CLI subcommands for RAG
 - Claude API integration for final response generation
 
+### Phase 3: Copilot synthesis (retrieve + answer)
+
+Generate an answer grounded in retrieved chunks:
+
+```bash
+python rag/copilot.py "How do I implement API rate limiting in FastAPI?" --top-k 5 --model auto
+```
+
+Programmatic usage:
+
+```python
+from rag.copilot import answer_question
+
+result = answer_question(
+  "How do I implement API rate limiting in FastAPI?",
+  top_k=5,
+  model="auto",
+)
+print(result.answer)
+print(result.sources)
+```
+
+Phase 3 scope:
+- Retrieval + synthesis flow
+- Grounded answer generated from top-k chunks
+- Source list returned with the answer
+
 ---
 
 ## What Every Committed File Guarantees
