@@ -78,7 +78,7 @@ pytest && \
 akf validate --path docs/
 ```
 
-CI runs the same gates on every push via `.github/workflows/tests.yml`, `lint.yml`, and `validate.yml`.
+CI runs the same gates on every push via `.github/workflows/ci.yml`, `tests.yml`, and `validate.yml`.
 
 ---
 

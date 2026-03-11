@@ -2,12 +2,12 @@
 
 **Validation pipeline that prevents AI-generated files from reaching disk unless they pass schema checks**
 
-[![Tests](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Tests/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
-[![Lint](https://github.com/petrnzrnk-creator/ai-knowledge-filler/workflows/Lint/badge.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/lint.yml)
+[![CI](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/ci.yml/badge.svg)](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/ci.yml)
+[![Tests](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/tests.yml/badge.svg)](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/tests.yml)
 [![PyPI](https://img.shields.io/pypi/v/ai-knowledge-filler.svg)](https://pypi.org/project/ai-knowledge-filler/)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/petrnzrnk-creator/ai-knowledge-filler/actions/workflows/tests.yml)
+[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/tests.yml)
 
 ---
 
@@ -349,7 +349,7 @@ pip install ai-knowledge-filler
 pip install ai-knowledge-filler[mcp]
 
 # From source
-git clone https://github.com/petrnzrnk-creator/ai-knowledge-filler.git
+git clone https://github.com/petro-nazarenko/ai-knowledge-filler.git
 cd ai-knowledge-filler
 pip install -e .
 ```

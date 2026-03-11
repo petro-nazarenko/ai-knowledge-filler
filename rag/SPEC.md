@@ -1,10 +1,14 @@
 ---
 title: "AKF RAG Copilot"
-type: spec
+type: reference
+domain: akf-spec
+level: intermediate
 project: akf
 status: draft
 version: v0.1
+tags: [rag, specification, architecture]
 created: 2026-03-11
+updated: 2026-03-11
 ---
 
 ## Overview

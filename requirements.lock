@@ -1,5 +1,7 @@
 # Pinned dependencies for reproducible CI and release builds.
 # Source of truth remains pyproject.toml; update this file in controlled PRs.
+# Policy: this lock intentionally includes both runtime and dev tooling
+# because CI quality gates and release checks must be deterministic.
 
 pyyaml==6.0.2
 pydantic==2.11.7

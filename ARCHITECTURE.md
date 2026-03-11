@@ -262,7 +262,7 @@ Scripts/
   analyze_telemetry.py Telemetry aggregation — retry rate, ontology friction
 
 tests/                 560+ tests, 91.5% coverage
-.github/workflows/     ci.yml · tests.yml · lint.yml · validate.yml · changelog.yml · release.yml
+.github/workflows/     ci.yml · tests.yml · validate.yml · changelog.yml · release.yml · secret-scan.yml
 ```
 
 ---

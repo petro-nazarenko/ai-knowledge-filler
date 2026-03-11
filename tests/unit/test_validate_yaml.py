@@ -265,8 +265,8 @@ updated: 2026-02-10
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
-            assert len(errors) == 0
-            assert any('Fewer than 3 tags' in warn for warn in warnings)
+            assert any('E004_TYPE_MISMATCH' in err and 'tags' in err for err in errors)
+            assert any('related' in warn for warn in warnings)
         finally:
             os.unlink(temp_path)
 
@@ -290,7 +290,7 @@ updated: 2026-02-10
         try:
             errors, warnings = validate_file(temp_path)
             assert len(errors) == 0
-            assert any('No related links' in warn for warn in warnings)
+            assert any('related' in warn for warn in warnings)
         finally:
             os.unlink(temp_path)
 
@@ -394,6 +394,8 @@ type: guide
             # Either structure error or missing fields — both are valid outcomes
             assert any(
                 'Invalid YAML frontmatter structure' in err
+                or 'YAML parsing error' in err
+                or 'E005_SCHEMA_VIOLATION' in err
                 or 'E002_MISSING_FIELD' in err
                 for err in errors
             )

@@ -22,7 +22,7 @@ Thank you for contributing to AI Knowledge Filler.
 ## Quick Start
 
 ```bash
-git clone https://github.com/petrnzrnk-creator/ai-knowledge-filler
+git clone https://github.com/petro-nazarenko/ai-knowledge-filler
 cd ai-knowledge-filler
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
@@ -44,6 +44,15 @@ akf --help               # CLI available
 ```bash
 pip install -c requirements.lock -e ".[all,dev]"
 ```
+
+Dependency pinning policy:
+- `pyproject.toml` is the source of truth for dependency declarations.
+- `requirements.lock` pins both runtime and dev tools for deterministic CI/release.
+- Update `requirements.lock` only in dedicated dependency maintenance PRs.
+
+Validation source-of-truth policy:
+- Use `akf.validator` as canonical validation engine.
+- `Scripts/validate_yaml.py` is a thin CLI wrapper over canonical validator logic.
 
 **Environment variables** (set at least one for live provider tests):
 ```bash
@@ -100,7 +109,7 @@ mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-impor
 akf validate --path docs/ && pre-commit run --all-files
 ```
 
-CI runs the same gates on every push via `.github/workflows/tests.yml`, `lint.yml`, and `validate.yml`.
+CI runs the same gates on every push via `.github/workflows/ci.yml`, `tests.yml`, and `validate.yml`.
 
 > GitHub Actions dependency updates may migrate actions to Node.js 24 runtime.
 > If this repository ever moves to self-hosted runners, keep runner version at `>=2.327.1`.
@@ -143,7 +152,7 @@ ai-knowledge-filler/
 ├── .github/workflows/
 │   ├── ci.yml
 │   ├── tests.yml
-│   ├── lint.yml
+│   ├── ci.yml
 │   ├── validate.yml        # akf validate --path docs/ on every PR
 │   ├── changelog.yml       # git-cliff CHANGELOG.md on every tag
 │   └── release.yml

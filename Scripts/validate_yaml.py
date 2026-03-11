@@ -1,75 +1,20 @@
 #!/usr/bin/env python3
-"""YAML Metadata Validator for AI Knowledge Filler.
+"""YAML metadata validator CLI wrapper.
 
-This module validates Markdown files against the Metadata Template Standard
-defined in the AI Knowledge Filler system. It checks for required fields,
-valid enum values, proper date formats, and structural compliance.
-
-Model C (Phase 2.2): Hard enum enforcement for all taxonomy fields.
-  - domain  → E006_TAXONOMY_VIOLATION (was: warning)
-  - type    → E001_INVALID_ENUM
-  - level   → E001_INVALID_ENUM
-  - status  → E001_INVALID_ENUM
-
-Example:
-    Run validation on all Markdown files in the repository::
-
-        $ python validate_yaml.py
-
-    The script will output validation results for each file and exit with
-    code 0 if all files are valid, or code 1 if any errors are found.
-
-Attributes:
-    VALID_TYPES (list): Valid values for the 'type' metadata field.
-    VALID_LEVELS (list): Valid values for the 'level' metadata field.
-    VALID_STATUSES (list): Valid values for the 'status' metadata field.
-    VALID_DOMAINS (list): Valid values for the 'domain' metadata field.
+This script delegates schema checks to akf.validator.validate so there is
+one validation source of truth for CLI, API, tests, and standalone script use.
 """
 
 import glob
+import re
 import sys
 from datetime import datetime
 from typing import List, Tuple
 
-import re
 import yaml
 
-# Valid enum values
-VALID_TYPES = [
-    "concept",
-    "guide",
-    "reference",
-    "checklist",
-    "project",
-    "roadmap",
-    "template",
-    "audit",
-]
-VALID_LEVELS = ["beginner", "intermediate", "advanced"]
-VALID_STATUSES = ["draft", "active", "completed", "archived"]
-
-# Valid domains (Domain_Taxonomy — canonical source)
-VALID_DOMAINS = [
-    "ai-system",
-    "system-design",
-    "api-design",
-    "data-engineering",
-    "security",
-    "devops",
-    "product-management",
-    "consulting",
-    "workflow-automation",
-    "prompt-engineering",
-    "business-strategy",
-    "project-management",
-    "knowledge-management",
-    "documentation",
-    "frontend-engineering",
-    "backend-engineering",
-    "infrastructure",
-    "machine-learning",
-    "data-science",
-]
+from akf.validator import validate as core_validate
+from akf.validation_error import ErrorCode, Severity, ValidationError
 
 # Paths excluded from validation
 EXCLUDE_PATTERNS = [
@@ -79,6 +24,30 @@ EXCLUDE_PATTERNS = [
     "ARCHITECTURE.md",
     "08-TEMPLATES",  # Obsidian Templater files — not knowledge documents
 ]
+
+
+def _validate_arrays(metadata: dict, errors: List[str], warnings: List[str]) -> None:
+    """Legacy helper kept for compatibility with existing unit tests.
+
+    Canonical validation happens in akf.validator; this helper only preserves
+    historical assertions around related WikiLink formatting behavior.
+    """
+    if "tags" in metadata and not isinstance(metadata["tags"], list):
+        errors.append("E004_TYPE_MISMATCH: tags must be an array")
+
+    if "related" in metadata and metadata["related"] is not None:
+        if not isinstance(metadata["related"], list):
+            errors.append("E004_TYPE_MISMATCH: related must be an array or null")
+            return
+
+        for link in metadata["related"]:
+            if isinstance(link, str) and not re.match(r"^\[\[.+\]\]$", link.strip("\"' ")):
+                errors.append(
+                    f"E005_SCHEMA_VIOLATION: invalid WikiLink format in related: '{link}'"
+                )
+
+    if "related" not in metadata or metadata.get("related") == []:
+        warnings.append("No related links (recommended for knowledge graph)")
 
 
 def validate_date_format(date_str: str) -> bool:
@@ -103,79 +72,6 @@ def validate_date_format(date_str: str) -> bool:
         return False
 
 
-def _validate_enum_fields(metadata: dict, errors: List[str], warnings: List[str]) -> None:
-    """Validate enum fields: type, level, status, domain.
-
-    Model C — Hard Enum Enforcement (Phase 2.2):
-      All four taxonomy fields produce errors on invalid values.
-      domain uses E006_TAXONOMY_VIOLATION; others use E001_INVALID_ENUM.
-    """
-    # E001_INVALID_ENUM — type
-    if "type" in metadata and metadata["type"] not in VALID_TYPES:
-        errors.append(
-            f"E001_INVALID_ENUM: type '{metadata['type']}' is not valid. "
-            f"Must be one of: {', '.join(VALID_TYPES)}"
-        )
-
-    # E001_INVALID_ENUM — level
-    if "level" in metadata and metadata["level"] not in VALID_LEVELS:
-        errors.append(
-            f"E001_INVALID_ENUM: level '{metadata['level']}' is not valid. "
-            f"Must be one of: {', '.join(VALID_LEVELS)}"
-        )
-
-    # E001_INVALID_ENUM — status
-    if "status" in metadata and metadata["status"] not in VALID_STATUSES:
-        errors.append(
-            f"E001_INVALID_ENUM: status '{metadata['status']}' is not valid. "
-            f"Must be one of: {', '.join(VALID_STATUSES)}"
-        )
-
-    # E006_TAXONOMY_VIOLATION — domain (Model C: promoted from warning to error)
-    if "domain" in metadata and metadata["domain"] not in VALID_DOMAINS:
-        errors.append(
-            f"E006_TAXONOMY_VIOLATION: domain '{metadata['domain']}' not in taxonomy. "
-            f"Must be one of: {', '.join(VALID_DOMAINS)}"
-        )
-
-
-def _validate_dates(metadata: dict, errors: List[str]) -> None:
-    """Validate created and updated date fields."""
-    if "created" in metadata and not validate_date_format(metadata["created"]):
-        errors.append(
-            f"E003_INVALID_DATE_FORMAT: created '{metadata['created']}'. Use YYYY-MM-DD"
-        )
-
-    if "updated" in metadata and not validate_date_format(metadata["updated"]):
-        errors.append(
-            f"E003_INVALID_DATE_FORMAT: updated '{metadata['updated']}'. Use YYYY-MM-DD"
-        )
-
-
-def _validate_arrays(metadata: dict, errors: List[str], warnings: List[str]) -> None:
-    """Validate tags and related array fields."""
-    if "tags" in metadata and not isinstance(metadata["tags"], list):
-        errors.append("E004_TYPE_MISMATCH: tags must be an array")
-
-    if "related" in metadata and metadata["related"] is not None:
-        if not isinstance(metadata["related"], list):
-            errors.append("E004_TYPE_MISMATCH: related must be an array or null")
-
-    if "tags" in metadata and isinstance(metadata["tags"], list) and len(metadata["tags"]) < 3:
-        warnings.append("Fewer than 3 tags (recommended: 3-10)")
-
-    if "related" in metadata and isinstance(metadata["related"], list):
-        for link in metadata["related"]:
-            if isinstance(link, str) and not re.match(r'^\[\[.+\]\]$', link.strip('"\' ')):
-                errors.append(
-                    f"E005_SCHEMA_VIOLATION: invalid WikiLink format in related: "
-                    f"'{link}' — use [[...]] syntax"
-                )
-
-    if "related" not in metadata or not metadata["related"]:
-        warnings.append("No related links (recommended for knowledge graph)")
-
-
 def _parse_frontmatter(content: str) -> Tuple[dict, List[str]]:
     """Extract and parse YAML frontmatter from Markdown content."""
     errors: List[str] = []
@@ -187,11 +83,21 @@ def _parse_frontmatter(content: str) -> Tuple[dict, List[str]]:
     if len(parts) < 3:
         return {}, ["Invalid YAML frontmatter structure"]
 
-    metadata = yaml.safe_load(parts[1])
+    try:
+        metadata = yaml.safe_load(parts[1])
+    except yaml.YAMLError as exc:
+        return {}, [f"YAML parsing error: {exc}"]
+
     if not metadata:
         return {}, ["Empty YAML frontmatter"]
 
     return metadata, errors
+
+
+def _format_validation_error(err: ValidationError) -> str:
+    """Convert ValidationError to legacy human-readable CLI line."""
+    code = err.code.value if isinstance(err.code, ErrorCode) else str(err.code)
+    return f"{code}: field '{err.field}' expected {err.expected!r}, received {err.received!r}"
 
 
 def validate_file(filepath: str, strict: bool = False) -> Tuple[List[str], List[str]]:
@@ -229,24 +135,23 @@ def validate_file(filepath: str, strict: bool = False) -> Tuple[List[str], List[
     except (IOError, OSError) as e:
         return [f"Cannot read file: {e}"], []
 
+    metadata, parse_errors = _parse_frontmatter(content)
+    if parse_errors:
+        return parse_errors, []
+
+    _ = metadata  # Parsing ensures consistent frontmatter diagnostics.
+
     try:
-        metadata, parse_errors = _parse_frontmatter(content)
-        if parse_errors:
-            return parse_errors, []
+        validation_errors = core_validate(content)
+    except Exception as exc:
+        return [f"Unexpected error: {exc}"], []
 
-        required_fields = ["title", "type", "domain", "level", "status", "created", "updated"]
-        for field in required_fields:
-            if field not in metadata:
-                errors.append(f"E002_MISSING_FIELD: required field '{field}' is absent")
-
-        _validate_enum_fields(metadata, errors, warnings)
-        _validate_dates(metadata, errors)
-        _validate_arrays(metadata, errors, warnings)
-
-    except yaml.YAMLError as e:
-        errors.append(f"YAML parsing error: {str(e)}")
-    except Exception as e:
-        errors.append(f"Unexpected error: {str(e)}")
+    for err in validation_errors:
+        line = _format_validation_error(err)
+        if err.severity == Severity.WARNING:
+            warnings.append(line)
+        else:
+            errors.append(line)
 
     if strict:
         errors.extend(f"[strict] {w}" for w in warnings)
