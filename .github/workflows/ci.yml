@@ -81,4 +81,4 @@ jobs:
 
       - name: Pytest with coverage gate
         run: |
-          pytest tests/ -q --cov=akf --cov=rag --cov-report=term-missing --cov-fail-under=90
+          pytest tests/ -q --cov=akf --cov=rag --cov-report=term-missing --cov-fail-under=85

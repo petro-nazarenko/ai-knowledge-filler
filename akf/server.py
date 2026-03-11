@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import threading
 import time
 import uuid
@@ -33,6 +34,7 @@ _OUTPUT_BASE = Path(os.getenv("AKF_OUTPUT_DIR", "./output")).expanduser().resolv
 
 _security = HTTPBearer(auto_error=False)
 _logger = get_logger("akf.server", level=_LOG_LEVEL, json_output=_JSON_LOGS)
+_SAFE_OUTPUT_NAME = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 
 
 def _api_key() -> str:
@@ -95,10 +97,17 @@ _telemetry_writer = None
 def _safe_output_path(output: Optional[str]) -> Optional[str]:
     if not output:
         return None
-    candidate = Path(output).expanduser()
-    resolved = (_OUTPUT_BASE / candidate).resolve() if not candidate.is_absolute() else candidate.resolve()
-    if resolved != _OUTPUT_BASE and _OUTPUT_BASE not in resolved.parents:
-        raise HTTPException(status_code=400, detail="Output path must stay inside AKF_OUTPUT_DIR")
+
+    # Accept only a plain filename to prevent directory traversal and absolute paths.
+    candidate = Path(output.strip())
+    if candidate.is_absolute() or len(candidate.parts) != 1:
+        raise HTTPException(status_code=400, detail="Output must be a filename without directories")
+
+    name = candidate.name
+    if not _SAFE_OUTPUT_NAME.fullmatch(name):
+        raise HTTPException(status_code=400, detail="Output filename contains invalid characters")
+
+    resolved = (_OUTPUT_BASE / name).resolve()
     return str(resolved)
 
 
