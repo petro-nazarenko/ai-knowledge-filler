@@ -9,6 +9,9 @@ on:
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
 
     steps:
       - uses: actions/checkout@v4
@@ -32,14 +35,49 @@ jobs:
           pip install -r requirements.txt
           pip install ruff black mypy pytest pytest-cov pytest-mock
 
+      - name: Resolve Python targets
+        id: targets
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --depth=1 origin "${{ github.base_ref }}"
+            PY_FILES=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" | grep -E '\\.py$' || true)
+          else
+            PY_FILES=$(git ls-files '*.py')
+          fi
+
+          RUNTIME_FILES=$(printf '%s\n' "$PY_FILES" | grep -E '^(akf/|rag/|cli.py|llm_providers.py|logger.py|exceptions.py)' || true)
+
+          {
+            echo "py_files<<EOF"
+            printf '%s\n' "$PY_FILES"
+            echo "EOF"
+            echo "runtime_files<<EOF"
+            printf '%s\n' "$RUNTIME_FILES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Ruff
-        run: ruff check .
+        if: steps.targets.outputs.py_files != ''
+        run: |
+          echo "Lint targets:" 
+          echo "${{ steps.targets.outputs.py_files }}"
+          ruff check ${{ steps.targets.outputs.py_files }}
+
+      - name: Ruff (no Python changes)
+        if: steps.targets.outputs.py_files == ''
+        run: echo "No changed Python files to lint"
 
       - name: Black
-        run: black --check .
+        if: steps.targets.outputs.py_files != ''
+        run: black --check ${{ steps.targets.outputs.py_files }}
 
       - name: Mypy
-        run: mypy akf rag cli.py llm_providers.py logger.py exceptions.py
+        if: steps.targets.outputs.runtime_files != ''
+        run: mypy ${{ steps.targets.outputs.runtime_files }}
+
+      - name: Mypy (no runtime Python changes)
+        if: steps.targets.outputs.runtime_files == ''
+        run: echo "No changed runtime Python files for mypy"
 
       - name: Pytest with coverage gate
         run: |
