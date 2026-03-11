@@ -303,9 +303,13 @@ def models():
     return {"providers": list_providers()}
 
 
-@app.post("/v1/generate", response_model=GenerateResponse, dependencies=[Depends(verify_key)])
+@app.post(
+    "/v1/generate",
+    response_model=GenerateResponse,
+    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+)
 @limiter.limit(_RATE_LIMIT_GENERATE)
-def generate(request: Request, req: GenerateRequest, _: None = Depends(_acquire_concurrency_slot)):
+def generate(request: Request, req: GenerateRequest):
     safe_output = _safe_output_path(req.output)
     result = get_pipeline().generate(
         prompt=req.prompt,
@@ -323,9 +327,13 @@ def generate(request: Request, req: GenerateRequest, _: None = Depends(_acquire_
     )
 
 
-@app.post("/v1/validate", response_model=ValidateResponse, dependencies=[Depends(verify_key)])
+@app.post(
+    "/v1/validate",
+    response_model=ValidateResponse,
+    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+)
 @limiter.limit(_RATE_LIMIT_VALIDATE)
-def validate(request: Request, req: ValidateRequest, _: None = Depends(_acquire_concurrency_slot)):
+def validate(request: Request, req: ValidateRequest):
     from akf.validator import validate as _validate
     from akf.validation_error import Severity
     all_errors = _validate(req.content)
@@ -338,9 +346,9 @@ def validate(request: Request, req: ValidateRequest, _: None = Depends(_acquire_
     return ValidateResponse(valid=len(errors) == 0, errors=errors, warnings=warnings)
 
 
-@app.post("/v1/batch", dependencies=[Depends(verify_key)])
+@app.post("/v1/batch", dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)])
 @limiter.limit(_RATE_LIMIT_BATCH)
-def batch(request: Request, req: BatchRequest, _: None = Depends(_acquire_concurrency_slot)):
+def batch(request: Request, req: BatchRequest):
     safe_output = _safe_output_path(req.output)
     results = get_pipeline().batch_generate(
         prompts=req.prompts,
@@ -365,9 +373,13 @@ def batch(request: Request, req: BatchRequest, _: None = Depends(_acquire_concur
     }
 
 
-@app.post("/v1/ask", response_model=AskResponse, dependencies=[Depends(verify_key)])
+@app.post(
+    "/v1/ask",
+    response_model=AskResponse,
+    dependencies=[Depends(verify_key), Depends(_acquire_concurrency_slot)],
+)
 @limiter.limit(_RATE_LIMIT_ASK)
-def ask(request: Request, req: AskRequest, _: None = Depends(_acquire_concurrency_slot)):
+def ask(request: Request, req: AskRequest):
     """RAG question answering endpoint.
 
     Modes:
