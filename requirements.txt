@@ -3,4 +3,4 @@
 # - Pinned versions: requirements.lock
 -c requirements.lock
 
--e .[all]
+-e .[all,dev]

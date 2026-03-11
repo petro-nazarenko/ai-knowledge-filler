@@ -23,32 +23,17 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-lint-${{ hashFiles('requirements.txt') }}
+        key: ${{ runner.os }}-pip-lint-${{ hashFiles('requirements.lock', 'pyproject.toml') }}
         restore-keys: |
           ${{ runner.os }}-pip-lint-
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 black pylint
-        pip install -r requirements.txt
+        pip install -c requirements.lock -e ".[all,dev]"
     
-    - name: Check code formatting with Black
+    - name: Ruff
       run: |
-        echo "Checking Python code formatting..."
-        black --check --diff Scripts/ tests/
-      continue-on-error: true
+        echo "Running critical Ruff checks on full repository..."
+        ruff check . --select E9,F63,F7,F82
     
-    - name: Lint with flake8
-      run: |
-        echo "Running flake8 linter..."
-        # Stop the build if there are Python syntax errors or undefined names
-        flake8 Scripts/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
-        # Exit-zero treats all errors as warnings
-        flake8 Scripts/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
-    
-    - name: Lint with pylint
-      run: |
-        echo "Running pylint..."
-        pylint Scripts/ --exit-zero --max-line-length=120 --disable=C0111,R0903,C0103
-      continue-on-error: true

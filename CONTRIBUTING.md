@@ -42,9 +42,7 @@ akf --help               # CLI available
 
 **Install dev dependencies:**
 ```bash
-pip install pytest pytest-cov black pylint mypy
-# or via pyproject.toml extras:
-pip install -e ".[dev]"
+pip install -c requirements.lock -e ".[all,dev]"
 ```
 
 **Environment variables** (set at least one for live provider tests):
@@ -52,6 +50,19 @@ pip install -e ".[dev]"
 export GROQ_API_KEY="gsk_..."       # free, recommended for dev
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
+
+**Secrets hygiene (required):**
+```bash
+# Install and enable hooks once per clone
+pre-commit install
+
+# Run all hooks before pushing
+pre-commit run --all-files
+```
+
+- Never commit `.env`, `.env.local`, or any file with real credentials.
+- Keep only examples in `.env.example` and use placeholder values.
+- If a secret is committed accidentally: rotate it immediately, purge from history, and notify maintainers.
 
 ---
 
@@ -77,16 +88,22 @@ mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-impor
 
 # 6. Metadata validation
 akf validate --path docs/
+
+# 7. Pre-commit (includes secret checks)
+pre-commit run --all-files
 ```
 
 Run all at once:
 ```bash
 black . && pylint cli.py llm_providers.py exceptions.py logger.py akf/ --fail-under=9.0 && \
 mypy cli.py llm_providers.py exceptions.py logger.py akf/ --ignore-missing-imports && pytest && \
-akf validate --path docs/
+akf validate --path docs/ && pre-commit run --all-files
 ```
 
 CI runs the same gates on every push via `.github/workflows/tests.yml`, `lint.yml`, and `validate.yml`.
+
+> GitHub Actions dependency updates may migrate actions to Node.js 24 runtime.
+> If this repository ever moves to self-hosted runners, keep runner version at `>=2.327.1`.
 
 ---
 

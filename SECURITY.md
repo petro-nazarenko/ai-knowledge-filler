@@ -19,5 +19,7 @@ Do not open public GitHub issues for vulnerabilities.
 - Restrict AKF_CORS_ORIGINS to known internal origins.
 - Rotate API keys regularly and on personnel changes.
 - Enable GitHub secret scanning and push protection at repository level.
+- Run `pre-commit install` and `pre-commit run --all-files` before every push.
+- CI enforces secret scanning via `.github/workflows/secret-scan.yml`.
 - Keep Dependabot enabled and merge security updates promptly.
 - Review logs for repeated 401/429 responses and anomalous request volume.
