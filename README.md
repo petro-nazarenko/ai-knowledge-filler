@@ -192,6 +192,33 @@ Expected output format:
 Indexed files=<N>, chunks=<M>, collection_count=<K>
 ```
 
+### Phase 2: Retriever (local semantic search)
+
+After indexing, query the local vector store:
+
+```bash
+python rag/retriever.py "How do I implement API rate limiting?" --top-k 5
+```
+
+Programmatic usage:
+
+```python
+from rag.retriever import retrieve
+
+result = retrieve("How do I implement API rate limiting?", top_k=5)
+for hit in result.hits:
+  print(hit.distance, hit.metadata.get("source"), hit.metadata.get("section"))
+```
+
+Current scope for Phase 2:
+- Retrieval/query layer over Chroma index
+- Returns top-k relevant chunks with metadata and distance
+
+Still out of scope:
+- Answer synthesis over retrieved chunks
+- Dedicated AKF CLI subcommands for RAG
+- Claude API integration for final response generation
+
 ---
 
 ## What Every Committed File Guarantees

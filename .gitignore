@@ -54,3 +54,4 @@ dist/
 .pylint_cache
 FETCH_HEAD
 telemetry/
+rag/.chroma/
