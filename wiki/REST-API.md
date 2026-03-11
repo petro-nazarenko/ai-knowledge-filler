@@ -22,7 +22,12 @@ Interactive API documentation is available at `http://localhost:8000/docs` (Swag
 
 ## Authentication
 
-Authentication is **optional by default**. If the `AKF_API_KEY` environment variable is set, all requests must include a bearer token:
+Authentication depends on `AKF_ENV`:
+
+- `AKF_ENV=prod`: `AKF_API_KEY` is mandatory; server fails to start without it.
+- `AKF_ENV=dev`: auth is optional unless `AKF_API_KEY` is set.
+
+When auth is enabled, all requests must include a bearer token:
 
 ```bash
 export AKF_API_KEY="your-secret-key"
@@ -32,7 +37,7 @@ export AKF_API_KEY="your-secret-key"
 Authorization: Bearer your-secret-key
 ```
 
-If `AKF_API_KEY` is not set, all requests pass without auth (development mode).
+If `AKF_ENV=dev` and `AKF_API_KEY` is not set, requests pass without auth.
 
 For tenant-level usage analytics (and future billing), send optional header:
 
@@ -48,11 +53,10 @@ If omitted, server uses `AKF_DEFAULT_TENANT` or falls back to `default`.
 
 | Endpoint | Limit |
 |----------|-------|
-| `POST /v1/generate` | 10 requests / minute |
-| `POST /v1/ask` | 10 requests / minute |
-| `POST /v1/enrich` | 10 requests / minute |
-| `POST /v1/validate` | 30 requests / minute |
-| `POST /v1/batch` | 3 requests / minute |
+| `POST /v1/generate` | `AKF_RATE_LIMIT_GENERATE` (default `10/minute`) |
+| `POST /v1/ask` | `AKF_RATE_LIMIT_ASK` (default `10/minute`) |
+| `POST /v1/validate` | `AKF_RATE_LIMIT_VALIDATE` (default `30/minute`) |
+| `POST /v1/batch` | `AKF_RATE_LIMIT_BATCH` (default `3/minute`) |
 
 Exceeding limits returns **HTTP 429** with a `Retry-After` header.
 
@@ -60,7 +64,8 @@ Exceeding limits returns **HTTP 429** with a `Retry-After` header.
 
 ## CORS
 
-CORS is configured via the `AKF_CORS_ORIGINS` environment variable (default: `*`).
+CORS is configured via `AKF_CORS_ORIGINS` (default: `http://localhost:3000`).
+In production, wildcard `*` is rejected at startup.
 
 ```bash
 export AKF_CORS_ORIGINS="https://myapp.example.com,https://dashboard.example.com"
@@ -79,11 +84,33 @@ Health check endpoint.
 **Response:**
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "version": "1.0.0",
+  "env": "prod"
 }
 ```
 
 **Status:** `200 OK`
+
+---
+
+### `GET /ready`
+
+Readiness check endpoint.
+
+Returns `200` when pipeline and runtime checks are initialized; otherwise `503`.
+
+---
+
+### `GET /metrics`
+
+Built-in JSON metrics endpoint with request counters and average latency.
+
+Includes:
+- `requests_total`
+- `requests_by_path`
+- `status_codes`
+- `latency_ms_avg`
 
 ---
 

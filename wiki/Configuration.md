@@ -188,8 +188,18 @@ In addition to `akf.yaml`, AKF respects these environment variables:
 | `AKF_OUTPUT_DIR` | `.` | Default output directory when `--output` not specified |
 | `AKF_TELEMETRY_PATH` | `telemetry/events.jsonl` | Path for the telemetry JSONL log |
 | `AKF_CONFIG_PATH` | — | Explicit path to `akf.yaml` (overrides auto-discovery) |
-| `AKF_API_KEY` | — | REST API bearer token (optional; if unset, all requests pass) |
-| `AKF_CORS_ORIGINS` | `*` | Allowed CORS origins for the REST API server |
+| `AKF_ENV` | `dev` | Runtime mode (`dev` or `prod`) |
+| `AKF_API_KEY` | — | REST API bearer token (required when `AKF_ENV=prod`) |
+| `AKF_CORS_ORIGINS` | `http://localhost:3000` | Allowed CORS origins (wildcard is rejected in prod) |
+| `AKF_MAX_REQUEST_BYTES` | `1048576` | Max HTTP request body size (bytes) |
+| `AKF_MAX_CONCURRENCY` | `8` | Max concurrent heavy API requests |
+| `AKF_RATE_LIMIT_DEFAULT` | `60/minute` | Default API limit for endpoints without per-route override |
+| `AKF_RATE_LIMIT_GENERATE` | `10/minute` | Limit for `POST /v1/generate` |
+| `AKF_RATE_LIMIT_VALIDATE` | `30/minute` | Limit for `POST /v1/validate` |
+| `AKF_RATE_LIMIT_BATCH` | `3/minute` | Limit for `POST /v1/batch` |
+| `AKF_RATE_LIMIT_ASK` | `10/minute` | Limit for `POST /v1/ask` |
+| `AKF_LOG_JSON` | `true` | Enable structured JSON logs |
+| `AKF_LOG_LEVEL` | `INFO` | Log level for server logs |
 
 ---
 

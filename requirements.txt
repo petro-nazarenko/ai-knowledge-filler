@@ -1,27 +1,6 @@
-# AI Knowledge Filler - Python Dependencies
-pyyaml>=6.0
-anthropic>=0.18.0
-python-dotenv>=1.0.0
-mypy>=1.8.0
-black>=24.0.0
-pydocstyle>=6.3.0
-pylint>=3.0.0
+# Deterministic install path:
+# - Source of truth: pyproject.toml
+# - Pinned versions: requirements.lock
+-c requirements.lock
 
-# Testing dependencies
-pytest>=8.0.0
-pytest-cov>=4.1.0
-pytest-mock>=3.12.0
-coverage>=7.4.0
-mypy>=1.8.0
-
-# Multi-LLM support
-anthropic>=0.18.0        # Claude
-google-genai>=1.0.0      # Gemini
-openai>=1.0.0            # GPT-4
-requests>=2.31.0         # Ollama
-
-# RAG Phase 1 indexer
-python-frontmatter>=1.1.0
-langchain-text-splitters>=0.3.0
-chromadb>=0.5.0
-sentence-transformers>=2.7.0
+-e .[all]

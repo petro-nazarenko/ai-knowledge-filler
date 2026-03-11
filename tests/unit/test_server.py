@@ -74,6 +74,11 @@ class TestHealth:
         assert r.status_code == 200
         assert r.json()["status"] == "ok"
 
+    def test_health_sets_request_id_header(self):
+        r = client.get("/health")
+        assert r.status_code == 200
+        assert "X-Request-ID" in r.headers
+
     def test_health_version(self):
         r = client.get("/health")
         assert "version" in r.json()
@@ -85,57 +90,68 @@ class TestHealth:
         assert r.status_code == 200
         app.dependency_overrides[verify_key] = _no_auth  # re-disable for other tests
 
+    def test_ready_ok(self):
+        r = client.get("/ready")
+        assert r.status_code == 200
+        assert r.json()["status"] == "ready"
+
+    def test_metrics_available(self):
+        r = client.get("/metrics")
+        assert r.status_code == 200
+        body = r.json()
+        assert "requests_total" in body
+        assert "status_codes" in body
+
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
 
 class TestAuth:
     def test_no_key_configured_allows_access(self):
-        """When AKF_API_KEY not set, auth is disabled — all requests pass."""
+        """When AKF_API_KEY not set in dev mode, auth is disabled."""
         app.dependency_overrides.clear()  # use real verify_key
-        with patch.dict(os.environ, {}, clear=False):
+        with patch.dict(os.environ, {"AKF_ENV": "dev"}, clear=False):
             os.environ.pop("AKF_API_KEY", None)
-            # Reload the key from env
-            import importlib
-            import akf.server as srv
-            srv._AKF_API_KEY = None
             r = client.get("/v1/models")
         assert r.status_code in (200, 422)  # not 401
+        app.dependency_overrides[verify_key] = _no_auth
+
+    def test_prod_without_key_returns_503(self):
+        app.dependency_overrides.clear()
+        with patch.dict(os.environ, {"AKF_ENV": "prod"}, clear=False):
+            os.environ.pop("AKF_API_KEY", None)
+            r = client.get("/v1/models")
+        assert r.status_code == 503
+        app.dependency_overrides[verify_key] = _no_auth
 
     def test_valid_key_grants_access(self):
         """Correct Bearer token grants access."""
         app.dependency_overrides.clear()
-        import akf.server as srv
-        srv._AKF_API_KEY = "test-secret-key"
-        with patch("llm_providers.list_providers", return_value={}):
+        with patch.dict(os.environ, {"AKF_API_KEY": "test-secret-key", "AKF_ENV": "prod"}, clear=False), \
+             patch("llm_providers.list_providers", return_value={}):
             r = client.get(
                 "/v1/models",
                 headers={"Authorization": "Bearer test-secret-key"},
             )
         assert r.status_code == 200
-        srv._AKF_API_KEY = None
         app.dependency_overrides[verify_key] = _no_auth
 
     def test_wrong_key_returns_401(self):
         """Wrong token returns 401."""
         app.dependency_overrides.clear()
-        import akf.server as srv
-        srv._AKF_API_KEY = "correct-key"
-        r = client.get(
-            "/v1/models",
-            headers={"Authorization": "Bearer wrong-key"},
-        )
+        with patch.dict(os.environ, {"AKF_API_KEY": "correct-key", "AKF_ENV": "prod"}, clear=False):
+            r = client.get(
+                "/v1/models",
+                headers={"Authorization": "Bearer wrong-key"},
+            )
         assert r.status_code == 401
-        srv._AKF_API_KEY = None
         app.dependency_overrides[verify_key] = _no_auth
 
     def test_missing_token_returns_401(self):
         """No Authorization header returns 401 when key is configured."""
         app.dependency_overrides.clear()
-        import akf.server as srv
-        srv._AKF_API_KEY = "some-key"
-        r = client.get("/v1/models")
+        with patch.dict(os.environ, {"AKF_API_KEY": "some-key", "AKF_ENV": "prod"}, clear=False):
+            r = client.get("/v1/models")
         assert r.status_code == 401
-        srv._AKF_API_KEY = None
         app.dependency_overrides[verify_key] = _no_auth
 
 
@@ -198,6 +214,10 @@ class TestGenerate:
             mock_get.return_value.generate.return_value = _make_result()
             r = client.post("/v1/generate", json={"prompt": "Test"})
         assert r.json()["path"] is not None
+
+    def test_generate_rejects_path_traversal_output(self):
+        r = client.post("/v1/generate", json={"prompt": "Test", "output": "../../etc"})
+        assert r.status_code == 400
 
 
 # ─── VALIDATE ─────────────────────────────────────────────────────────────────

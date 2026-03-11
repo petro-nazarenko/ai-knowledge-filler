@@ -8,6 +8,13 @@ from typing import Any
 class JSONFormatter(logging.Formatter):
     """Format log records as JSON lines."""
 
+    _RESERVED = {
+        "name", "msg", "args", "levelname", "levelno", "pathname", "filename", "module",
+        "exc_info", "exc_text", "stack_info", "lineno", "funcName", "created", "msecs",
+        "relativeCreated", "thread", "threadName", "processName", "process", "message",
+        "asctime",
+    }
+
     def format(self, record: logging.LogRecord) -> str:
         log_obj: dict[str, Any] = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -17,6 +24,9 @@ class JSONFormatter(logging.Formatter):
         }
         if record.exc_info:
             log_obj["exception"] = self.formatException(record.exc_info)
+        for key, value in record.__dict__.items():
+            if key not in self._RESERVED:
+                log_obj[key] = value
         return json.dumps(log_obj)
 
 
