@@ -312,7 +312,6 @@ def models():
     response_model=GenerateResponse,
     dependencies=[Depends(verify_key)],
 )
-@limiter.limit(_RATE_LIMIT_GENERATE)
 def generate(request: Request, req: GenerateRequest):
     safe_output = _safe_output_path(req.output)
     result = get_pipeline().generate(
@@ -336,7 +335,6 @@ def generate(request: Request, req: GenerateRequest):
     response_model=ValidateResponse,
     dependencies=[Depends(verify_key)],
 )
-@limiter.limit(_RATE_LIMIT_VALIDATE)
 def validate(request: Request, req: ValidateRequest):
     from akf.validator import validate as _validate
     from akf.validation_error import Severity
@@ -351,7 +349,6 @@ def validate(request: Request, req: ValidateRequest):
 
 
 @app.post("/v1/batch", dependencies=[Depends(verify_key)])
-@limiter.limit(_RATE_LIMIT_BATCH)
 def batch(request: Request, req: BatchRequest):
     safe_output = _safe_output_path(req.output)
     results = get_pipeline().batch_generate(
@@ -382,7 +379,6 @@ def batch(request: Request, req: BatchRequest):
     response_model=AskResponse,
     dependencies=[Depends(verify_key)],
 )
-@limiter.limit(_RATE_LIMIT_ASK)
 def ask(request: Request, req: AskRequest):
     """RAG question answering endpoint.
 
