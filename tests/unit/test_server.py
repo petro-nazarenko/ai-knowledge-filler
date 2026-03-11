@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from akf.server import app, verify_key
 from akf.pipeline import GenerateResult, ValidateResult
 from pathlib import Path
+from rag.copilot import CopilotAnswer
+from rag.retriever import RetrievalHit, RetrievalResult
 
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
@@ -267,3 +269,67 @@ class TestBatch:
             r = client.post("/v1/batch", json={"prompts": [f"Prompt {i}" for i in range(20)]})
         assert r.status_code == 200
         assert r.json()["total"] == 20
+
+
+# ─── ASK (RAG) ───────────────────────────────────────────────────────────────
+
+class TestAsk:
+    def test_ask_synthesis_success(self):
+        fake = CopilotAnswer(
+            query="How to rate limit?",
+            answer="Use SlowAPI and return headers.",
+            sources=["a.md", "b.md"],
+            model="fake",
+            top_k=3,
+            hits_used=2,
+        )
+        with patch("rag.copilot.answer_question", return_value=fake):
+            r = client.post("/v1/ask", json={"query": "How to rate limit?", "top_k": 3})
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["mode"] == "synthesis"
+        assert data["answer"] == "Use SlowAPI and return headers."
+        assert data["sources"] == ["a.md", "b.md"]
+        assert data["hits_used"] == 2
+
+    def test_ask_retrieval_only_success(self):
+        fake = RetrievalResult(
+            query="How to rate limit?",
+            top_k=2,
+            hits=[
+                RetrievalHit(
+                    chunk_id="c1",
+                    content="Use SlowAPI.",
+                    metadata={"source": "a.md", "section": "Intro"},
+                    distance=0.1,
+                ),
+                RetrievalHit(
+                    chunk_id="c2",
+                    content="Expose headers.",
+                    metadata={"source": "b.md", "section": "Headers"},
+                    distance=0.2,
+                ),
+            ],
+        )
+        with patch("rag.retriever.retrieve", return_value=fake):
+            r = client.post(
+                "/v1/ask",
+                json={"query": "How to rate limit?", "top_k": 2, "no_llm": True},
+            )
+
+        assert r.status_code == 200
+        data = r.json()
+        assert data["mode"] == "retrieval-only"
+        assert data["model"] == "none"
+        assert data["hits_used"] == 2
+        assert len(data["hits"]) == 2
+        assert data["hits"][0]["chunk_id"] == "c1"
+
+    def test_ask_missing_query_422(self):
+        r = client.post("/v1/ask", json={})
+        assert r.status_code == 422
+
+    def test_ask_query_too_long_422(self):
+        r = client.post("/v1/ask", json={"query": "x" * 2001})
+        assert r.status_code == 422

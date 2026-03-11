@@ -137,6 +137,7 @@ results = pipeline.batch_generate(["Guide 1", "Guide 2", "Guide 3"])
 **REST API:**
 ```
 POST /v1/generate    →  validated file
+POST /v1/ask         →  RAG answer (or retrieval-only with no_llm)
 POST /v1/validate    →  schema check result
 POST /v1/batch       →  multiple files
 GET  /v1/models      →  available providers

@@ -41,6 +41,7 @@ If `AKF_API_KEY` is not set, all requests pass without auth (development mode).
 | Endpoint | Limit |
 |----------|-------|
 | `POST /v1/generate` | 10 requests / minute |
+| `POST /v1/ask` | 10 requests / minute |
 | `POST /v1/enrich` | 10 requests / minute |
 | `POST /v1/validate` | 30 requests / minute |
 | `POST /v1/batch` | 3 requests / minute |
@@ -134,6 +135,92 @@ Generate a single validated Markdown knowledge file.
 curl -X POST http://localhost:8000/v1/generate \
   -H "Content-Type: application/json" \
   -d '{"prompt": "Create a guide on API rate limiting"}'
+```
+
+---
+
+### `POST /v1/ask`
+
+Ask a question over the local RAG index.
+
+Two modes are supported:
+- `no_llm=false` (default): retrieval + LLM synthesis
+- `no_llm=true`: retrieval-only (no LLM required)
+
+**Request body:**
+```json
+{
+  "query": "How do I implement API rate limiting in FastAPI?",
+  "top_k": 5,
+  "model": "auto",
+  "no_llm": false
+}
+```
+
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `query` | `string` | Yes | — | Natural-language question |
+| `top_k` | `integer` | No | `5` | Number of retrieved chunks (1..20) |
+| `model` | `string` | No | `auto` | LLM provider for synthesis |
+| `no_llm` | `boolean` | No | `false` | Retrieval-only mode |
+
+**Response (200 OK — synthesis):**
+```json
+{
+  "mode": "synthesis",
+  "query": "How do I implement API rate limiting in FastAPI?",
+  "top_k": 5,
+  "answer": "Use SlowAPI middleware and return standard rate limit headers.",
+  "sources": [
+    "tests/fixtures/corpus/API_Rate_Limiting_with_FastAPI.md"
+  ],
+  "hits_used": 5,
+  "hits": [],
+  "model": "claude"
+}
+```
+
+**Response (200 OK — retrieval-only):**
+```json
+{
+  "mode": "retrieval-only",
+  "query": "How do I implement API rate limiting in FastAPI?",
+  "top_k": 5,
+  "answer": null,
+  "sources": [],
+  "hits_used": 2,
+  "hits": [
+    {
+      "chunk_id": "...",
+      "content": "## Purpose ...",
+      "metadata": {
+        "source": "tests/fixtures/corpus/API_Rate_Limiting_with_FastAPI.md",
+        "section": "Purpose"
+      },
+      "distance": 0.1529
+    }
+  ],
+  "model": "none"
+}
+```
+
+**Error responses:**
+- `400 Bad Request` — invalid query arguments
+- `422 Unprocessable Entity` — invalid payload
+- `429 Too Many Requests` — rate limit exceeded
+- `500 Internal Server Error` — retrieval/synthesis runtime failure
+
+**cURL examples:**
+```bash
+# Synthesis mode
+curl -X POST http://localhost:8000/v1/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I implement API rate limiting in FastAPI?", "top_k": 5}'
+
+# Retrieval-only mode
+curl -X POST http://localhost:8000/v1/ask \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I implement API rate limiting in FastAPI?", "top_k": 5, "no_llm": true}'
 ```
 
 ---

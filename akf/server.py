@@ -95,6 +95,31 @@ class BatchRequest(BaseModel):
     model: Optional[str] = None
 
 
+class AskRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=2000)
+    top_k: int = Field(default=5, ge=1, le=20)
+    model: str = Field(default="auto")
+    no_llm: bool = False
+
+
+class AskHit(BaseModel):
+    chunk_id: str
+    content: str
+    metadata: dict
+    distance: float
+
+
+class AskResponse(BaseModel):
+    mode: str
+    query: str
+    top_k: int
+    answer: Optional[str] = None
+    sources: list[str] = Field(default_factory=list)
+    hits_used: int = 0
+    hits: list[AskHit] = Field(default_factory=list)
+    model: str
+
+
 # ─── ENDPOINTS ────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -166,3 +191,57 @@ def batch(request: Request, req: BatchRequest):
             for r in results
         ],
     }
+
+
+@app.post("/v1/ask", response_model=AskResponse, dependencies=[Depends(verify_key)])
+@limiter.limit("10/minute")
+def ask(request: Request, req: AskRequest):
+    """RAG question answering endpoint.
+
+    Modes:
+      - no_llm=False (default): retrieve + synthesize answer with LLM
+      - no_llm=True: retrieval-only, returns top-k hits without LLM
+    """
+    try:
+        if req.no_llm:
+            from rag.retriever import retrieve
+
+            retrieval = retrieve(query=req.query, top_k=req.top_k)
+            hits = [
+                AskHit(
+                    chunk_id=h.chunk_id,
+                    content=h.content,
+                    metadata=h.metadata,
+                    distance=h.distance,
+                )
+                for h in retrieval.hits
+            ]
+            return AskResponse(
+                mode="retrieval-only",
+                query=retrieval.query,
+                top_k=retrieval.top_k,
+                hits_used=len(hits),
+                hits=hits,
+                model="none",
+            )
+
+        from rag.copilot import answer_question
+
+        result = answer_question(
+            query=req.query,
+            top_k=req.top_k,
+            model=req.model,
+        )
+        return AskResponse(
+            mode="synthesis",
+            query=result.query,
+            top_k=result.top_k,
+            answer=result.answer,
+            sources=result.sources,
+            hits_used=result.hits_used,
+            model=result.model,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"RAG ask failed: {exc}") from exc
