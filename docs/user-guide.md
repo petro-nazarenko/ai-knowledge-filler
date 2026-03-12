@@ -16,7 +16,7 @@ updated: 2026-03-06
 
 Get from zero to a validated, schema-compliant Markdown file in under 5 minutes.
 
-AKF is a **validation pipeline** — not a note-taking app. It enforces a schema contract on every file LLMs generate. No silent failures. No partial commits.
+AKF is an AI-powered content production system — not a note-taking app.
 
 ---
 
