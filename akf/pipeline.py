@@ -256,7 +256,9 @@ class Pipeline:
         from akf.validator import validate
         from akf.retry_controller import run_retry_loop
         from akf.config import get_config
-        from akf.telemetry import EnrichEvent, new_generation_id
+        from akf.telemetry import TelemetryWriter, EnrichEvent, new_generation_id
+        if self.writer is None and self.telemetry_path is not None:
+            self.writer = TelemetryWriter(path=self.telemetry_path)
         from akf.enricher import (
             REQUIRED_FIELDS, build_prompt, derive_title,
             extract_missing_fields, merge_yaml, read_file,
