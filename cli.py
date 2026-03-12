@@ -667,12 +667,31 @@ def cmd_ask(args: argparse.Namespace) -> None:
     mode = "retrieval-only" if no_llm else f"model: {model}"
     info(f"RAG Copilot  →  {mode}  |  top-k: {top_k}")
 
+    t_start = time.monotonic()
+
     if no_llm:
         try:
             retrieval = retrieve(query=query, top_k=top_k)
         except Exception as exc:
             err(f"RAG ask failed: {exc}")
             sys.exit(1)
+
+        try:
+            from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
+            TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
+                generation_id=new_generation_id(),
+                tenant_id="cli",
+                mode="retrieval-only",
+                model="none",
+                top_k=top_k,
+                no_llm=no_llm,
+                max_distance=None,
+                hits_used=len(retrieval.hits),
+                insufficient_context=not bool(retrieval.hits),
+                duration_ms=int((time.monotonic() - t_start) * 1000),
+            ))
+        except Exception:
+            pass
 
         if not retrieval.hits:
             print()
@@ -694,6 +713,23 @@ def cmd_ask(args: argparse.Namespace) -> None:
     except Exception as exc:
         err(f"RAG ask failed: {exc}")
         sys.exit(1)
+
+    try:
+        from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
+        TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
+            generation_id=new_generation_id(),
+            tenant_id="cli",
+            mode="synthesis",
+            model=getattr(result, "model", model),
+            top_k=top_k,
+            no_llm=no_llm,
+            max_distance=None,
+            hits_used=getattr(result, "hits_used", 0),
+            insufficient_context=getattr(result, "insufficient_context", False),
+            duration_ms=int((time.monotonic() - t_start) * 1000),
+        ))
+    except Exception:
+        pass
 
     print()
     print(result.answer)

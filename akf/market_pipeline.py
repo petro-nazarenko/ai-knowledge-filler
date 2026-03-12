@@ -33,6 +33,8 @@ created: {today}
 updated: {today}
 ---
 
+domain must be one of: {valid_domains}
+
 After the frontmatter, write a thorough Markdown document using ## headings.
 Be specific, analytical, and actionable. Avoid vague generalisations.
 """
@@ -242,7 +244,10 @@ class MarketAnalysisPipeline:
         return date.today().isoformat()
 
     def _build_system_prompt(self) -> str:
-        return _SYSTEM_PROMPT.format(today=self._today())
+        from akf.config import get_config
+        cfg = get_config()
+        valid_domains = ", ".join(cfg.domains) if cfg.domains else "business-strategy"
+        return _SYSTEM_PROMPT.format(today=self._today(), valid_domains=valid_domains)
 
     def _safe_filename(self, stage: str, request: str) -> str:
         """Derive a filesystem-safe filename from the stage name + request."""
