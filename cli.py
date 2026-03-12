@@ -221,11 +221,13 @@ def _cmd_generate_batch(args: argparse.Namespace) -> None:
     out_dir = Path(args.output) if getattr(args, "output", None) else OUTPUT_DIR
     model = getattr(args, "model", "auto") or "auto"
 
+    rag_enabled = not bool(getattr(args, "no_rag", False))
     pipeline = Pipeline(
         output=str(out_dir),
         model=model,
         telemetry_path=TELEMETRY_PATH,
         verbose=False,
+        rag_enabled=rag_enabled,
     )
 
     info(f"Running batch of {len(plan)} item(s) via {model}...")
@@ -844,6 +846,8 @@ def main() -> int:
                      default="auto",
                      help="LLM provider (default: auto-select)")
     gen.add_argument("--output", "-o", help="Custom output path")
+    gen.add_argument("--no-rag", action="store_true", dest="no_rag",
+                     help="Disable RAG context injection (default: enabled if corpus indexed)")
 
     # Validate command
     val = sub.add_parser("validate", help="Check Markdown YAML")

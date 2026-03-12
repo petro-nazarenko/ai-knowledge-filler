@@ -44,10 +44,27 @@ class EnrichResult:
     errors: list = field(default_factory=list)
 
 
+def _try_retrieve(query: str, top_k: int = 3) -> str:
+    """Attempt semantic retrieval. Returns empty string if RAG unavailable."""
+    try:
+        from rag.retriever import retrieve
+        result = retrieve(query, top_k=top_k)
+        if not result.hits:
+            return ""
+        chunks = []
+        for hit in result.hits:
+            source = hit.metadata.get("filename", "unknown")
+            chunks.append(f"[{source}]\n{hit.content}")
+        return "\n\n---\n\n".join(chunks)
+    except Exception:
+        return ""  # RAG unavailable — proceed without context
+
+
 class Pipeline:
-    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True):
+    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True, rag_enabled=True):
         self.model = model
         self.verbose = verbose
+        self.rag_enabled = rag_enabled
         self.output_dir = Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
         self.telemetry_path = Path(telemetry_path).expanduser() if telemetry_path else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
         self._system_prompt = None
@@ -93,7 +110,7 @@ class Pipeline:
             fp = out_dir / f"{fp.stem}_{ts}.md"
         return fp
 
-    def generate(self, prompt, output=None, model=None, hints=None):
+    def generate(self, prompt, output=None, model=None, hints=None, rag_top_k=3):
         from llm_providers import get_provider
         from akf.telemetry import TelemetryWriter, new_generation_id
         from akf.retry_controller import run_retry_loop
@@ -113,6 +130,15 @@ class Pipeline:
                 context_lines.append(f"type: {hints['type']}")
             if context_lines:
                 system_prompt += "\n\nContext for this generation:\n" + "\n".join(context_lines)
+        if self.rag_enabled:
+            rag_context = _try_retrieve(prompt, top_k=rag_top_k)
+            if rag_context:
+                system_prompt += (
+                    "\n\n## RELEVANT CORPUS CONTEXT\n"
+                    "The following excerpts are from the existing knowledge base. "
+                    "Use them to ground your output — synthesize, extend, or reference as appropriate.\n\n"
+                    + rag_context
+                )
         self._log(f"Generating via {provider.display_name}...")
         generation_id = new_generation_id()
         writer = TelemetryWriter(path=self.telemetry_path)
