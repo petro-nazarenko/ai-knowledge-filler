@@ -57,8 +57,11 @@ from akf import Pipeline
 
 # Constructor
 pipeline = Pipeline(
-    output: str | Path,          # vault path
-    config: dict | None = None,  # override akf.yaml
+    output: str | Path,                   # vault path
+    model: str = "auto",                  # LLM provider/model key
+    telemetry_path: str | Path | None,    # JSONL event log path
+    writer: TelemetryWriter | None = None, # pre-configured telemetry writer
+    config: AKFConfig | None = None,      # pre-loaded config (skips get_config())
 )
 
 # Methods
@@ -245,7 +248,7 @@ akf/
   error_normalizer.py  Error → LLM repair instructions
   retry_controller.py  run_retry_loop() — convergence protection
   commit_gate.py       Atomic write
-  telemetry.py         TelemetryWriter — append-only JSONL (GenerationEvent + EnrichEvent)
+  telemetry.py         TelemetryWriter — append-only JSONL (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, MarketAnalysisEvent, AskQueryEvent)
   config.py            get_config() — loads akf.yaml or defaults
   server.py            FastAPI REST API
   mcp_server.py        MCP server (FastMCP) — akf_generate, akf_validate, akf_enrich, akf_batch
@@ -263,6 +266,71 @@ Scripts/
 
 tests/                 560+ tests, 91.5% coverage
 .github/workflows/     ci.yml · tests.yml · validate.yml · changelog.yml · release.yml · secret-scan.yml
+```
+
+---
+
+## Dependency Injection Convention
+
+All feature modules (`Pipeline`, `MarketAnalysisPipeline`) follow the same
+optional-injection pattern for shared infrastructure.  This avoids ad-hoc
+singleton access inside method bodies and makes every component independently
+testable.
+
+### Rule
+
+Every module that needs config or telemetry **must** accept both as optional
+constructor parameters:
+
+```python
+class AnyFeatureModule:
+    def __init__(
+        self,
+        ...,
+        writer: TelemetryWriter | None = None,   # inject or omit
+        config: AKFConfig | None = None,          # inject or omit
+    ) -> None:
+        self.writer = writer
+        self._config = config
+```
+
+### Resolution order
+
+| Dependency | Injected? | Fallback |
+|------------|-----------|---------|
+| `TelemetryWriter` | `writer is not None` → use it | telemetry silently disabled (or `TelemetryWriter(path=self.telemetry_path)` for `Pipeline`) |
+| `AKFConfig` | `config is not None` → use it | `get_config()` singleton (loads `akf.yaml` or package defaults) |
+
+### Server wiring
+
+The FastAPI server creates one shared `TelemetryWriter` and injects it into
+every pipeline instance at startup:
+
+```python
+# akf/server.py
+pipeline = Pipeline(
+    output=...,
+    writer=get_telemetry_writer(),   # ← shared instance
+)
+```
+
+### Testing
+
+Tests that need to assert telemetry behaviour pass a `MagicMock()` as writer:
+
+```python
+writer = MagicMock()
+pipeline = Pipeline(writer=writer, verbose=False)
+pipeline.enrich(some_file)
+writer.write.assert_called_once()
+```
+
+Tests that need a custom config pass a pre-built `AKFConfig` directly,
+bypassing all file I/O:
+
+```python
+cfg = AKFConfig(domains=["test-domain"], enums=..., relationship_types=[])
+pipeline = Pipeline(config=cfg, verbose=False)
 ```
 
 ---

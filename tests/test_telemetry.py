@@ -10,8 +10,10 @@ import pytest
 
 from akf.telemetry import (
     AskQueryEvent,
+    EnrichEvent,
     GenerationAttemptEvent,
     GenerationSummaryEvent,
+    MarketAnalysisEvent,
     TelemetryWriter,
     ValidationErrorRecord,
     new_generation_id,
@@ -381,3 +383,78 @@ class TestAskQueryEvent:
         assert data["event_type"] == "ask_query"
         assert data["mode"] == "synthesis"
         assert data["tenant_id"] == "team-a"
+
+
+# ─── MarketAnalysisEvent ──────────────────────────────────────────────────────
+
+class TestMarketAnalysisEvent:
+    def _make(self, **kwargs) -> MarketAnalysisEvent:
+        defaults = dict(
+            generation_id=str(uuid.uuid4()),
+            request="B2B SaaS tools for SMEs",
+            stage="market_analysis",
+            success=True,
+            duration_ms=120,
+            model="auto",
+        )
+        defaults.update(kwargs)
+        return MarketAnalysisEvent(**defaults)
+
+    def test_event_type_fixed(self):
+        assert self._make().event_type == "market_analysis"
+
+    def test_event_id_is_uuid(self):
+        evt = self._make()
+        uuid.UUID(evt.event_id)  # raises ValueError if invalid
+
+    def test_default_error_is_empty(self):
+        assert self._make().error == ""
+
+    def test_to_dict_keys(self):
+        evt = self._make()
+        d = evt.to_dict()
+        expected = {
+            "event_type", "event_id", "timestamp", "generation_id",
+            "request", "stage", "success", "duration_ms", "model", "error",
+        }
+        assert set(d.keys()) == expected
+
+    def test_to_dict_values(self):
+        gen_id = str(uuid.uuid4())
+        evt = self._make(generation_id=gen_id, stage="competitor_analysis", success=False, error="oops")
+        d = evt.to_dict()
+        assert d["generation_id"] == gen_id
+        assert d["stage"] == "competitor_analysis"
+        assert d["success"] is False
+        assert d["error"] == "oops"
+
+    def test_writer_accepts_market_analysis_event(self, writer):
+        evt = self._make(stage="positioning", success=True, duration_ms=250)
+        writer.write(evt)
+        data = json.loads(writer.path.read_text().strip())
+        assert data["event_type"] == "market_analysis"
+        assert data["stage"] == "positioning"
+
+
+# ─── EnrichEvent (writer acceptance) ─────────────────────────────────────────
+
+class TestEnrichEventWriterAcceptance:
+    """Verify TelemetryWriter.write() accepts EnrichEvent (was missing from isinstance guard)."""
+
+    def test_writer_accepts_enrich_event(self, writer):
+        evt = EnrichEvent(
+            generation_id=str(uuid.uuid4()),
+            file="docs/guide.md",
+            schema_version="1.0.0",
+            existing_fields=["title"],
+            generated_fields=["type", "domain"],
+            attempts=1,
+            converged=True,
+            skipped=False,
+            skip_reason="",
+            model="auto",
+        )
+        writer.write(evt)
+        data = json.loads(writer.path.read_text().strip())
+        assert data["event_type"] == "enrich"
+        assert data["file"] == "docs/guide.md"

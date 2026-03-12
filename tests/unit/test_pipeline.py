@@ -122,6 +122,63 @@ class TestPipelineInit:
         p = Pipeline(verbose=False)
         assert p.verbose is False
 
+    def test_writer_injection(self):
+        from unittest.mock import MagicMock
+        writer = MagicMock()
+        p = Pipeline(writer=writer)
+        assert p.writer is writer
+
+    def test_writer_default_is_none(self):
+        p = Pipeline()
+        assert p.writer is None
+
+    def test_config_injection(self):
+        from akf.config import AKFConfig, AKFEnums
+        cfg = AKFConfig(
+            domains=["test-domain"],
+            enums=AKFEnums(type=["guide"], level=["beginner"], status=["active"]),
+            relationship_types=[],
+        )
+        p = Pipeline(config=cfg)
+        assert p._config is cfg
+
+    def test_config_default_is_none(self):
+        p = Pipeline()
+        assert p._config is None
+
+    def test_injected_config_used_by_enrich(self, tmp_path):
+        """enrich() must use self._config domains when building the prompt,
+        not the global get_config() singleton."""
+        from akf.config import AKFConfig, AKFEnums
+        from unittest.mock import MagicMock, call, patch
+
+        cfg = AKFConfig(
+            domains=["my-injected-domain"],
+            enums=AKFEnums(type=["guide"], level=["beginner"], status=["active"]),
+            relationship_types=[],
+        )
+        p = Pipeline(config=cfg, verbose=False)
+
+        md = tmp_path / "test.md"
+        md.write_text("# Body\nSome content.\n")
+
+        mock_provider = MagicMock()
+        mock_provider.model_name = "mock"
+        mock_provider.generate.return_value = (
+            "title: Test\ntype: guide\ndomain: ai-system\n"
+            "level: beginner\nstatus: active\n"
+            "tags:\n  - test\ncreated: 2026-01-01\nupdated: 2026-01-01\n"
+        )
+
+        # Spy on build_prompt to verify injected config domains are forwarded
+        with patch("akf.enricher.build_prompt", wraps=__import__("akf.enricher", fromlist=["build_prompt"]).build_prompt) as spy_build_prompt, \
+             patch("llm_providers.get_provider", return_value=mock_provider):
+            p.enrich(str(md))
+
+        assert spy_build_prompt.call_count >= 1
+        _, kwargs = spy_build_prompt.call_args
+        assert kwargs["taxonomy_domains"] == ["my-injected-domain"]
+
 
 # ─── Pipeline.validate ────────────────────────────────────────────────────────
 
