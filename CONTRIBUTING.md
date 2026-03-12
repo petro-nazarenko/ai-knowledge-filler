@@ -115,6 +115,11 @@ Tooling source-of-truth policy:
 - Primary tools are `ruff`, `black`, and `mypy`.
 - Legacy configs (`.flake8`, `.pylintrc`, `.pydocstyle`) are intentionally removed to avoid conflicting rules.
 
+CI lint policy:
+- `ruff check .` runs against the **full repository** on every push and every pull request.
+- Changed-files-only scoping is intentionally not used — all Python files are checked to prevent lint regressions from reaching `main`.
+- The `quality-gate` job in `.github/workflows/ci.yml` is a required check; PRs cannot merge if it fails.
+
 Codecov policy (stabilization phase):
 - Codecov upload is enabled only on `push` to `main` and remains non-blocking.
 - PR quality gate uses `pytest --cov-fail-under=...` as the blocking coverage check.
