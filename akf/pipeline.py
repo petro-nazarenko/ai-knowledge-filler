@@ -45,13 +45,14 @@ class EnrichResult:
 
 
 class Pipeline:
-    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True):
+    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True, writer=None, config=None):
         self.model = model
         self.verbose = verbose
         self.output_dir = Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
         self.telemetry_path = Path(telemetry_path).expanduser() if telemetry_path else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
         self._system_prompt = None
-        self.writer = None
+        self.writer = writer
+        self._config = config
         self.model_name = model
 
     def _log(self, msg):
@@ -115,7 +116,7 @@ class Pipeline:
                 system_prompt += "\n\nContext for this generation:\n" + "\n".join(context_lines)
         self._log(f"Generating via {provider.display_name}...")
         generation_id = new_generation_id()
-        writer = TelemetryWriter(path=self.telemetry_path)
+        writer = self.writer if self.writer is not None else TelemetryWriter(path=self.telemetry_path)
         t_start = time.monotonic()
         try:
             content = provider.generate(prompt, system_prompt)
@@ -274,7 +275,7 @@ class Pipeline:
                 generation_id=generation_id,
             )
 
-        cfg = get_config()
+        cfg = self._config if self._config is not None else get_config()
         prompt = build_prompt(
             body=body,
             existing=existing,
@@ -330,7 +331,7 @@ class Pipeline:
             )
             document = retry_result.document
             total_attempts = retry_result.attempts
-            converged = retry_result.converged
+            converged = retry_result.success
             blocking = [e for e in retry_result.errors if e.severity.value == "error"]
 
         yaml_match = _re.match(r"^---\n(.*?)---\n", document, _re.DOTALL)

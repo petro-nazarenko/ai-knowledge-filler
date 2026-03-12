@@ -2,9 +2,12 @@
 
 Implements the canonical event schema defined in AKF_Telemetry_Schema_v1.0.
 
-Two event types:
+Event types:
   - GenerationAttemptEvent  — emitted by RetryController after each attempt
   - GenerationSummaryEvent  — emitted by CommitGate after session completes
+  - EnrichEvent             — emitted by Pipeline.enrich() per enriched file
+  - MarketAnalysisEvent     — emitted by MarketAnalysisPipeline per stage
+  - AskQueryEvent           — emitted by server /v1/ask endpoint
 
 Design constraints (ADR-001 v1.6):
   - Telemetry observes. Never influences runtime behavior.
@@ -242,6 +245,40 @@ class AskQueryEvent:
         }
 
 
+@dataclass
+class MarketAnalysisEvent:
+    """Telemetry event for a single market analysis pipeline stage.
+
+    Emitted by: MarketAnalysisPipeline after each stage completes.
+    One event per stage (market_analysis, competitor_analysis, positioning).
+    """
+
+    generation_id: str
+    request: str             # first 80 chars of the market request
+    stage: str               # "market_analysis" | "competitor_analysis" | "positioning"
+    success: bool
+    duration_ms: int
+    model: str
+    error: str = ""          # empty string when success=True
+    event_type: str = field(default="market_analysis", init=False)
+    event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    timestamp: str = field(default_factory=lambda: _utc_now())
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "event_type": self.event_type,
+            "event_id": self.event_id,
+            "timestamp": self.timestamp,
+            "generation_id": self.generation_id,
+            "request": self.request,
+            "stage": self.stage,
+            "success": self.success,
+            "duration_ms": self.duration_ms,
+            "model": self.model,
+            "error": self.error,
+        }
+
+
 class TelemetryWriter:
     """Append-only thread-safe JSONL writer for AKF telemetry events.
 
@@ -263,12 +300,12 @@ class TelemetryWriter:
 
     def write(
         self,
-        event: GenerationAttemptEvent | GenerationSummaryEvent | EnrichEvent | AskQueryEvent,
+        event: "GenerationAttemptEvent | GenerationSummaryEvent | EnrichEvent | MarketAnalysisEvent | AskQueryEvent",
     ) -> None:
         """Serialize event to JSONL and append to telemetry file.
 
         Args:
-            event: GenerationAttemptEvent or GenerationSummaryEvent instance.
+            event: Any recognized telemetry event instance.
 
         Raises:
             TypeError: if event is not a recognized type.
@@ -276,10 +313,10 @@ class TelemetryWriter:
         """
         if not isinstance(
             event,
-            (GenerationAttemptEvent, GenerationSummaryEvent, AskQueryEvent),
+            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, MarketAnalysisEvent, AskQueryEvent),
         ):
             raise TypeError(
-                f"Expected GenerationAttemptEvent or GenerationSummaryEvent, "
+                f"Expected a recognized telemetry event, "
                 f"got {type(event).__name__}"
             )
 

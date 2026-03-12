@@ -441,3 +441,65 @@ class TestWrite:
         fp = pipeline._write("safe content", "../../evil.md")
         assert fp.parent == tmp_path
         assert fp.name == "evil.md"
+
+
+# ─── Dependency injection ─────────────────────────────────────────────────────
+
+class TestMarketAnalysisPipelineInjection:
+    """Verify writer and config are accepted and stored."""
+
+    def test_writer_injection(self, tmp_path):
+        from unittest.mock import MagicMock
+        writer = MagicMock()
+        pipeline = MarketAnalysisPipeline(output=str(tmp_path), writer=writer, verbose=False)
+        assert pipeline.writer is writer
+
+    def test_writer_default_is_none(self, tmp_path):
+        pipeline = MarketAnalysisPipeline(output=str(tmp_path), verbose=False)
+        assert pipeline.writer is None
+
+    def test_config_injection(self, tmp_path):
+        """Config is accepted and stored; it is available for future extension
+        (e.g. custom domain taxonomy in prompts) without breaking existing behaviour."""
+        from unittest.mock import MagicMock
+        cfg = MagicMock()
+        pipeline = MarketAnalysisPipeline(output=str(tmp_path), config=cfg, verbose=False)
+        assert pipeline.config is cfg
+
+    def test_config_default_is_none(self, tmp_path):
+        pipeline = MarketAnalysisPipeline(output=str(tmp_path), verbose=False)
+        assert pipeline.config is None
+
+    def test_analyze_emits_telemetry_on_success(self, tmp_path):
+        from unittest.mock import MagicMock, patch
+        from akf.telemetry import MarketAnalysisEvent
+
+        writer = MagicMock()
+        pipeline = MarketAnalysisPipeline(
+            output=str(tmp_path), writer=writer, verbose=False
+        )
+        with patch(
+            "akf.market_pipeline.MarketAnalysisPipeline._call_llm",
+            side_effect=[SAMPLE_MARKET_CONTENT, SAMPLE_COMPETITOR_CONTENT, SAMPLE_POSITIONING_CONTENT],
+        ):
+            result = pipeline.analyze(SAMPLE_REQUEST)
+
+        assert result.success is True
+        assert writer.write.call_count == 3
+        events = [call.args[0] for call in writer.write.call_args_list]
+        assert all(isinstance(e, MarketAnalysisEvent) for e in events)
+        stages = [e.stage for e in events]
+        assert stages == ["market_analysis", "competitor_analysis", "positioning"]
+
+    def test_analyze_no_writer_does_not_raise(self, tmp_path):
+        """analyze() must work without a writer (writer=None)."""
+        pipeline = MarketAnalysisPipeline(
+            output=str(tmp_path), writer=None, verbose=False
+        )
+        with patch(
+            "akf.market_pipeline.MarketAnalysisPipeline._call_llm",
+            side_effect=[SAMPLE_MARKET_CONTENT, SAMPLE_COMPETITOR_CONTENT, SAMPLE_POSITIONING_CONTENT],
+        ):
+            result = pipeline.analyze(SAMPLE_REQUEST)
+
+        assert result.success is True

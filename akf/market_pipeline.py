@@ -5,6 +5,12 @@ Three-stage pipeline:
   Stage 1 — Market Analysis:    size, trends, segments, drivers
   Stage 2 — Competitor Analysis: key players, comparison, SWOT
   Stage 3 — Positioning:        gaps, USP, strategy (only when market request present)
+
+Dependency injection convention:
+  Pass ``config`` and ``writer`` to the constructor to share pre-configured
+  instances across your application.  Both parameters are optional — omitting
+  them causes the pipeline to use the global config singleton and to skip
+  telemetry respectively.
 """
 from __future__ import annotations
 
@@ -213,6 +219,17 @@ class MarketAnalysisPipeline:
 
     Stages run sequentially; each stage feeds context into the next.
 
+    Args:
+        output:  Directory where generated Markdown files are written.
+        model:   LLM provider/model key (passed to ``get_provider``).
+        verbose: Print progress messages to stdout.
+        writer:  Optional :class:`~akf.telemetry.TelemetryWriter` instance.
+                 When provided, one :class:`~akf.telemetry.MarketAnalysisEvent`
+                 is emitted per stage after ``analyze()`` runs.
+        config:  Optional :class:`~akf.config.AKFConfig` instance for future
+                 extension (e.g. custom domain taxonomy in prompts).  Currently
+                 stored on ``self.config`` and not consumed by stage methods.
+
     Usage::
 
         pipeline = MarketAnalysisPipeline(output="./market-reports/")
@@ -226,10 +243,14 @@ class MarketAnalysisPipeline:
         output: str | Path = ".",
         model: str = "auto",
         verbose: bool = True,
+        writer: "Optional[TelemetryWriter]" = None,
+        config: "Optional[AKFConfig]" = None,
     ) -> None:
         self.model = model
         self.verbose = verbose
         self.output_dir = Path(output).expanduser()
+        self.writer = writer
+        self.config = config
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
@@ -398,8 +419,33 @@ class MarketAnalysisPipeline:
         self._log(f"Starting market analysis pipeline for: {request[:80]}")
         self._log(f"Output directory: {self.output_dir}")
 
+        # Prepare telemetry helpers (imported lazily to avoid hard dependency)
+        generation_id: str = ""
+        if self.writer is not None:
+            from akf.telemetry import MarketAnalysisEvent, new_generation_id
+            generation_id = new_generation_id()
+
+        def _emit(stage_result: StageResult) -> None:
+            """Write a MarketAnalysisEvent if a writer is configured."""
+            if self.writer is not None:
+                try:
+                    self.writer.write(
+                        MarketAnalysisEvent(
+                            generation_id=generation_id,
+                            request=request[:80],
+                            stage=stage_result.stage,
+                            success=stage_result.success,
+                            duration_ms=stage_result.duration_ms,
+                            model=self.model,
+                            error=stage_result.error,
+                        )
+                    )
+                except Exception:
+                    pass  # telemetry must never affect runtime
+
         # Stage 1
         stage1 = self.analyze_market(request)
+        _emit(stage1)
 
         # Stage 2 — requires Stage 1 content
         if stage1.success:
@@ -409,6 +455,7 @@ class MarketAnalysisPipeline:
                 success=False, content="", stage="competitor_analysis",
                 error="skipped — Stage 1 (market analysis) failed",
             )
+        _emit(stage2)
 
         # Stage 3 — requires Stage 1 + 2 content
         if stage1.success and stage2.success:
@@ -420,6 +467,7 @@ class MarketAnalysisPipeline:
                 success=False, content="", stage="positioning",
                 error="skipped — prior stage failed",
             )
+        _emit(stage3)
 
         total_ms = int((time.monotonic() - t_start) * 1000)
         overall_success = stage1.success and stage2.success and stage3.success

@@ -236,7 +236,7 @@ class TestPipelineEnrich:
         retry_result = MagicMock()
         retry_result.document = NO_FRONTMATTER_FILE
         retry_result.attempts = 3
-        retry_result.converged = False
+        retry_result.success = False
         retry_result.errors = [blocking]
         mock_retry.return_value = retry_result
         f = tmp_md("fail.md", NO_FRONTMATTER_FILE)

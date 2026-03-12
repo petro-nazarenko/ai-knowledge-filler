@@ -190,6 +190,7 @@ def get_pipeline() -> Pipeline:
         _pipeline = Pipeline(
             output=os.getenv("AKF_OUTPUT_DIR", "./output"),
             verbose=False,
+            writer=get_telemetry_writer(),
         )
     return _pipeline
 
