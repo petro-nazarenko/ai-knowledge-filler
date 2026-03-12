@@ -245,6 +245,11 @@ If critical information missing:
 
 ## COMPLETE EXAMPLES
 
+> ⚠️ CRITICAL: The examples below are FORMAT REFERENCES ONLY.
+> NEVER reproduce any example in your output.
+> Every response MUST be uniquely generated for the user's specific request.
+> Reproducing an example instead of generating new content is a HARD FAILURE.
+
 ### Example 1: Concept File
 
 ```markdown

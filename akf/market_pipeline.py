@@ -172,6 +172,7 @@ class StageResult:
     stage: str = ""
     duration_ms: int = 0
     error: str = ""
+    validation_errors: list = field(default_factory=list)
 
 
 @dataclass
@@ -250,6 +251,21 @@ class MarketAnalysisPipeline:
         slug = re.sub(r"[\s-]+", "_", slug).strip("_")[:40].lower()
         return f"market_{stage}_{slug}.md"
 
+    def _validate_content(self, content: str) -> None:
+        """Validate content before writing; raise ValueError on blocking errors.
+
+        This enforces the schema contract (E001–E007) so that files with
+        validation violations cannot silently reach disk.
+        """
+        from akf.validator import validate
+        from akf.validation_error import Severity
+
+        errors = validate(content)
+        blocking = [e for e in errors if e.severity == Severity.ERROR]
+        if blocking:
+            codes = ", ".join(e.code for e in blocking)
+            raise ValueError(f"Market pipeline output failed validation: {codes}")
+
     def _write(self, content: str, filename: str) -> Path:
         """Write content to output_dir, avoiding overwrites."""
         from datetime import datetime
@@ -279,6 +295,7 @@ class MarketAnalysisPipeline:
         try:
             prompt = _MARKET_ANALYSIS_PROMPT.format(request=request)
             content = self._call_llm(prompt)
+            self._validate_content(content)
             fp = self._write(content, self._safe_filename("analysis", request))
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
@@ -308,6 +325,7 @@ class MarketAnalysisPipeline:
                 market_context=market_context,
             )
             content = self._call_llm(prompt)
+            self._validate_content(content)
             fp = self._write(content, self._safe_filename("competitors", request))
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
@@ -354,6 +372,7 @@ class MarketAnalysisPipeline:
                 competitor_context=competitor_context,
             )
             content = self._call_llm(prompt)
+            self._validate_content(content)
             fp = self._write(content, self._safe_filename("positioning", request))
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
