@@ -374,6 +374,7 @@ pytest --cov=akf --cov-report=term-missing -v
 - Legacy configs `.flake8`, `.pylintrc`, `.pydocstyle` are removed to avoid conflicting rules
 - Codecov policy (stabilization): upload on `main` pushes only, non-blocking
 - Node 24 GitHub Actions compatibility: self-hosted runners must be `>=2.327.1`
+- **CI lint scope**: `ruff check .` runs against the **full repository** on every push and every pull request — changed-files-only scoping is intentionally not used to prevent lint regressions from slipping through.
 
 Recommended local checks:
 

@@ -11,7 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
 
     steps:
       - uses: actions/checkout@v6
@@ -34,7 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -c requirements.lock -e ".[all,dev]"
 
-      - name: Ruff
+      - name: Ruff — full-repo lint
         run: ruff check .
 
       - name: Pytest with coverage gate
