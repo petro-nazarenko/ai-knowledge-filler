@@ -118,7 +118,12 @@ class Pipeline:
         writer = TelemetryWriter(path=self.telemetry_path)
         t_start = time.monotonic()
         try:
-            content = provider.generate(prompt, system_prompt)
+            anchored_prompt = (
+                "Generate a NEW, ORIGINAL Markdown knowledge file for this specific request. "
+                "Do NOT reproduce any example from your instructions.\n\n"
+                + prompt
+            )
+            content = provider.generate(anchored_prompt, system_prompt)
         except Exception as e:
             return GenerateResult(success=False, content="", errors=[str(e)], generation_id=generation_id)
         out_dir = Path(output).expanduser() if output else self.output_dir
