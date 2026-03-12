@@ -40,7 +40,7 @@ type: reference
 domain: business-strategy
 level: advanced
 status: active
-tags: [market-analysis]
+tags: [market-analysis, b2b-saas, business-strategy]
 created: 2026-03-10
 updated: 2026-03-10
 ---
@@ -59,7 +59,7 @@ type: reference
 domain: business-strategy
 level: advanced
 status: active
-tags: [market-analysis]
+tags: [market-analysis, competitors, competitive-analysis]
 created: 2026-03-10
 updated: 2026-03-10
 ---
@@ -79,7 +79,7 @@ type: reference
 domain: business-strategy
 level: advanced
 status: active
-tags: [market-analysis]
+tags: [market-analysis, positioning, go-to-market]
 created: 2026-03-10
 updated: 2026-03-10
 ---
@@ -420,6 +420,44 @@ class TestSafeFilename:
         name = pipeline._safe_filename("analysis", long_request)
         # slug is truncated at 40 chars, total filename should be manageable
         assert len(name) < 100
+
+
+# ─── _write (path traversal guard) ───────────────────────────────────────────
+
+
+# ─── Validation enforcement ───────────────────────────────────────────────────
+
+
+class TestValidationEnforcement:
+    """Market pipeline stages must reject schema-invalid LLM output."""
+
+    INVALID_CONTENT = "# No frontmatter here\n\nJust bare markdown with no YAML block."
+
+    def test_invalid_content_stage1_returns_failure(self, tmp_path):
+        """analyze_market with schema-invalid LLM output must return success=False
+        and include an E-code in the error message."""
+        pipeline = _make_pipeline(tmp_path)
+        with patch("akf.market_pipeline.MarketAnalysisPipeline._call_llm") as mock_llm:
+            mock_llm.return_value = self.INVALID_CONTENT
+            result = pipeline.analyze_market(SAMPLE_REQUEST)
+
+        assert result.success is False
+        assert result.file_path is None
+        # Error message must contain at least one E-code (e.g. E005_SCHEMA_VIOLATION)
+        assert any(
+            code in result.error
+            for code in ["E001", "E002", "E003", "E004", "E005", "E006", "E007"]
+        ), f"Expected E-code in error, got: {result.error!r}"
+
+    def test_invalid_content_not_written_to_disk(self, tmp_path):
+        """No file should be written when LLM output fails validation."""
+        pipeline = _make_pipeline(tmp_path)
+        with patch("akf.market_pipeline.MarketAnalysisPipeline._call_llm") as mock_llm:
+            mock_llm.return_value = self.INVALID_CONTENT
+            pipeline.analyze_market(SAMPLE_REQUEST)
+
+        written_files = list(tmp_path.glob("*.md"))
+        assert written_files == [], f"Expected no files on disk, found: {written_files}"
 
 
 # ─── _write (path traversal guard) ───────────────────────────────────────────

@@ -221,11 +221,13 @@ def _cmd_generate_batch(args: argparse.Namespace) -> None:
     out_dir = Path(args.output) if getattr(args, "output", None) else OUTPUT_DIR
     model = getattr(args, "model", "auto") or "auto"
 
+    rag_enabled = not bool(getattr(args, "no_rag", False))
     pipeline = Pipeline(
         output=str(out_dir),
         model=model,
         telemetry_path=TELEMETRY_PATH,
         verbose=False,
+        rag_enabled=rag_enabled,
     )
 
     info(f"Running batch of {len(plan)} item(s) via {model}...")
@@ -577,6 +579,69 @@ def cmd_models(args: argparse.Namespace) -> None:
         print()
 
 
+# ─── INDEX (RAG CORPUS) ───────────────────────────────────────────────────────
+
+
+def cmd_index(args: argparse.Namespace) -> None:
+    """Index corpus into local Chroma vector database for RAG retrieval."""
+    try:
+        from rag.indexer import index_corpus
+        from rag.config import load_config, RAGConfig
+    except Exception as exc:
+        err(f"RAG modules unavailable: {exc}")
+        info("Install RAG dependencies: pip install -e .[rag]")
+        sys.exit(1)
+
+    cfg = load_config()
+
+    # Override corpus dir if --corpus provided
+    if getattr(args, "corpus", None):
+        corpus_path = Path(args.corpus).expanduser()
+        cfg = RAGConfig(
+            corpus_dir=corpus_path,
+            persist_directory=cfg.persist_directory,
+            collection_name=cfg.collection_name,
+            embedding_model=cfg.embedding_model,
+            markdown_glob=cfg.markdown_glob,
+            batch_size=cfg.batch_size,
+        )
+
+    corpus_dir = cfg.corpus_dir
+    if not corpus_dir.exists():
+        err(f"Corpus directory not found: {corpus_dir}")
+        sys.exit(1)
+
+    # Reset collection if --reset requested
+    if getattr(args, "reset", False):
+        try:
+            import chromadb
+            cfg.persist_directory.mkdir(parents=True, exist_ok=True)
+            client = chromadb.PersistentClient(path=str(cfg.persist_directory))
+            try:
+                client.delete_collection(cfg.collection_name)
+                info(f"Deleted collection '{cfg.collection_name}' (--reset)")
+            except Exception:
+                pass  # Collection may not exist yet
+        except ImportError:
+            err("chromadb not installed. Install with: pip install chromadb")
+            sys.exit(1)
+
+    info(f"Indexing corpus: {corpus_dir}")
+    try:
+        stats = index_corpus(cfg)
+    except FileNotFoundError as exc:
+        err(str(exc))
+        sys.exit(1)
+    except Exception as exc:
+        err(f"Indexing failed: {exc}")
+        sys.exit(1)
+
+    ok(
+        f"Indexed {stats.files_indexed} files, {stats.chunks_indexed} chunks"
+        f" into collection '{cfg.collection_name}'"
+    )
+
+
 # ─── ASK (RAG COPILOT) ──────────────────────────────────────────────────────
 
 
@@ -602,12 +667,31 @@ def cmd_ask(args: argparse.Namespace) -> None:
     mode = "retrieval-only" if no_llm else f"model: {model}"
     info(f"RAG Copilot  →  {mode}  |  top-k: {top_k}")
 
+    t_start = time.monotonic()
+
     if no_llm:
         try:
             retrieval = retrieve(query=query, top_k=top_k)
         except Exception as exc:
             err(f"RAG ask failed: {exc}")
             sys.exit(1)
+
+        try:
+            from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
+            TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
+                generation_id=new_generation_id(),
+                tenant_id="cli",
+                mode="retrieval-only",
+                model="none",
+                top_k=top_k,
+                no_llm=no_llm,
+                max_distance=None,
+                hits_used=len(retrieval.hits),
+                insufficient_context=not bool(retrieval.hits),
+                duration_ms=int((time.monotonic() - t_start) * 1000),
+            ))
+        except Exception:
+            pass
 
         if not retrieval.hits:
             print()
@@ -629,6 +713,23 @@ def cmd_ask(args: argparse.Namespace) -> None:
     except Exception as exc:
         err(f"RAG ask failed: {exc}")
         sys.exit(1)
+
+    try:
+        from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
+        TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
+            generation_id=new_generation_id(),
+            tenant_id="cli",
+            mode="synthesis",
+            model=getattr(result, "model", model),
+            top_k=top_k,
+            no_llm=no_llm,
+            max_distance=None,
+            hits_used=getattr(result, "hits_used", 0),
+            insufficient_context=getattr(result, "insufficient_context", False),
+            duration_ms=int((time.monotonic() - t_start) * 1000),
+        ))
+    except Exception:
+        pass
 
     print()
     print(result.answer)
@@ -781,6 +882,8 @@ def main() -> int:
                      default="auto",
                      help="LLM provider (default: auto-select)")
     gen.add_argument("--output", "-o", help="Custom output path")
+    gen.add_argument("--no-rag", action="store_true", dest="no_rag",
+                     help="Disable RAG context injection (default: enabled if corpus indexed)")
 
     # Validate command
     val = sub.add_parser("validate", help="Check Markdown YAML")
@@ -827,6 +930,18 @@ def main() -> int:
 
     # Models command
     models = sub.add_parser("models", help="List available LLM providers")
+
+    # Index command (RAG corpus indexing)
+    idx = sub.add_parser("index", help="Index corpus into local vector database for RAG retrieval")
+    idx.add_argument(
+        "--corpus",
+        help="Corpus directory to index (default: corpus/ or RAG_CORPUS_DIR env)",
+    )
+    idx.add_argument(
+        "--reset",
+        action="store_true",
+        help="Delete and rebuild the collection from scratch",
+    )
 
     # Ask command (RAG copilot)
     ask = sub.add_parser("ask", help="Ask a question over local RAG index")
@@ -879,6 +994,8 @@ def main() -> int:
         cmd_enrich(args)
     elif args.command == "models":
         cmd_models(args)
+    elif args.command == "index":
+        cmd_index(args)
     elif args.command == "ask":
         cmd_ask(args)
     elif args.command == "canvas":

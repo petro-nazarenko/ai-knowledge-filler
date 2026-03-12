@@ -313,11 +313,11 @@ class TelemetryWriter:
         """
         if not isinstance(
             event,
-            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, MarketAnalysisEvent, AskQueryEvent),
+            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, AskQueryEvent),
         ):
             raise TypeError(
-                f"Expected a recognized telemetry event, "
-                f"got {type(event).__name__}"
+                f"Expected GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, "
+                f"or AskQueryEvent, got {type(event).__name__}"
             )
 
         line = json.dumps(event.to_dict(), ensure_ascii=False)
