@@ -577,6 +577,69 @@ def cmd_models(args: argparse.Namespace) -> None:
         print()
 
 
+# ─── INDEX (RAG CORPUS) ───────────────────────────────────────────────────────
+
+
+def cmd_index(args: argparse.Namespace) -> None:
+    """Index corpus into local Chroma vector database for RAG retrieval."""
+    try:
+        from rag.indexer import index_corpus
+        from rag.config import load_config, RAGConfig
+    except Exception as exc:
+        err(f"RAG modules unavailable: {exc}")
+        info("Install RAG dependencies: pip install -e .[rag]")
+        sys.exit(1)
+
+    cfg = load_config()
+
+    # Override corpus dir if --corpus provided
+    if getattr(args, "corpus", None):
+        corpus_path = Path(args.corpus).expanduser()
+        cfg = RAGConfig(
+            corpus_dir=corpus_path,
+            persist_directory=cfg.persist_directory,
+            collection_name=cfg.collection_name,
+            embedding_model=cfg.embedding_model,
+            markdown_glob=cfg.markdown_glob,
+            batch_size=cfg.batch_size,
+        )
+
+    corpus_dir = cfg.corpus_dir
+    if not corpus_dir.exists():
+        err(f"Corpus directory not found: {corpus_dir}")
+        sys.exit(1)
+
+    # Reset collection if --reset requested
+    if getattr(args, "reset", False):
+        try:
+            import chromadb
+            cfg.persist_directory.mkdir(parents=True, exist_ok=True)
+            client = chromadb.PersistentClient(path=str(cfg.persist_directory))
+            try:
+                client.delete_collection(cfg.collection_name)
+                info(f"Deleted collection '{cfg.collection_name}' (--reset)")
+            except Exception:
+                pass  # Collection may not exist yet
+        except ImportError:
+            err("chromadb not installed. Install with: pip install chromadb")
+            sys.exit(1)
+
+    info(f"Indexing corpus: {corpus_dir}")
+    try:
+        stats = index_corpus(cfg)
+    except FileNotFoundError as exc:
+        err(str(exc))
+        sys.exit(1)
+    except Exception as exc:
+        err(f"Indexing failed: {exc}")
+        sys.exit(1)
+
+    ok(
+        f"Indexed {stats.files_indexed} files, {stats.chunks_indexed} chunks"
+        f" into collection '{cfg.collection_name}'"
+    )
+
+
 # ─── ASK (RAG COPILOT) ──────────────────────────────────────────────────────
 
 
@@ -828,6 +891,18 @@ def main() -> int:
     # Models command
     models = sub.add_parser("models", help="List available LLM providers")
 
+    # Index command (RAG corpus indexing)
+    idx = sub.add_parser("index", help="Index corpus into local vector database for RAG retrieval")
+    idx.add_argument(
+        "--corpus",
+        help="Corpus directory to index (default: corpus/ or RAG_CORPUS_DIR env)",
+    )
+    idx.add_argument(
+        "--reset",
+        action="store_true",
+        help="Delete and rebuild the collection from scratch",
+    )
+
     # Ask command (RAG copilot)
     ask = sub.add_parser("ask", help="Ask a question over local RAG index")
     ask.add_argument("query", help="Natural-language question")
@@ -879,6 +954,8 @@ def main() -> int:
         cmd_enrich(args)
     elif args.command == "models":
         cmd_models(args)
+    elif args.command == "index":
+        cmd_index(args)
     elif args.command == "ask":
         cmd_ask(args)
     elif args.command == "canvas":
