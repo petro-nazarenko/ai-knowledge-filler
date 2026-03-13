@@ -3,6 +3,8 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
+## [1.0.0] — 2026-03-12
+
 ### Bug Fixes
 
 - Add YAML frontmatter to docs/market-analysis.md ([`638e696`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/638e696dd28f0f66da7922233f41ab84924778ea))

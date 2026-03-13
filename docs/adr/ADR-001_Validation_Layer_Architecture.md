@@ -4,7 +4,7 @@ type: reference
 domain: akf-core
 level: advanced
 status: active
-version: v1.7
+version: v1.8
 tags:
   - adr
   - architecture
@@ -20,21 +20,29 @@ related:
   - "ARCHITECTURE.md"
   - "docs/cli-reference.md"
 created: 2026-02-21
-updated: 2026-02-27
+updated: 2026-03-12
 ---
 
 
 ## Pipeline Architecture
 
-### Phase 1 (Shipped)
+### VAL-1 (Shipped)
 ```
 LLM → Structured Output → Validation Filter
 ```
 
-### Phase 2.1 — Controlled Repair Loop (Shipped)
+### VAL-2.1 — Controlled Repair Loop (Shipped)
 ```
 LLM → Validation Engine → Error Normalizer → Retry Controller → Validation Engine → Commit Gate
 ```
+
+### VAL-2.2 — Model C: Taxonomy Enforcement (Shipped)
+
+Hard enum enforcement via `akf.yaml` taxonomy. Retry pressure becomes ontology signal (see Accountability Shift section).
+
+### VAL-2.3 — Telemetry & Ontology Stabilization (Shipped)
+
+Append-only event log, E-code indexing, aggregation tooling. See Phase 2.3 section below.
 
 ### Stage 2 — Programmatic API (Shipped 2026-02-26)
 ```python
@@ -170,19 +178,23 @@ class RetryController:
 
 ---
 
-### Decision 7: Schema Versioning
+### Decision 7: Schema Versioning ~~(Superseded by PATCH-1)~~
 
-**Rule:** Add `schema_version` field immediately, even if unused.
+> **PATCH-1:** `schema_version` is removed from documents. It belongs to `akf.yaml` only.
+> Documents do not carry schema version. The schema version is a configuration concern, not a document concern.
+> `generation_id` is the sole optional linking field permitted in documents (see Decision 9).
 
-```yaml
+~~**Rule:** Add `schema_version` field immediately, even if unused.~~
+
+~~```yaml
 schema_version: "1.0.0"
-```
+```~~
 
-**Properties:**
-- Required at commit
-- Immutable during retry
-- Version-aware validation (documents valid under 1.0.0 remain valid under 1.0.0 forever)
-- Prevents retroactive invalidation after schema upgrades
+~~**Properties:**~~
+~~- Required at commit~~
+~~- Immutable during retry~~
+~~- Version-aware validation (documents valid under 1.0.0 remain valid under 1.0.0 forever)~~
+~~- Prevents retroactive invalidation after schema upgrades~~
 
 ---
 
@@ -304,7 +316,7 @@ Without append-only event log, every taxonomy change is anecdotal. With it, onto
 
 ---
 
-## Phase 2.3: Telemetry & Ontology Stabilization
+## VAL-2.3: Telemetry & Ontology Stabilization (Shipped)
 
 **Principle:** Observability before abstraction.
 
@@ -444,9 +456,10 @@ Otherwise delta cannot be attributed to schema change. Schema impact analysis wi
 
 | Phase | Objective | Why |
 |-------|-----------|-----|
-| 2.1 | Controlled Repair Loop | ✅ Complete |
-| 2.2 | Model C — Taxonomy Enforcement | ✅ Complete |
-| 2.3 | Telemetry & Ontology Stabilization | ✅ Complete |
+| VAL-1 | Structured Output + Validation Filter | ✅ Shipped |
+| VAL-2.1 | Controlled Repair Loop | ✅ Shipped |
+| VAL-2.2 | Model C — Taxonomy Enforcement | ✅ Shipped |
+| VAL-2.3 | Telemetry & Ontology Stabilization | ✅ Shipped |
 | 2.4 | Schema Evolution Tooling | ✅ Complete |
 | 2.5 | Onboarding & Marine Crew Pilot | ✅ Complete |
 | Stage 2 | Programmatic API — `Pipeline` class | ✅ Complete 2026-02-26 |
@@ -463,13 +476,14 @@ Otherwise delta cannot be attributed to schema change. Schema impact analysis wi
 ## Infrastructure Layers Model
 
 ```
-1. Determinism      → Phase 2.1: Repair Loop ✅
-2. Contract         → Phase 2.1: ValidationError + E-codes ✅
-3. Ontology         → Phase 2.2: Model C taxonomy enforcement ✅
-4. Governance       → Phase 2.4: Schema evolution tooling ✅
-5. Interface        → Stage 2: Pipeline API / Stage 3: REST API ✅
-6. Semantics        → Phase 3.0: Graph extraction (planned)
-7. Analytics        → Later: Quality scoring
+1. Determinism      → VAL-2.1: Repair Loop ✅
+2. Contract         → VAL-2.1: ValidationError + E-codes ✅
+3. Ontology         → VAL-2.2: Model C taxonomy enforcement ✅
+4. Observability    → VAL-2.3: Telemetry & ontology stabilization ✅
+5. Governance       → Phase 2.4: Schema evolution tooling ✅
+6. Interface        → Stage 2: Pipeline API / Stage 3: REST API ✅
+7. Semantics        → Phase 3.0: Graph extraction (planned)
+8. Analytics        → Later: Quality scoring
 ```
 
 **Current position:** Layer 5 complete. Next = Stage 4 interfaces (Telegram, Web UI, n8n).
@@ -501,3 +515,4 @@ This is when the system becomes a knowledge system, not a formatter.
 | v1.5 | 2026-02-21 | Three ontology defect types formalized (boundary ambiguity, lexical misalignment, missing category). Normalized retry rate added to prevent popularity bias. Minimal diagnostic basis table. Ontology stress-testing framework framing. |
 | v1.6 | 2026-02-21 | Separated Signal A (first-attempt invalid) from Signal B (multi-attempt convergence). Precise convergence time definition. Missing category detection via unique document count. Environmental control requirements for pre/post comparison. |
 | v1.7 | 2026-02-26 | Stage 2: Pipeline class — programmatic API, zero logic duplication. Stage 3: REST API (FastAPI), `akf serve` CLI command. 425 tests, 88% coverage, CI green 3.10/3.11/3.12. Infrastructure Layers Model updated: layer 5 = Interface. Priority Stack updated: 2.2–Stage 3 all complete. |
+| v1.8 | 2026-03-12 | VAL-phase notation introduced (VAL-1, VAL-2.1, VAL-2.2, VAL-2.3). PATCH-1: schema_version removed from documents — belongs to akf.yaml only. generation_id is sole optional linking field. VAL-2.2 and VAL-2.3 marked shipped. Priority stack and infrastructure layers updated to VAL notation. |

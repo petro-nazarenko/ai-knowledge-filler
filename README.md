@@ -1,6 +1,6 @@
 # AI Knowledge Filler
 
-AKF is an AI-powered content production system — generate, enrich, search, validate, and visualize structured Markdown knowledge.
+**AI-powered content production system — generate, enrich, search, validate, and visualize structured Markdown knowledge.**
 
 [![CI](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/ci.yml/badge.svg)](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/ci.yml)
 [![Tests](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/tests.yml/badge.svg)](https://github.com/petro-nazarenko/ai-knowledge-filler/actions/workflows/tests.yml)
