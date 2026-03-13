@@ -18,7 +18,11 @@ import time
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from akf.telemetry import TelemetryWriter
+    from akf.config import AKFConfig
 
 
 # ─── PROMPTS ──────────────────────────────────────────────────────────────────
