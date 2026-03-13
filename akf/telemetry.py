@@ -313,7 +313,7 @@ class TelemetryWriter:
         """
         if not isinstance(
             event,
-            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, AskQueryEvent),
+            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, MarketAnalysisEvent, AskQueryEvent),
         ):
             raise TypeError(
                 f"Expected GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, "

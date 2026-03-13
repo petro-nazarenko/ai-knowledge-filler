@@ -44,10 +44,29 @@ class EnrichResult:
     errors: list = field(default_factory=list)
 
 
+def _try_retrieve(query: str, top_k: int = 3) -> str:
+    """Attempt RAG retrieval; return formatted context string or '' on failure."""
+    try:
+        import rag.retriever as _retriever
+        if _retriever is None:
+            return ""
+        result = _retriever.retrieve(query, top_k=top_k)
+        if not result.hits:
+            return ""
+        parts = []
+        for hit in result.hits:
+            filename = hit.metadata.get("filename", "")
+            parts.append(f"[{filename}]\n{hit.content}")
+        return "\n\n---\n\n".join(parts)
+    except (ImportError, Exception):
+        return ""
+
+
 class Pipeline:
-    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True, writer=None, config=None):
+    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True, writer=None, config=None, rag_enabled: bool = True):
         self.model = model
         self.verbose = verbose
+        self.rag_enabled = rag_enabled
         self.output_dir = Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
         self.telemetry_path = Path(telemetry_path).expanduser() if telemetry_path else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
         self._system_prompt = None
@@ -106,6 +125,10 @@ class Pipeline:
         except Exception as e:
             return GenerateResult(success=False, content="", errors=[str(e)])
         system_prompt = self._load_system_prompt()
+        if self.rag_enabled:
+            rag_context = _try_retrieve(prompt, top_k=3)
+            if rag_context:
+                system_prompt += "\n\n## RELEVANT CORPUS CONTEXT\n\n" + rag_context
         if hints:
             context_lines = []
             if hints.get("domain"):
