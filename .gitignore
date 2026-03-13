@@ -55,3 +55,8 @@ dist/
 FETCH_HEAD
 telemetry/
 rag/.chroma/
+
+# Generated test artifacts
+*_Checklist_*.md
+Test_File*.md
+Python_Decorators.md
