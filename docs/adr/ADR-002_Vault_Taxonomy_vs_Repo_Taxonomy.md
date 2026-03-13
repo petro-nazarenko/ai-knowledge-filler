@@ -1,7 +1,7 @@
 ---
 title: "ADR-002 — Vault Taxonomy vs Repository Taxonomy"
 type: reference
-domain: ai-system
+domain: akf-core
 level: advanced
 status: active
 version: v1.0

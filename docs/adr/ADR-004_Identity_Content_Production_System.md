@@ -1,7 +1,7 @@
 ---
 title: "ADR-004 — Identity: AI-Powered Content Production System"
 type: reference
-domain: ai-system
+domain: akf-core
 level: advanced
 status: active
 version: v1.0
