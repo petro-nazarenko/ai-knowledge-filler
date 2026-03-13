@@ -50,6 +50,7 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+uv.lock
 .obsidian/
 .pylint_cache
 FETCH_HEAD

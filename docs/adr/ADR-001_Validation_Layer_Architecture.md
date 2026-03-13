@@ -276,7 +276,7 @@ Design as if it could feed a time-series DB. Start with JSONL; schema stays stab
   "max_attempts": 3,
   "errors": [
     {
-      "code": "E006_INVALID_ENUM",
+      "code": "E006_TAXONOMY_VIOLATION",
       "field": "domain",
       "expected": ["business-strategy", "project-management"],
       "received": "consulting"
