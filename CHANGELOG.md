@@ -1,26 +1,55 @@
 # Changelog
 
 All notable changes to AKF are documented here.
-## [Unreleased]
-
 ## [1.0.1] — 2026-03-13
-
-### Fixed
-- PyPI description and README updated to reflect AI-powered content production system identity
-
-## [1.0.0] — 2026-03-12
 
 ### Bug Fixes
 
 - Add YAML frontmatter to docs/market-analysis.md ([`638e696`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/638e696dd28f0f66da7922233f41ab84924778ea))
 - Add isinstance(related, list) guard in _check_related and use yaml.safe_dump in make_doc ([`5408bca`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5408bca2cc4e676fd1ace987d434f17fd6e6587a))
 - Support direct script execution for indexer ([`be4ebc5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/be4ebc526e8ab71fcd02030a581e11a4691ed443))
+- Avoid 422 by using decorator-level concurrency dependencies ([`9a00d8b`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9a00d8b7d78a973400f8472e7ca0a554413416bf))
+- Enforce concurrency in middleware to avoid CI 422 ([`96db7f1`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/96db7f1550afc8507db42204b200cc78a8d74eb9))
+- Remove slowapi decorators from POST endpoints ([`6ef6571`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/6ef6571d6945e58b260991f03602dccf02e555ae))
+- Unify validation source and consolidate CI workflows ([`ff47e08`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/ff47e08886e028d310d6000f62f2293552365c4c))
+- Prevent LLM from reproducing system_prompt examples ([`96b6bff`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/96b6bff1023140fa537c2d42d3f201142b8c4f2b))
+- Market_pipeline outputs validated before disk write ([`062f066`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/062f0663fa3c103f37b164474e7ab3ad00902c49))
+- Enrich telemetry writer always None — events were silently dropped ([`3c359ed`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3c359ed7dbdc0fe14e3bcb12ec5c9cf28f543cb7))
+- Market_pipeline loads domain taxonomy from akf.yaml instead of hardcoding ([`42e11c8`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/42e11c8b57a82d29d258ed88413fbed67647a4b8))
+- Emit AskQueryEvent telemetry from CLI ask command ([`7055f3f`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7055f3f3de98d91ac60fe0bf619229ce961a136b))
+- Resolve pipeline.py merge conflict — use anchored_prompt ([`3dd29e7`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3dd29e72af335024b66add5587ecac335441c7e0))
+- Bump anthropic to 0.50.0 in requirements.lock ([`ca99c50`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/ca99c507309ff4a57cf8e89d0202bfdf075defe5))
+- Align pipeline RAG interface and telemetry guard with tests ([`bdfd066`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/bdfd066ef092af5d0486ebb542d94574bd5abb83))
+- Add TYPE_CHECKING imports for TelemetryWriter and AKFConfig in market_pipeline ([`cc0601e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/cc0601e5ff0b38ae9abbc4012430203322ead5d5))
+- Set domain to akf-core in ADR-002 and ADR-004 for docs taxonomy ([`7f18706`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7f1870627aab30ccfe4ae0556e8198a5b9ffa47c))
+- Address top 3 post-v1.0.0 audit findings ([`feb85ae`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/feb85aeba158fd690d0eb8d57cac08ba93b613dc))
+
+### CI/CD
+
+- Gate on changed python files in PR ([`2cde850`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/2cde850977cd4d8c947f9c3bbee1751dc63b0727))
+- Enforce locked deps in workflows ([`6706d49`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/6706d499baa1608b835f11254669a46bb30a6d9a))
+- Install test/lint tooling under locked constraints ([`22f9828`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/22f982802c80a37a89c96315053b6e81305fad5e))
+- Fix multiline target expansion for ruff/black/mypy ([`5e9e834`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5e9e8349805caf2ae54fabf658c7384c8e261e25))
+- Scope push lint targets to changed files ([`98a4fd9`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/98a4fd9fbef4b54f8913e6131b5299d1fc02506d))
+- Make Codecov upload non-blocking ([`a4e0556`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/a4e05563cb2bd039a9b4e71e08ff9d30611a2e8b))
+- Restore full-repo lint gate and harden dependency/secrets policy ([`f4ab258`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f4ab258dc143c7ecf062c4086346a608274905a0))
+- Unify lint policy and harden workflow supply chain ([`d88f95d`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d88f95d87b533a36bdd93b73ca7e1df6e40bab7f))
+- Unify coverage threshold and enable full ruff gate ([`133692a`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/133692ad9ea874e3d5bc6557a42ef2fae41a7add))
+
+### Chores
+
+- Update dependencies to match codebase ([`5d68dda`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5d68ddab1c6230effc47bab3ec2e1bd7befc90d8))
+- Repo cleanup — ADRs updated, artifacts removed, README tagline fixed, CHANGELOG closed, deps hygiene ([`9c14f26`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9c14f26830bbb3ad3489f846d0e23914f5507d42))
+- Add uv.lock lockfile ([`50a8516`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/50a8516b63ee388651aef581a0c1c3714a64bed8))
+- Bump version to 1.0.1 to update PyPI metadata and README ([`e7f5d87`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/e7f5d87d3a40f6d28428abf7b1b17d828493dcee))
 
 ### Documentation
 
 - Update CHANGELOG for v0.7.0 ([`49b127d`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/49b127d6143e413d940bda33bc0738c90770d3b6))
 - Update current state — add E008 typed relationships to ARCHITECTURE and README ([`7530680`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7530680746ee28baf94777ce6bccf6674a618173))
 - Create wiki pages for repo ([`b6fa422`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b6fa422f9a8da89ab5cc6263b7dcc91f63a3a688))
+- Update CHANGELOG for v0.8.0 ([`d6b14ea`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d6b14ea4ae2c7526d4e33c1a5f2488a80849a0b1))
+- Update positioning to AI-powered content production system ([`10a75f9`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/10a75f9e1ad8be602f73ee0ed066680f3da77b17))
 
 ### Features
 
@@ -35,6 +64,23 @@ All notable changes to AKF are documented here.
 - Add /v1/ask endpoint for rag qa ([`4601893`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/4601893e4bacbfd3dce07a81f5e0a960b2a85bb0))
 - Add ask guardrails and telemetry events ([`6f09238`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/6f09238f251ca0c34634e397b83da983b2c67856))
 - Add tenant-level ask usage tracking ([`f2cf2c8`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f2cf2c8dc8d34b117864d0affd2d2f3d6c1cd8cd))
+- RAG scaffolding + spec ([`28df7cc`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/28df7cc27bbd06a60bd00226df52ad0fff511e5f))
+- Standardize config/telemetry injection across Pipeline and MarketAnalysisPipeline ([`3f1e3e9`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3f1e3e9bcda242a7daf4832a3dd2b7c84963d0b1))
+- Add akf index CLI subcommand ([`77056f0`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/77056f0e10e06721d23d9b1a2ba6cff2ddbbc2b9))
+- Inject RAG corpus context into akf generate ([`b13b884`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b13b884827bcde74309c22ac91044e2f600b878b))
+
+### Security
+
+- Require auth for metrics endpoint ([`f605359`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f6053593f651065d957dd4ad781ac2bfff291630))
+- Sanitize output filename and tune CI coverage gate ([`9cea6f4`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9cea6f40e695ee80cd09c165e28cd6d9838cc1cc))
+
+### Testing
+
+- Add tests for telemetry gaps fixes 6, 7, and 8 ([`26152be`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/26152be075f54e19e0af4d04fdef7d90c43eed58))
+
+### prod
+
+- Harden REST API + strict CI + security baseline ([`f9d74ca`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f9d74caa579206d2a2189106a4e8f6f56d16677a))
 
 ### release
 
