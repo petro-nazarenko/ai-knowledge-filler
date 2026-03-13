@@ -3,6 +3,11 @@
 All notable changes to AKF are documented here.
 ## [Unreleased]
 
+## [1.0.1] — 2026-03-13
+
+### Fixed
+- PyPI description and README updated to reflect AI-powered content production system identity
+
 ## [1.0.0] — 2026-03-12
 
 ### Bug Fixes

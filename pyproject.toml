@@ -1,6 +1,6 @@
 [project]
 name = "ai-knowledge-filler"
-version = "1.0.0"
+version = "1.0.1"
 description = "AI-powered content production system."
 readme = "README.md"
 license = "MIT"
