@@ -305,5 +305,4 @@ MIT — free for commercial and personal use.
 
 ---
 
-**PyPI:** https://pypi.org/project/ai-knowledge-filler  
-**Version:** 1.0.1
+**PyPI:** https://pypi.org/project/ai-knowledge-filler
