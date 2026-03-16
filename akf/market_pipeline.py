@@ -1,10 +1,11 @@
 """
 Market Analysis Pipeline for AI Knowledge Filler.
 
-Three-stage pipeline:
-  Stage 1 — Market Analysis:    size, trends, segments, drivers
-  Stage 2 — Competitor Analysis: key players, comparison, SWOT
-  Stage 3 — Positioning:        gaps, USP, strategy (only when market request present)
+Four-stage pipeline:
+  Stage 1 — Market Analysis:        size, trends, segments, drivers
+  Stage 2 — Competitor Analysis:    key players, comparison, SWOT
+  Stage 3 — Positioning:            gaps, USP, strategy (only when market request present)
+  Stage 4 — Financial Assessment:   valuation, TAM/SAM/SOM, revenue potential, ROI
 
 Dependency injection convention:
   Pass ``config`` and ``writer`` to the constructor to share pre-configured
@@ -171,6 +172,56 @@ Top 3 tactical recommendations that flow from this positioning.
 One-paragraph positioning summary for executive communication.
 """
 
+_FINANCIAL_ASSESSMENT_PROMPT = """\
+Based on the market analysis, competitor analysis, and positioning strategy below,
+provide a comprehensive financial assessment and market value analysis.
+
+MARKET REQUEST: {request}
+
+MARKET CONTEXT:
+{market_context}
+
+COMPETITOR CONTEXT:
+{competitor_context}
+
+POSITIONING CONTEXT:
+{positioning_context}
+
+Your financial assessment MUST cover:
+
+## Market Valuation
+- Total Addressable Market (TAM) — dollar estimate with methodology
+- Serviceable Addressable Market (SAM) — realistic target subset
+- Serviceable Obtainable Market (SOM) — achievable share in 3-5 years
+
+## Revenue Potential
+- Projected annual revenue at various market-share scenarios (1%, 5%, 10%)
+- Primary revenue streams and monetisation model
+- Pricing benchmarks derived from competitor analysis
+
+## Investment Requirements
+- Estimated initial investment to reach market entry
+- Key cost categories: product development, go-to-market, operations
+- Break-even timeline estimate
+
+## Return on Investment (ROI)
+- Expected ROI range over a 3-year and 5-year horizon
+- Key assumptions driving the projections
+- Sensitivity analysis: best / base / worst case
+
+## Funding Landscape
+- Typical funding stages for this market (bootstrapped, seed, Series A, etc.)
+- Active investors or strategic buyers in this segment
+- Recent M&A or funding activity relevant to valuation benchmarks
+
+## Financial Risks
+2-3 key financial risks and mitigation strategies.
+
+## Summary
+One-paragraph executive summary of the financial opportunity and recommended
+investment strategy.
+"""
+
 
 # ─── RESULT TYPES ─────────────────────────────────────────────────────────────
 
@@ -189,12 +240,13 @@ class StageResult:
 
 @dataclass
 class MarketPipelineResult:
-    """Combined result of all three market analysis stages."""
+    """Combined result of all four market analysis stages."""
     success: bool
     request: str
     market_analysis: StageResult = field(default_factory=lambda: StageResult(False, ""))
     competitor_analysis: StageResult = field(default_factory=lambda: StageResult(False, ""))
     positioning: StageResult = field(default_factory=lambda: StageResult(False, ""))
+    financial_assessment: StageResult = field(default_factory=lambda: StageResult(False, ""))
     total_duration_ms: int = 0
     output_dir: Optional[Path] = None
 
@@ -203,18 +255,28 @@ class MarketPipelineResult:
         """All successfully written output files."""
         return [
             r.file_path
-            for r in (self.market_analysis, self.competitor_analysis, self.positioning)
+            for r in (
+                self.market_analysis,
+                self.competitor_analysis,
+                self.positioning,
+                self.financial_assessment,
+            )
             if r.success and r.file_path
         ]
 
     def __repr__(self) -> str:
         stages_ok = sum(
-            1 for r in (self.market_analysis, self.competitor_analysis, self.positioning)
+            1 for r in (
+                self.market_analysis,
+                self.competitor_analysis,
+                self.positioning,
+                self.financial_assessment,
+            )
             if r.success
         )
         return (
             f"MarketPipelineResult(success={self.success}, "
-            f"stages_ok={stages_ok}/3, files={len(self.files)})"
+            f"stages_ok={stages_ok}/4, files={len(self.files)})"
         )
 
 
@@ -222,7 +284,7 @@ class MarketPipelineResult:
 
 
 class MarketAnalysisPipeline:
-    """Three-stage AI-powered market analysis pipeline.
+    """Four-stage AI-powered market analysis pipeline.
 
     Stages run sequentially; each stage feeds context into the next.
 
@@ -418,20 +480,77 @@ class MarketAnalysisPipeline:
                 duration_ms=duration_ms, error=str(exc),
             )
 
+    def assess_financial_value(
+        self,
+        request: str,
+        market_context: str,
+        competitor_context: str,
+        positioning_context: str,
+    ) -> StageResult:
+        """Stage 4 — financial assessment and market value using Stages 1-3 context.
+
+        Produces TAM/SAM/SOM sizing, revenue projections, investment requirements,
+        ROI estimates, and the funding landscape for the given market request.
+
+        Requires market_context, competitor_context, and positioning_context to be
+        non-empty (i.e. Stages 1-3 must have succeeded).
+        """
+        self._log("Stage 4/4 — Financial Assessment & Market Value...")
+        if not market_context.strip():
+            return StageResult(
+                success=False, content="", stage="financial_assessment",
+                error="market_context is empty — run Stage 1 first",
+            )
+        if not competitor_context.strip():
+            return StageResult(
+                success=False, content="", stage="financial_assessment",
+                error="competitor_context is empty — run Stage 2 first",
+            )
+        if not positioning_context.strip():
+            return StageResult(
+                success=False, content="", stage="financial_assessment",
+                error="positioning_context is empty — run Stage 3 first",
+            )
+
+        t0 = time.monotonic()
+        try:
+            prompt = _FINANCIAL_ASSESSMENT_PROMPT.format(
+                request=request,
+                market_context=market_context,
+                competitor_context=competitor_context,
+                positioning_context=positioning_context,
+            )
+            content = self._call_llm(prompt)
+            self._validate_content(content)
+            fp = self._write(content, self._safe_filename("financial", request))
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
+            return StageResult(
+                success=True, content=content, file_path=fp,
+                stage="financial_assessment", duration_ms=duration_ms,
+            )
+        except Exception as exc:
+            duration_ms = int((time.monotonic() - t0) * 1000)
+            self._log(f"  Stage 4 failed: {exc}")
+            return StageResult(
+                success=False, content="", stage="financial_assessment",
+                duration_ms=duration_ms, error=str(exc),
+            )
+
     # ── Full pipeline ──────────────────────────────────────────────────────────
 
     def analyze(self, request: str) -> MarketPipelineResult:
-        """Run the full three-stage market analysis pipeline.
+        """Run the full four-stage market analysis pipeline.
 
         Each stage feeds its output as context into the next stage.
-        Stages 2 and 3 are skipped (with error recorded) if a prior stage fails.
+        Stages 2, 3, and 4 are skipped (with error recorded) if a prior stage fails.
 
         Args:
             request: Natural-language market request, e.g.
                      "B2B SaaS project management tools for SMEs".
 
         Returns:
-            MarketPipelineResult with results for all three stages.
+            MarketPipelineResult with results for all four stages.
         """
         if not request or not request.strip():
             return MarketPipelineResult(
@@ -497,14 +616,28 @@ class MarketAnalysisPipeline:
             )
         _emit(stage3)
 
+        # Stage 4 — requires Stage 1 + 2 + 3 content
+        if stage1.success and stage2.success and stage3.success:
+            stage4 = self.assess_financial_value(
+                request, stage1.content, stage2.content, stage3.content
+            )
+        else:
+            stage4 = StageResult(
+                success=False, content="", stage="financial_assessment",
+                error="skipped — prior stage failed",
+            )
+        _emit(stage4)
+
         total_ms = int((time.monotonic() - t_start) * 1000)
-        overall_success = stage1.success and stage2.success and stage3.success
+        overall_success = (
+            stage1.success and stage2.success and stage3.success and stage4.success
+        )
 
         if overall_success:
-            self._log(f"Pipeline complete — 3/3 stages succeeded ({total_ms} ms)")
+            self._log(f"Pipeline complete — 4/4 stages succeeded ({total_ms} ms)")
         else:
             failed = [
-                s.stage for s in (stage1, stage2, stage3) if not s.success
+                s.stage for s in (stage1, stage2, stage3, stage4) if not s.success
             ]
             self._log(f"Pipeline finished with failures: {failed}")
 
@@ -514,6 +647,7 @@ class MarketAnalysisPipeline:
             market_analysis=stage1,
             competitor_analysis=stage2,
             positioning=stage3,
+            financial_assessment=stage4,
             total_duration_ms=total_ms,
             output_dir=self.output_dir,
         )
