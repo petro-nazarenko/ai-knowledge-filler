@@ -44,6 +44,34 @@ class EnrichResult:
     errors: list = field(default_factory=list)
 
 
+def _patch_dates(content: str, today: str) -> str:
+    """Overwrite created/updated in YAML frontmatter with today's date.
+
+    Prevents LLM from copying stale dates out of examples or training data.
+    Only modifies lines inside the opening --- block.
+    """
+    import re
+    lines = content.splitlines(keepends=True)
+    in_front = False
+    result = []
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        if i == 0 and stripped == "---":
+            in_front = True
+            result.append(line)
+            continue
+        if in_front and stripped == "---":
+            in_front = False
+            result.append(line)
+            continue
+        if in_front and re.match(r"^(created|updated)\s*:", stripped):
+            key = stripped.split(":")[0]
+            result.append(f"{key}: {today}\n")
+            continue
+        result.append(line)
+    return "".join(result)
+
+
 def _try_retrieve(query: str, top_k: int = 3) -> str:
     """Attempt RAG retrieval; return formatted context string or '' on failure."""
     try:
@@ -146,6 +174,7 @@ class Pipeline:
             content = provider.generate(prompt, system_prompt)
         except Exception as e:
             return GenerateResult(success=False, content="", errors=[str(e)], generation_id=generation_id)
+        content = _patch_dates(content, datetime.now().strftime("%Y-%m-%d"))
         out_dir = Path(output).expanduser() if output else self.output_dir
         output_path = self._resolve_path(content, prompt, out_dir)
         document_id = output_path.stem
