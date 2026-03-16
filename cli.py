@@ -452,7 +452,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     # ── Output ────────────────────────────────────────────────────────────────
     if commit_result.committed:
-        ok(f"Saved to: {commit_result.file_path}")
+        ok(f"Saved to: {commit_result.path}")
         ok("Validation passed!")
     else:
         # Fallback: save anyway (pre-Phase 2.3 behaviour) and warn

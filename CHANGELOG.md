@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.2] — 2026-03-16
+
+### Bug Fixes
+
+- Fix AttributeError: CommitResult has no attribute `file_path` — use `path` (cli.py:455)
+- Remove `## COMPLETE EXAMPLES` section from system_prompt.md — Groq/weaker models were reproducing examples verbatim instead of generating new content
+- Patch `created`/`updated` dates to today after LLM generation in pipeline.py — prevents stale dates copied from training data
+
 ## [1.0.1] — 2026-03-13
 
 ### Bug Fixes
