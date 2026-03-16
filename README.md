@@ -415,6 +415,8 @@ Installation policy:
 - [User Guide](docs/user-guide.md) — installation, configuration, troubleshooting
 - [REST API Threat Model](docs/rest-api-threat-model.md) — auth, endpoint exposure, limits, logging/PII
 - [Contributing](CONTRIBUTING.md) — dev setup, quality gates, adding providers
+- [Repository Audit](docs/repo-audit.md) — quality, coverage, security, and documentation audit at v1.0.1
+- [Roadmap](docs/roadmap.md) — prioritized milestones and planned features
 
 ---
 
