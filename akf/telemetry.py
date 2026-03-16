@@ -250,12 +250,13 @@ class MarketAnalysisEvent:
     """Telemetry event for a single market analysis pipeline stage.
 
     Emitted by: MarketAnalysisPipeline after each stage completes.
-    One event per stage (market_analysis, competitor_analysis, positioning).
+    One event per stage (market_analysis, competitor_analysis, positioning,
+    financial_assessment).
     """
 
     generation_id: str
     request: str             # first 80 chars of the market request
-    stage: str               # "market_analysis" | "competitor_analysis" | "positioning"
+    stage: str               # "market_analysis" | "competitor_analysis" | "positioning" | "financial_assessment"
     success: bool
     duration_ms: int
     model: str
