@@ -5,9 +5,16 @@ All notable changes to AKF are documented here.
 
 ### Bug Fixes
 
-- Fix AttributeError: CommitResult has no attribute `file_path` — use `path` (cli.py:455)
-- Remove `## COMPLETE EXAMPLES` section from system_prompt.md — Groq/weaker models were reproducing examples verbatim instead of generating new content
-- Patch `created`/`updated` dates to today after LLM generation in pipeline.py — prevents stale dates copied from training data
+- BUG-A/BUG-B regressions + date patch, bump to v1.0.2 ([`c713abc`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/c713abc7e25f00fcfbaeca9236ea01a5b8f395ed))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.1 ([`b10fe3e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b10fe3e53d1c0ccad05092cbc2ec8c35dd606079))
+- Rewrite README — content production system positioning, 715/92%, E008, MCP stable ([`ec14552`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/ec14552cc89ae89e727b52e0bee525641895e45f))
+
+### Features
+
+- Add financial assessment & market value as Stage 4 of market pipeline ([`3bad90c`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3bad90ce9b6877bc5998d5d169b7c6d428641075))
 
 ## [1.0.1] — 2026-03-13
 
