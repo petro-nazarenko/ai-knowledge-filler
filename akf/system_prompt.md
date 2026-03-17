@@ -46,7 +46,7 @@ The output file must begin exactly like this (raw, no code block):
 ---
 title: "Brief precise title about the requested topic"
 type: concept
-domain: software-engineering
+domain: system-design
 level: intermediate
 status: active
 tags: [tag1, tag2, tag3]
