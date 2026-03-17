@@ -1,11 +1,26 @@
 # Changelog
 
 All notable changes to AKF are documented here.
-## [Unreleased]
+## [1.0.5] — 2026-03-17
+
+### Bug Fixes
+
+- Update corpus fixture node count from 47 to 48 ([`b959af4`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b959af44887ed3b1ac0341792ba0accfcdad78d1))
+- Update corpus fixture node count to 49 after README.md addition ([`2ddd61c`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/2ddd61c947d07ab179a3810e47bb0def7c6c38b8))
+
+### Chores
+
+- Bump version to 1.0.4 ([`8d7d843`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/8d7d84346661ceb41522b4a906328b6e562cc0ee))
+- Sync uv.lock to project version 1.0.4 ([`9725364`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9725364e49ca38f15231a869a0a8890997967a47))
 
 ### Documentation
 
 - Update CHANGELOG for v1.0.4 ([`19bc8c4`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/19bc8c4d4be6f6caf5d0308b936c9de39c21e852))
+- Update CHANGELOG for v1.0.4-fix ([`7ec3487`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7ec3487cd3bda6d8502fcb4c1423772989699d3d))
+
+### Features
+
+- Add orchestration layer — MOC, templates, and CSP sidecars ([`69b7bc2`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/69b7bc246a6b9be039365cf60a9a6e64b8ebb483))
 
 ## [1.0.4] — 2026-03-17
 
