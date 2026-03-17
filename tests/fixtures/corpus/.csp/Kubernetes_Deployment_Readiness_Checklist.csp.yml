@@ -1,0 +1,25 @@
+csp_version: "1.0"
+source_guide: "Kubernetes_Deployment_Readiness_Checklist.md"
+domain: devops
+principle: >
+  Kubernetes deployment readiness gates ensure that a new rollout fully
+  replaces old pods before declaring success, preventing split-brain
+  versions from serving traffic simultaneously.
+one_liner: |
+  kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=120s
+environment:
+  APP_NAME: "my-service"
+  NAMESPACE: "production"
+tags: [kubernetes, deployment, readiness, devops, rollout]
+additional_commands:
+  check_pod_health: |
+    kubectl get pods -n ${NAMESPACE} -l app=${APP_NAME} -o wide
+  rollback_on_failure: |
+    kubectl rollout undo deployment/${APP_NAME} -n ${NAMESPACE}
+  describe_deployment: |
+    kubectl describe deployment ${APP_NAME} -n ${NAMESPACE}
+notes: >
+  Pair with a pre-rollout `kubectl apply --dry-run=server` to catch schema
+  validation errors before any pods are replaced. Set `--timeout` based
+  on your service startup time plus a safety margin. If rollout fails,
+  `kubectl rollout undo` restores the previous revision atomically.

@@ -1,0 +1,18 @@
+csp_version: "1.0"
+source_guide: "Docker_Multi_Stage_Builds.md"
+domain: devops
+principle: >
+  Multi-stage Docker builds produce minimal production images by separating
+  the build environment from the runtime environment, discarding build tools
+  and dev dependencies at the final stage boundary.
+one_liner: |
+  docker build --target production -t ${IMAGE_NAME}:${TAG} .
+environment:
+  IMAGE_NAME: "my-service"
+  TAG: "latest"
+tags: [docker, multi-stage, container, devops, build]
+notes: >
+  Ensure your Dockerfile has at least two stages: a `build` stage that
+  installs all dependencies, and a `production` stage that copies only
+  compiled artifacts or installed packages. Pass --target production to
+  skip intermediate stages in CI/CD pipelines.

@@ -1,0 +1,24 @@
+csp_version: "1.0"
+source_guide: "Observability_Stack_Design.md"
+domain: devops
+principle: >
+  Loki aggregates logs from all containers via Promtail, enabling
+  correlated log queries alongside Prometheus metrics in Grafana without
+  the index overhead of Elasticsearch.
+one_liner: |
+  docker compose -f observability.yml up -d loki promtail grafana
+environment:
+  COMPOSE_FILE: "observability.yml"
+  LOKI_PORT: "3100"
+  GRAFANA_PORT: "3000"
+tags: [observability, loki, promtail, grafana, logging]
+additional_commands:
+  query_loki_logs: |
+    curl -s "http://localhost:3100/loki/api/v1/query_range?query={job=\"my-service\"}&limit=50" | python -m json.tool
+  check_loki_health: |
+    curl -s http://localhost:3100/ready
+notes: >
+  This is the log-aggregation companion to the primary observability
+  one-liner (prometheus + grafana + jaeger). Add Loki as a datasource in
+  Grafana (URL: http://loki:3100) to enable the Logs panel alongside
+  metric dashboards. Promtail auto-discovers Docker containers by label.

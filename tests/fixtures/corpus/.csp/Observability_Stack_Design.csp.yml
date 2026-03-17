@@ -1,0 +1,31 @@
+csp_version: "1.0"
+source_guide: "Observability_Stack_Design.md"
+domain: devops
+principle: >
+  A complete observability stack requires three pillars running together:
+  Prometheus for metrics scraping, Grafana for dashboards, and Jaeger
+  (or Tempo) for distributed tracing. Spin all three up locally before
+  instrumenting any service.
+one_liner: |
+  docker compose -f observability.yml up -d prometheus grafana jaeger
+environment:
+  COMPOSE_FILE: "observability.yml"
+  GRAFANA_PORT: "3000"
+  PROMETHEUS_PORT: "9090"
+  JAEGER_UI_PORT: "16686"
+tags: [observability, prometheus, grafana, jaeger, devops]
+additional_commands:
+  check_prometheus_targets: |
+    curl -s http://localhost:9090/api/v1/targets | python -m json.tool | grep '"health"'
+  open_grafana: |
+    open http://localhost:3000
+  open_jaeger_ui: |
+    open http://localhost:16686
+  tail_service_logs: |
+    docker compose -f observability.yml logs -f --tail=50
+notes: >
+  Default Grafana credentials: admin / admin. Import dashboard ID 1860
+  (Node Exporter Full) as a starting point. Configure your service to
+  expose /metrics (Prometheus format) and set the scrape target in
+  prometheus.yml. Jaeger agent listens on UDP 6831 for spans from
+  OpenTelemetry instrumented services.
