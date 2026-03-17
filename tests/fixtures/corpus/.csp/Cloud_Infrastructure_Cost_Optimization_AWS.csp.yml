@@ -1,0 +1,38 @@
+csp_version: "1.0"
+source_guide: "Cloud_Infrastructure_Cost_Optimization_AWS.md"
+domain: devops
+principle: >
+  AWS Cost Explorer exposes a CLI API for retrieving blended cost data
+  with daily or monthly granularity. Pull the last 30 days of spend
+  programmatically to feed dashboards, alerting, or automated
+  cost-anomaly detection workflows.
+one_liner: |
+  aws ce get-cost-and-usage \
+    --time-period Start=$(date -d '30 days ago' +%Y-%m-%d),End=$(date +%Y-%m-%d) \
+    --granularity MONTHLY \
+    --metrics BlendedCost \
+    --output json | python -m json.tool
+environment:
+  AWS_PROFILE: "default"
+  LOOKBACK_DAYS: "30"
+  GRANULARITY: "MONTHLY"
+tags: [aws, cost-optimization, cloud, finops, devops]
+additional_commands:
+  cost_by_service: |
+    aws ce get-cost-and-usage \
+      --time-period Start=$(date -d '30 days ago' +%Y-%m-%d),End=$(date +%Y-%m-%d) \
+      --granularity MONTHLY \
+      --metrics BlendedCost \
+      --group-by Type=DIMENSION,Key=SERVICE \
+      --output json | python -m json.tool
+  list_unused_ebs_volumes: |
+    aws ec2 describe-volumes --filters Name=status,Values=available \
+      --query 'Volumes[*].{ID:VolumeId,Size:Size,State:State}' --output table
+  rightsizing_recommendations: |
+    aws ce get-rightsizing-recommendation --service AmazonEC2 --output json | python -m json.tool
+notes: >
+  macOS users: replace `date -d '30 days ago'` with
+  `date -v-30d +%Y-%m-%d`. Requires `ce:GetCostAndUsage` IAM permission.
+  Set up AWS Budgets alerts at 80% and 100% of monthly budget to catch
+  cost spikes before they compound. Tag all resources with `project` and
+  `environment` tags to enable per-project cost attribution.

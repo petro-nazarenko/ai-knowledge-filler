@@ -1,0 +1,26 @@
+csp_version: "1.0"
+source_guide: "CICD_Pipeline_Design_GitHub_Actions.md"
+domain: devops
+principle: >
+  A well-structured GitHub Actions CI/CD pipeline automates build, test,
+  and deploy steps on every push, enforcing quality gates before any
+  artifact reaches production.
+one_liner: |
+  gh workflow run deploy.yml --ref main -f environment=production
+environment:
+  WORKFLOW_FILE: "deploy.yml"
+  TARGET_BRANCH: "main"
+  ENVIRONMENT: "production"
+tags: [cicd, github-actions, automation, devops, deploy]
+additional_commands:
+  local_test: |
+    act --job test --secret-file .env.test
+  trigger_staging: |
+    gh workflow run deploy.yml --ref main -f environment=staging
+  view_run_status: |
+    gh run list --workflow=deploy.yml --limit 5
+notes: >
+  Use `act` for local workflow testing before pushing. The `gh workflow run`
+  command requires the workflow to have a `workflow_dispatch` trigger with
+  the `environment` input defined. Monitor live run status with
+  `gh run watch $(gh run list --limit 1 --json databaseId -q '.[0].databaseId')`.

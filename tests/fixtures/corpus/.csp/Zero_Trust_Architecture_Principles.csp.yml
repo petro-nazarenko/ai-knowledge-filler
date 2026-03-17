@@ -1,0 +1,28 @@
+csp_version: "1.0"
+source_guide: "Zero_Trust_Architecture_Principles.md"
+domain: security
+principle: >
+  Zero Trust mandates that every request must be authenticated and
+  authorised regardless of network origin. Validate service-to-service
+  calls by verifying the Bearer token on every request and confirming
+  the health/auth endpoint returns 200 before trusting the service.
+one_liner: |
+  curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${TOKEN}" ${SERVICE_URL}/health
+environment:
+  TOKEN: "your-service-token"
+  SERVICE_URL: "https://my-service.example.com"
+tags: [zero-trust, security, authentication, api, verification]
+additional_commands:
+  verify_jwt_signature: |
+    echo "${TOKEN}" | cut -d. -f2 | base64 -d 2>/dev/null | python -m json.tool
+  test_unauthorized_access: |
+    curl -s -o /dev/null -w "%{http_code}" ${SERVICE_URL}/v1/protected
+  check_tls_certificate: |
+    openssl s_client -connect $(echo ${SERVICE_URL} | sed 's|https://||'):443 -showcerts 2>/dev/null | openssl x509 -noout -dates
+notes: >
+  The one-liner returns the HTTP status code. Expect 200 with a valid
+  token and 401 without. Automate this check in your CI/CD pipeline as a
+  post-deploy smoke test. For mTLS enforcement, add --cert and --key flags
+  to curl. Zero Trust also requires: (1) short-lived tokens (≤1h), (2) all
+  traffic encrypted in transit, (3) principle of least privilege on all
+  service accounts.

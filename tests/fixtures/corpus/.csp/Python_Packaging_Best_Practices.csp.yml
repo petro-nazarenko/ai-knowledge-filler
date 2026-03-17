@@ -1,0 +1,28 @@
+csp_version: "1.0"
+source_guide: "Python_Packaging_Best_Practices.md"
+domain: backend-engineering
+principle: >
+  A production-ready Python package must build cleanly, produce valid
+  distribution artifacts, and pass Twine's metadata checks before any
+  upload to PyPI or a private registry.
+one_liner: |
+  pip install build twine && python -m build && twine check dist/*
+environment:
+  PYPI_TOKEN: "pypi-your-token-here"
+  PACKAGE_NAME: "my-package"
+tags: [python, packaging, pypi, build, distribution]
+additional_commands:
+  upload_to_testpypi: |
+    twine upload --repository testpypi dist/* --username __token__ --password ${TESTPYPI_TOKEN}
+  upload_to_pypi: |
+    twine upload dist/* --username __token__ --password ${PYPI_TOKEN}
+  verify_installed_package: |
+    pip install --index-url https://test.pypi.org/simple/ ${PACKAGE_NAME} && python -c "import ${PACKAGE_NAME}; print('OK')"
+  bump_version: |
+    python -m bumpversion patch  # or minor / major
+notes: >
+  Always test on TestPyPI before releasing to PyPI. The `python -m build`
+  command produces both a wheel (`.whl`) and a source distribution (`.tar.gz`)
+  in `dist/`. Twine check validates that long_description renders correctly
+  on PyPI — fix RST/Markdown issues here before upload. Store PyPI tokens
+  in GitHub Secrets, never in pyproject.toml.

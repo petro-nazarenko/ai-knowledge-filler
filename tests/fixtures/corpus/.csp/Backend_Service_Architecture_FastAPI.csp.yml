@@ -1,0 +1,28 @@
+csp_version: "1.0"
+source_guide: "Backend_Service_Architecture_FastAPI.md"
+domain: backend-engineering
+principle: >
+  FastAPI with async Python delivers high throughput through event-loop
+  concurrency. Run with multiple Uvicorn workers in production to utilise
+  all available CPU cores while keeping individual worker memory footprints
+  small.
+one_liner: |
+  uvicorn src.main:app --host 0.0.0.0 --port 8000 --workers 4
+environment:
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  WORKERS: "4"
+tags: [fastapi, async, python, backend, uvicorn]
+additional_commands:
+  dev_reload: |
+    uvicorn src.main:app --reload --port 8000
+  gunicorn_production: |
+    gunicorn src.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
+  check_openapi: |
+    curl -s http://localhost:8000/openapi.json | python -m json.tool | head -40
+notes: >
+  Workers count = 2 × CPU_COUNT + 1 is a common heuristic. For
+  container deployments, prefer a single worker per container and scale
+  horizontally via Kubernetes HPA. Use `--reload` only in development.
+  Set `--timeout-graceful-shutdown 30` to allow in-flight requests to
+  complete during pod termination.

@@ -1,0 +1,30 @@
+csp_version: "1.0"
+source_guide: "ML_Model_Deployment_Patterns.md"
+domain: machine-learning
+principle: >
+  MLflow model serving wraps any logged model in a REST API with
+  standardised /invocations and /health endpoints, enabling consistent
+  real-time inference regardless of the underlying framework (sklearn,
+  PyTorch, HuggingFace, etc.).
+one_liner: |
+  mlflow models serve -m runs:/${RUN_ID}/model -p 5000 --env-manager conda
+environment:
+  RUN_ID: "your-mlflow-run-id"
+  MODEL_PORT: "5000"
+  ENV_MANAGER: "conda"
+tags: [mlflow, model-serving, machine-learning, deployment, inference]
+additional_commands:
+  serve_from_registry: |
+    mlflow models serve -m "models:/my-model/Production" -p 5000
+  predict_sample: |
+    curl -s -X POST http://localhost:5000/invocations \
+      -H "Content-Type: application/json" \
+      -d '{"dataframe_split": {"columns": ["feature1", "feature2"], "data": [[1.0, 2.0]]}}'
+  build_docker_image: |
+    mlflow models build-docker -m runs:/${RUN_ID}/model -n ${IMAGE_NAME}
+notes: >
+  Use `--env-manager local` for containers where conda is not available.
+  For production, prefer `mlflow models build-docker` to get a portable
+  Docker image and deploy via Kubernetes. Shadow mode deployment: route
+  5% of traffic to new model while old model serves all responses; compare
+  prediction distributions before full cutover.

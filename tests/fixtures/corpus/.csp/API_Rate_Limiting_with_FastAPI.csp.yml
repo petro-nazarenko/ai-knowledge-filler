@@ -1,0 +1,26 @@
+csp_version: "1.0"
+source_guide: "API_Rate_Limiting_with_FastAPI.md"
+domain: backend-engineering
+principle: >
+  Load-test the rate-limiting layer before production by sending a burst
+  of concurrent requests and verifying that 429 responses are returned
+  after the configured limit is exceeded, with correct Retry-After headers.
+one_liner: |
+  ab -n 1000 -c 50 -H "Authorization: Bearer ${TOKEN}" http://localhost:8000/v1/endpoint
+environment:
+  TOKEN: "your-bearer-token"
+  ENDPOINT: "http://localhost:8000/v1/generate"
+  CONCURRENT_USERS: "50"
+  TOTAL_REQUESTS: "1000"
+tags: [rate-limiting, fastapi, load-test, api, backend]
+additional_commands:
+  vegeta_load_test: |
+    echo "GET http://localhost:8000/v1/endpoint" | vegeta attack -rate=100/s -duration=10s -header="Authorization: Bearer ${TOKEN}" | vegeta report
+  check_429_responses: |
+    curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer ${TOKEN}" http://localhost:8000/v1/endpoint
+notes: >
+  Apache Bench (`ab`) is available on most systems. For more realistic
+  load patterns use `vegeta` or `k6`. Verify that: (1) requests above
+  the limit return HTTP 429, (2) the `Retry-After` or `X-RateLimit-Reset`
+  header is present, (3) the rate limit resets correctly after the window
+  expires.
