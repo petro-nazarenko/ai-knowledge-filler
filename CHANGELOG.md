@@ -1,6 +1,14 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.3] — 2026-03-17
+
+### Bug Fixes
+
+- Remove COMPLETE EXAMPLES / code-block wrapping from system_prompt.md — fixes weaker LLMs reproducing system prompt content verbatim
+- Add `_strip_yaml_codeblock()` post-processor in pipeline.py — strips ```yaml wrapper from LLM output at runtime
+- Reinforce no-code-block and today-date rules in system prompt OUTPUT RULES and FINAL REMINDER sections
+
 ## [1.0.2] — 2026-03-16
 
 ### Bug Fixes

@@ -44,6 +44,35 @@ class EnrichResult:
     errors: list = field(default_factory=list)
 
 
+def _strip_yaml_codeblock(content: str) -> str:
+    """Strip ```yaml / ``` code block wrapping from LLM output.
+
+    Weaker models sometimes wrap the entire file in a ```yaml code block
+    because the system prompt FILE FORMAT section shows an example that way.
+    This strips the wrapping so the result is raw Markdown starting with ---.
+    """
+    stripped = content.strip()
+    # Handle ```yaml\n---\n...\n---\n...``` or ```yaml\n...\n```
+    if stripped.startswith("```yaml"):
+        stripped = stripped[len("```yaml"):]
+        if stripped.startswith("\n"):
+            stripped = stripped[1:]
+        if stripped.endswith("\n```"):
+            stripped = stripped[: -len("\n```")]
+        elif stripped.endswith("```"):
+            stripped = stripped[: -len("```")]
+        return stripped.strip("\n") + "\n"
+    # Handle ```\n---\n... (generic code block wrapping markdown)
+    if stripped.startswith("```\n---") or stripped.startswith("```\r\n---"):
+        stripped = stripped[stripped.index("\n") + 1 :]
+        if stripped.endswith("\n```"):
+            stripped = stripped[: -len("\n```")]
+        elif stripped.endswith("```"):
+            stripped = stripped[: -len("```")]
+        return stripped.strip("\n") + "\n"
+    return content
+
+
 def _patch_dates(content: str, today: str) -> str:
     """Overwrite created/updated in YAML frontmatter with today's date.
 
@@ -174,6 +203,7 @@ class Pipeline:
             content = provider.generate(prompt, system_prompt)
         except Exception as e:
             return GenerateResult(success=False, content="", errors=[str(e)], generation_id=generation_id)
+        content = _strip_yaml_codeblock(content)
         content = _patch_dates(content, datetime.now().strftime("%Y-%m-%d"))
         out_dir = Path(output).expanduser() if output else self.output_dir
         output_path = self._resolve_path(content, prompt, out_dir)
