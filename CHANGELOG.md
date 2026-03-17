@@ -5,9 +5,15 @@ All notable changes to AKF are documented here.
 
 ### Bug Fixes
 
-- Remove COMPLETE EXAMPLES / code-block wrapping from system_prompt.md — fixes weaker LLMs reproducing system prompt content verbatim
-- Add `_strip_yaml_codeblock()` post-processor in pipeline.py — strips ```yaml wrapper from LLM output at runtime
-- Reinforce no-code-block and today-date rules in system prompt OUTPUT RULES and FINAL REMINDER sections
+- Prevent weaker LLMs from copying system prompt — v1.0.3 ([`00b905c`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/00b905c079406aeab393aafcd0b1ca9179b68f14))
+
+### Chores
+
+- Update uv.lock after v1.0.3 version bump ([`ee0dd60`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/ee0dd60609ca9641940309e6cd92d0786a60172c))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.2 ([`b0652c1`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b0652c1cb9a169e0a785e260f126845c64d2f552))
 
 ## [1.0.2] — 2026-03-16
 
