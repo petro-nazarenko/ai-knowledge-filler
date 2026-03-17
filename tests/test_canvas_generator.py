@@ -430,7 +430,7 @@ def test_generate_corpus_fixture(canvas_output):
     """Smoke test against the real fixtures corpus — no error, produces nodes."""
     fixture_dir = Path(__file__).parent / "fixtures" / "corpus"
     canvas = CanvasGenerator().generate(fixture_dir, canvas_output)
-    assert len(canvas["nodes"]) == 47
+    assert len(canvas["nodes"]) == 48
     assert isinstance(canvas["edges"], list)
 
 
