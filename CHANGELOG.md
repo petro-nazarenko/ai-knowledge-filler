@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.4] — 2026-03-17
+
+### Bug Fixes
+
+- Groq retry loop drops user prompt, causing stale system-prompt content ([`d5edfd1`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d5edfd15a8677c608db1e446dc025f439d0bc736))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.3 ([`27406f9`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/27406f961ef00ab0dd954100f10085bced68d114))
+
 ## [1.0.3] — 2026-03-17
 
 ### Bug Fixes
