@@ -1,6 +1,17 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.4] — 2026-03-17
+
+### Bug Fixes
+
+- Remove ```yaml / ``` fences from FILE FORMAT example in system_prompt.md so weaker models (Groq/Llama) don't reproduce them verbatim
+- Confirm `_strip_yaml_codeblock()` is called in `Pipeline.generate()` before YAML validation
+
+### Tests
+
+- Add `test_generate_strips_yaml_codeblock_wrapper`: end-to-end test with a mock LLM returning ```yaml-wrapped output, confirms the wrapper is stripped before the result is returned
+
 ## [1.0.3] — 2026-03-17
 
 ### Bug Fixes

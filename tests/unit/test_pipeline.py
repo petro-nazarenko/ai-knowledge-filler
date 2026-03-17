@@ -278,6 +278,17 @@ class TestPipelineGenerate:
                 result = p.generate("Test prompt")
         assert result.duration_ms >= 0
 
+    def test_generate_strips_yaml_codeblock_wrapper(self, tmp_path):
+        """Mock LLM returning ```yaml-wrapped output → _strip_yaml_codeblock is applied
+        before validation so the wrapper never reaches the validator."""
+        wrapped = "```yaml\n" + VALID_CONTENT.strip() + "\n```"
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        with patch("akf.pipeline.Pipeline._load_system_prompt", return_value="sys"):
+            with patch("llm_providers.get_provider", return_value=make_mock_provider(wrapped)):
+                result = p.generate("Test prompt")
+        assert not result.content.startswith("```")
+        assert result.content.startswith("---")
+
 
 # ─── Pipeline.batch_generate ──────────────────────────────────────────────────
 
