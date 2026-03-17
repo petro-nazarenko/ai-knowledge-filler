@@ -199,6 +199,7 @@ class Pipeline:
         writer = self.writer if self.writer is not None else TelemetryWriter(path=self.telemetry_path)
         t_start = time.monotonic()
         try:
+            original_prompt = prompt
             prompt = f"Create a complete Markdown knowledge file about: {prompt}"
             content = provider.generate(prompt, system_prompt)
         except Exception as e:
@@ -217,7 +218,12 @@ class Pipeline:
         total_attempts = 1
         if blocking:
             def generate_fn(doc, retry_prompt):
-                return provider.generate(retry_prompt, system_prompt)
+                combined = (
+                    f"Original request: {original_prompt}\n\n"
+                    f"Current document to repair:\n{doc}\n\n"
+                    f"{retry_prompt}"
+                )
+                return provider.generate(combined, system_prompt)
             def validate_fn(doc):
                 try:
                     return validate(doc)

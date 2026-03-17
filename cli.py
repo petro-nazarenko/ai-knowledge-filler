@@ -264,6 +264,7 @@ def load_system_prompt() -> str:
     try:
         import akf
         pkg_path = Path(akf.__file__).parent / "system_prompt.md"
+        info(f"[system_prompt] Loading from: {pkg_path}")
         if pkg_path.exists():
             return pkg_path.read_text(encoding="utf-8")
         err(f"system_prompt.md not found in installed package: {pkg_path}")
@@ -362,6 +363,8 @@ def cmd_generate(args: argparse.Namespace) -> None:
     t_start = time.monotonic()
 
     # ── Initial generation ────────────────────────────────────────────────────
+    from akf.pipeline import _strip_yaml_codeblock, _patch_dates
+
     try:
         t0 = time.monotonic()
         content = provider.generate(args.prompt, system_prompt)
@@ -369,6 +372,9 @@ def cmd_generate(args: argparse.Namespace) -> None:
     except Exception as e:
         err(f"Generation error: {e}")
         sys.exit(1)
+
+    content = _strip_yaml_codeblock(content)
+    content = _patch_dates(content, datetime.now().strftime("%Y-%m-%d"))
 
     # ── Determine output path ─────────────────────────────────────────────────
     out_dir = Path(args.output) if args.output else OUTPUT_DIR
@@ -395,7 +401,12 @@ def cmd_generate(args: argparse.Namespace) -> None:
 
     if blocking:
         def generate_fn(doc: str, retry_prompt: str) -> str:
-            return provider.generate(retry_prompt, system_prompt)
+            combined = (
+                f"Original request: {args.prompt}\n\n"
+                f"Current document to repair:\n{doc}\n\n"
+                f"{retry_prompt}"
+            )
+            return provider.generate(combined, system_prompt)
 
         def validate_fn(doc: str) -> list:
             try:
