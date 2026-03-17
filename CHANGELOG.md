@@ -12,11 +12,13 @@ All notable changes to AKF are documented here.
 
 - Bump version to 1.0.4 ([`8d7d843`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/8d7d84346661ceb41522b4a906328b6e562cc0ee))
 - Sync uv.lock to project version 1.0.4 ([`9725364`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9725364e49ca38f15231a869a0a8890997967a47))
+- Bump version to 1.0.5 ([`a3737de`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/a3737debd6f8a5baf0f22895b6e9ecb1e5b0f89e))
 
 ### Documentation
 
 - Update CHANGELOG for v1.0.4 ([`19bc8c4`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/19bc8c4d4be6f6caf5d0308b936c9de39c21e852))
 - Update CHANGELOG for v1.0.4-fix ([`7ec3487`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/7ec3487cd3bda6d8502fcb4c1423772989699d3d))
+- Update CHANGELOG for v1.0.5 ([`97f221b`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/97f221bba5521e4bebf132e22f0194364e46ced6))
 
 ### Features
 
