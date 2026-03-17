@@ -46,19 +46,15 @@ def _load_markdown_splitter_class() -> Any:
 
 def _build_collection(config: RAGConfig) -> Any:
     try:
-        import chromadb
-        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-    except ImportError as exc:
-        raise ImportError(
-            "Missing dependency 'chromadb'. Install with: pip install chromadb sentence-transformers"
-        ) from exc
+        from rag.vector_store import FlatIndex
+    except ModuleNotFoundError:
+        from vector_store import FlatIndex  # type: ignore[no-redef]
 
     config.persist_directory.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(config.persist_directory))
-    embedding_function = SentenceTransformerEmbeddingFunction(model_name=config.embedding_model)
-    return client.get_or_create_collection(
-        name=config.collection_name,
-        embedding_function=embedding_function,
+    return FlatIndex(
+        persist_dir=config.persist_directory,
+        collection_name=config.collection_name,
+        embedding_model=config.embedding_model,
     )
 
 
@@ -83,7 +79,7 @@ def _split_by_h2(content: str, splitter_class: Any) -> list[Any]:
 
 
 def index_corpus(config: RAGConfig | None = None) -> IndexStats:
-    """Index Markdown files from corpus into a local Chroma collection."""
+    """Index Markdown files from corpus into a local flat numpy vector store."""
 
     resolved = config or load_config()
     corpus_dir = resolved.corpus_dir

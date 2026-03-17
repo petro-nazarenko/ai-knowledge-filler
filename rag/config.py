@@ -23,7 +23,7 @@ def load_config() -> RAGConfig:
     """Load RAG indexer settings from environment with safe defaults."""
 
     corpus_dir = Path(os.getenv("RAG_CORPUS_DIR", "corpus")).expanduser()
-    persist_directory = Path(os.getenv("RAG_CHROMA_PATH", "rag/.chroma")).expanduser()
+    persist_directory = Path(os.getenv("RAG_INDEX_PATH", os.getenv("RAG_CHROMA_PATH", "rag/.index"))).expanduser()
     collection_name = os.getenv("RAG_COLLECTION_NAME", "akf_corpus")
     embedding_model = os.getenv(
         "RAG_EMBEDDING_MODEL",
