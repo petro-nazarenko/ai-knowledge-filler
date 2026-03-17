@@ -1,4 +1,4 @@
-"""Phase 2 retriever for semantic search over local Chroma index."""
+"""Phase 2 retriever for semantic search over local flat numpy vector store."""
 
 from __future__ import annotations
 
@@ -14,19 +14,15 @@ except ModuleNotFoundError:
 
 def _build_collection(config: RAGConfig) -> Any:
     try:
-        import chromadb
-        from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
-    except ImportError as exc:
-        raise ImportError(
-            "Missing dependency 'chromadb'. Install with: pip install chromadb sentence-transformers"
-        ) from exc
+        from rag.vector_store import FlatIndex
+    except ModuleNotFoundError:
+        from vector_store import FlatIndex  # type: ignore[no-redef]
 
     config.persist_directory.mkdir(parents=True, exist_ok=True)
-    client = chromadb.PersistentClient(path=str(config.persist_directory))
-    embedding_function = SentenceTransformerEmbeddingFunction(model_name=config.embedding_model)
-    return client.get_or_create_collection(
-        name=config.collection_name,
-        embedding_function=embedding_function,
+    return FlatIndex(
+        persist_dir=config.persist_directory,
+        collection_name=config.collection_name,
+        embedding_model=config.embedding_model,
     )
 
 
@@ -50,7 +46,7 @@ class RetrievalResult:
 
 
 def retrieve(query: str, top_k: int = 5, config: RAGConfig | None = None) -> RetrievalResult:
-    """Retrieve top-k relevant chunks from local Chroma collection."""
+    """Retrieve top-k relevant chunks from local flat numpy vector store."""
 
     clean_query = query.strip()
     if not clean_query:
