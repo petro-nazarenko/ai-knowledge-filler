@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akf.pipeline import Pipeline, GenerateResult, ValidateResult
+from akf.pipeline import Pipeline, GenerateResult, ValidateResult, _patch_dates, _strip_yaml_codeblock
 
 
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
@@ -303,3 +303,98 @@ class TestPipelineBatchGenerate:
         p = Pipeline(output=str(tmp_path), verbose=False)
         results = p.batch_generate([])
         assert results == []
+
+
+# ─── _strip_yaml_codeblock ────────────────────────────────────────────────────
+
+class TestStripYamlCodeblock:
+    """Tests for _strip_yaml_codeblock — fixes weaker-LLM code block wrapping."""
+
+    RAW_CONTENT = textwrap.dedent("""\
+        ---
+        title: "Test"
+        type: guide
+        ---
+
+        ## Body
+
+        Content here.
+    """)
+
+    def test_no_wrapping_unchanged(self):
+        assert _strip_yaml_codeblock(self.RAW_CONTENT) == self.RAW_CONTENT
+
+    def test_strips_yaml_codeblock(self):
+        wrapped = "```yaml\n" + self.RAW_CONTENT.strip() + "\n```"
+        result = _strip_yaml_codeblock(wrapped)
+        assert not result.startswith("```")
+        assert result.startswith("---")
+
+    def test_strips_generic_codeblock_with_frontmatter(self):
+        wrapped = "```\n" + self.RAW_CONTENT.strip() + "\n```"
+        result = _strip_yaml_codeblock(wrapped)
+        assert not result.startswith("```")
+        assert result.startswith("---")
+
+    def test_strips_yaml_codeblock_no_trailing_newline(self):
+        wrapped = "```yaml\n" + self.RAW_CONTENT.strip() + "```"
+        result = _strip_yaml_codeblock(wrapped)
+        assert not result.startswith("```")
+        assert result.startswith("---")
+
+    def test_preserves_body_content(self):
+        wrapped = "```yaml\n" + self.RAW_CONTENT.strip() + "\n```"
+        result = _strip_yaml_codeblock(wrapped)
+        assert "Content here." in result
+
+    def test_empty_string_unchanged(self):
+        assert _strip_yaml_codeblock("") == ""
+
+    def test_unrelated_codeblock_unchanged(self):
+        code = "```python\nprint('hello')\n```"
+        assert _strip_yaml_codeblock(code) == code
+
+
+# ─── _patch_dates ─────────────────────────────────────────────────────────────
+
+class TestPatchDates:
+    """Tests for _patch_dates — ensures LLM stale dates are overwritten."""
+
+    def test_patches_created(self):
+        content = "---\ncreated: 2023-12-01\n---\n\n## Body\n"
+        result = _patch_dates(content, "2026-03-17")
+        assert "created: 2026-03-17" in result
+        assert "2023-12-01" not in result
+
+    def test_patches_updated(self):
+        content = "---\nupdated: 2023-12-01\n---\n\n## Body\n"
+        result = _patch_dates(content, "2026-03-17")
+        assert "updated: 2026-03-17" in result
+        assert "2023-12-01" not in result
+
+    def test_patches_both_dates(self):
+        content = "---\ncreated: 2020-01-01\nupdated: 2021-06-15\n---\n\n## Body\n"
+        result = _patch_dates(content, "2026-03-17")
+        assert "created: 2026-03-17" in result
+        assert "updated: 2026-03-17" in result
+        assert "2020-01-01" not in result
+        assert "2021-06-15" not in result
+
+    def test_no_frontmatter_unchanged(self):
+        content = "## No frontmatter\n\ncreated: 2023-12-01\n"
+        result = _patch_dates(content, "2026-03-17")
+        assert result == content
+
+    def test_does_not_modify_body_dates(self):
+        content = "---\ncreated: 2023-01-01\n---\n\nSee note created: 2023-01-01\n"
+        result = _patch_dates(content, "2026-03-17")
+        assert "created: 2026-03-17" in result
+        # Body date unchanged
+        assert "See note created: 2023-01-01" in result
+
+    def test_today_date_format(self):
+        content = "---\ncreated: 2023-01-01\nupdated: 2023-01-01\n---\n"
+        result = _patch_dates(content, "2026-03-17")
+        import re
+        assert re.search(r"created: \d{4}-\d{2}-\d{2}", result)
+        assert re.search(r"updated: \d{4}-\d{2}-\d{2}", result)
