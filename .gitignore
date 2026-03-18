@@ -61,3 +61,6 @@ rag/.chroma/
 *_Checklist_*.md
 Test_File*.md
 Python_Decorators.md
+CURRENT_STATE.md
+corpus.canvas
+plan3.json
