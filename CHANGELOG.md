@@ -1,6 +1,20 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.7] — 2026-03-18
+
+### Bug Fixes
+
+- Normalize deduplication and generate structured prompts (v1.0.7) ([`d004c35`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/d004c3510df217488d3725a8d3fc582701428e1f))
+
+### Chores
+
+- Update uv.lock after adding pyyaml dependency ([`9ae602a`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9ae602a02e069c36a05fc427788bd7a2975ec9a1))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.6 ([`45d5615`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/45d5615df3497a1824bcd885db2b82100fcd3f67))
+
 ## [1.0.6] — 2026-03-18
 
 ### Chores
