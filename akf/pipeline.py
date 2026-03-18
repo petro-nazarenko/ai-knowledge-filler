@@ -3,14 +3,17 @@ import re, os, time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
+from akf.validation_error import ValidationError
 
 @dataclass
 class GenerateResult:
     success: bool
     content: str
-    file_path: object = None
+    file_path: Optional[Path] = None
     attempts: int = 0
-    errors: list = field(default_factory=list)
+    errors: list[ValidationError | str] = field(default_factory=list)
     generation_id: str = ""
     duration_ms: int = 0
     def __repr__(self):
@@ -20,9 +23,9 @@ class GenerateResult:
 @dataclass
 class ValidateResult:
     valid: bool
-    errors: list = field(default_factory=list)
-    warnings: list = field(default_factory=list)
-    filepath: object = None
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    filepath: Optional[Path] = None
     def __repr__(self):
         s = "VALID" if self.valid else "INVALID"
         return f"ValidateResult({s}, errors={len(self.errors)}, warnings={len(self.warnings)})"
@@ -41,7 +44,7 @@ class EnrichResult:
     existing_fields: list[str] = field(default_factory=list)
     generated_fields: list[str] = field(default_factory=list)
     generation_id: str = ""
-    errors: list = field(default_factory=list)
+    errors: list[ValidationError] = field(default_factory=list)
 
 
 def _strip_yaml_codeblock(content: str) -> str:

@@ -96,6 +96,11 @@ def commit(
     """
     _schema_ver = schema_version or expected_schema_version
 
+    # 0. Enforce schema_version before anything else
+    schema_err = _check_schema_version(document, expected_schema_version)
+    if schema_err is not None:
+        errors = list(errors) + [schema_err]
+
     # 1. Check for blocking errors
     blocking = [e for e in errors if e.severity == Severity.ERROR]
     if blocking:

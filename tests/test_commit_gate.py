@@ -63,6 +63,18 @@ updated: 2026-02-24
 # Body
 """
 
+NO_VERSION_DOC = f"""---
+title: Missing Version
+type: guide
+domain: api-design
+level: intermediate
+status: active
+created: 2026-02-24
+updated: 2026-02-24
+---
+
+# Body
+"""
 
 def make_writer(tmp_path: Path) -> TelemetryWriter:
     return TelemetryWriter(path=tmp_path / "events.jsonl")
@@ -200,12 +212,38 @@ class TestSummaryOnSchemaVersionMismatch:
     def test_converged_false_on_mismatch(self, tmp_path):
         writer = make_writer(tmp_path)
         run_commit(WRONG_VERSION_DOC, tmp_path / "out.md", [], writer)
-        assert read_events(writer)[0]["converged"] is True
+        assert read_events(writer)[0]["converged"] is False
 
-    def test_abort_reason_schema_version_mismatch(self, tmp_path):
+    def test_abort_reason_blocking_errors_on_mismatch(self, tmp_path):
         writer = make_writer(tmp_path)
         run_commit(WRONG_VERSION_DOC, tmp_path / "out.md", [], writer)
-        assert read_events(writer)[0]["abort_reason"] is None
+        assert read_events(writer)[0]["abort_reason"] == "blocking_errors"
+
+    def test_file_not_written_on_version_mismatch(self, tmp_path):
+        writer = make_writer(tmp_path)
+        out = tmp_path / "out.md"
+        result = run_commit(WRONG_VERSION_DOC, out, [], writer)
+        assert not out.exists()
+        assert result.committed is False
+
+
+# ─── Missing schema_version path ──────────────────────────────────────────────
+
+class TestMissingSchemaVersion:
+    def test_commit_blocked_when_schema_version_absent(self, tmp_path):
+        writer = make_writer(tmp_path)
+        out = tmp_path / "out.md"
+        result = run_commit(NO_VERSION_DOC, out, [], writer)
+        assert result.committed is False
+        assert not out.exists()
+
+    def test_emits_summary_on_absent_schema_version(self, tmp_path):
+        writer = make_writer(tmp_path)
+        run_commit(NO_VERSION_DOC, tmp_path / "out.md", [], writer)
+        events = read_events(writer)
+        assert len(events) == 1
+        assert events[0]["converged"] is False
+        assert events[0]["abort_reason"] == "blocking_errors"
 
 
 # ─── writer=None and generation_id=None ───────────────────────────────────────
