@@ -1,6 +1,22 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.8] — 2026-03-18
+
+### Bug Fixes
+
+- Resolve all H1-H5, M1-M3, L1-L7 audit findings ([`dbea6c4`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/dbea6c4c796da881b9d50bbd794e047d0e2f6528))
+
+### Chores
+
+- Commit remaining reformatted files from audit remediation ([`6ee9b08`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/6ee9b089ef8111538c894779ad55e2ab9477ef9d))
+- Ignore local artifacts (CURRENT_STATE, canvas output, plan3) ([`522d242`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/522d242ce65d9ed131695b1f6f23b5a9fa916b35))
+- Bump version to v1.0.8 ([`9b14c30`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/9b14c3086149abfbe4ee7ed62155d3231fec6130))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.7 ([`f34ea13`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f34ea13b95a22fe08763f3189c3919736e477886))
+
 ## [1.0.7] — 2026-03-18
 
 ### Bug Fixes
