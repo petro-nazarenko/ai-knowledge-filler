@@ -868,6 +868,65 @@ def cmd_canvas(args: argparse.Namespace) -> None:
     ok(f"Canvas written → {output_file}  ({n_nodes} nodes, {n_edges} edges)")
 
 
+# ─── GAPS HELPERS ─────────────────────────────────────────────────────────────
+
+def _normalize_link(link: str) -> str:
+    """Normalize a WikiLink name for deduplication (spaces→underscores, lowercase)."""
+    return link.strip().replace(" ", "_").lower()
+
+
+_DOMAIN_KEYWORDS: list[tuple[str, frozenset[str]]] = [
+    ("devops", frozenset({"docker", "kubernetes", "ci/cd", "ci", "cd", "github", "actions", "deploy", "deployment", "helm", "pipeline"})),
+    ("api-design", frozenset({"api", "rest", "graphql", "http", "openapi", "swagger", "endpoint", "endpoints"})),
+    ("security", frozenset({"jwt", "oauth", "security", "auth", "authentication", "authorization", "ssl", "tls"})),
+    ("backend-engineering", frozenset({"fastapi", "python", "service", "architecture", "microservice", "database", "backend"})),
+]
+
+_TYPE_KEYWORDS: list[tuple[str, frozenset[str]]] = [
+    ("checklist", frozenset({"checklist", "review"})),
+    ("guide", frozenset({"guide", "tutorial", "how-to", "howto"})),
+    ("concept", frozenset({"patterns", "strategies", "principles", "models", "concepts"})),
+]
+
+_DOMAIN_AUDIENCE: dict[str, str] = {
+    "devops": "DevOps engineers",
+    "api-design": "API developers",
+    "security": "security engineers",
+    "backend-engineering": "backend engineers",
+}
+
+
+def _infer_domain(link_name: str) -> str:
+    """Infer knowledge domain from a WikiLink name using keyword heuristics."""
+    words = set(link_name.lower().replace("_", " ").replace("-", " ").split())
+    for domain, keywords in _DOMAIN_KEYWORDS:
+        if words & keywords:
+            return domain
+    return "backend-engineering"
+
+
+def _infer_type(link_name: str) -> str:
+    """Infer document type from a WikiLink name using keyword heuristics."""
+    words = set(link_name.lower().replace("_", " ").replace("-", " ").split())
+    for type_name, keywords in _TYPE_KEYWORDS:
+        if words & keywords:
+            return type_name
+    return "concept"
+
+
+def _make_suggestion(link: str) -> dict:
+    """Build a structured plan.json entry from a missing WikiLink name."""
+    topic = link.replace("_", " ")
+    domain = _infer_domain(link)
+    doc_type = _infer_type(link)
+    audience = _DOMAIN_AUDIENCE.get(domain, "engineers")
+    return {
+        "prompt": f"Create a {doc_type} on {topic} for {audience}",
+        "domain": domain,
+        "type": doc_type,
+    }
+
+
 # ─── GAPS ─────────────────────────────────────────────────────────────────────
 
 
@@ -890,12 +949,13 @@ def cmd_gaps(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     md_files = list(vault_path.rglob("*.md"))
-    existing_stems = {f.stem for f in md_files}
+    existing_stems_normalized = {_normalize_link(f.stem) for f in md_files}
 
     wikilink_re = re.compile(r'\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]')
     frontmatter_re = re.compile(r'^---\s*\n(.*?)\n---', re.DOTALL)
 
-    all_links: set[str] = set()
+    # Map normalized key → canonical display name (underscore form), deduplicated
+    all_links: dict[str, str] = {}
     for md_file in md_files:
         try:
             content = md_file.read_text(encoding="utf-8")
@@ -924,17 +984,21 @@ def cmd_gaps(args: argparse.Namespace) -> None:
             related_str = str(related)
 
         for link in wikilink_re.findall(related_str):
-            all_links.add(link.strip())
+            raw = link.strip()
+            norm = _normalize_link(raw)
+            if norm not in all_links:
+                # Prefer the underscore-normalized display form
+                all_links[norm] = raw.replace(" ", "_")
 
-    missing = sorted(link for link in all_links if link not in existing_stems)
+    missing = sorted(
+        display for norm, display in all_links.items()
+        if norm not in existing_stems_normalized
+    )
 
     fmt = getattr(args, "format", None)
     output_path = getattr(args, "output", None)
 
-    suggestions = [
-        {"prompt": f"Create a file on {link.replace('_', ' ')}"}
-        for link in missing
-    ]
+    suggestions = [_make_suggestion(link) for link in missing]
 
     if fmt == "json":
         print(json.dumps(suggestions, indent=2))
