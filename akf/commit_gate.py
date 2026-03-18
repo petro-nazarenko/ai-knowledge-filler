@@ -28,7 +28,6 @@ from typing import Optional
 
 from akf.validation_error import ValidationError, Severity
 
-
 SCHEMA_VERSION = "1.0.0"
 
 
@@ -36,26 +35,26 @@ SCHEMA_VERSION = "1.0.0"
 # Output contract
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CommitResult:
     """Outcome of a commit attempt."""
+
     committed: bool
-    path: Optional[Path]                    # set when committed=True
+    path: Optional[Path]  # set when committed=True
     blocking_errors: list[ValidationError]  # set when committed=False
-    schema_version: str                     # always set
+    schema_version: str  # always set
 
     def __str__(self) -> str:
         if self.committed:
             return f"CommitResult(committed=True, path={self.path})"
-        return (
-            f"CommitResult(committed=False, "
-            f"errors={len(self.blocking_errors)})"
-        )
+        return f"CommitResult(committed=False, " f"errors={len(self.blocking_errors)})"
 
 
 # ---------------------------------------------------------------------------
 # Commit Gate
 # ---------------------------------------------------------------------------
+
 
 def commit(
     document: str,
@@ -152,6 +151,7 @@ def commit(
 # Telemetry helpers (Phase 2.3)
 # ---------------------------------------------------------------------------
 
+
 def _emit_summary(
     *,
     writer,
@@ -178,6 +178,7 @@ def _emit_summary(
 
     try:
         from akf.telemetry import GenerationSummaryEvent
+
         event = GenerationSummaryEvent(
             generation_id=generation_id,
             document_id=document_id or "unknown",
@@ -200,6 +201,7 @@ def _emit_summary(
 # ---------------------------------------------------------------------------
 # schema_version enforcement (deterministic)
 # ---------------------------------------------------------------------------
+
 
 def _check_schema_version(
     document: str,
@@ -261,6 +263,7 @@ def _extract_field(document: str, field_name: str) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Atomic write (deterministic)
 # ---------------------------------------------------------------------------
+
 
 def _atomic_write(content: str, target: Path) -> None:
     """

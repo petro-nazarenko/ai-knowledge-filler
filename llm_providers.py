@@ -11,6 +11,7 @@ Supports:
 - Ollama (local models)
 """
 
+import importlib.util
 import os
 import time
 from abc import ABC, abstractmethod
@@ -98,7 +99,6 @@ class LLMProvider(ABC):
         Raises:
             LLMError: If generation fails.
         """
-        pass
 
     @abstractmethod
     def is_available(self) -> bool:
@@ -107,25 +107,21 @@ class LLMProvider(ABC):
         Returns:
             True if API key is set and library is installed.
         """
-        pass
 
     @property
     @abstractmethod
     def name(self) -> str:
         """Provider identifier (e.g., 'claude', 'gemini')."""
-        pass
 
     @property
     @abstractmethod
     def display_name(self) -> str:
         """Human-readable provider name (e.g., 'Claude (Anthropic)')."""
-        pass
 
     @property
     @abstractmethod
     def model_name(self) -> str:
         """Model identifier used by the provider."""
-        pass
 
 
 # ─── CLAUDE PROVIDER ──────────────────────────────────────────────────────────
@@ -145,11 +141,11 @@ class ClaudeProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:
             import anthropic
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="anthropic library not installed. Run: pip install anthropic",
-            )
+            ) from exc
 
         try:
             client = anthropic.Anthropic(api_key=self.api_key)
@@ -159,7 +155,7 @@ class ClaudeProvider(LLMProvider):
                 system=system_prompt,
                 messages=[{"role": "user", "content": prompt}],
             )
-            content = response.content[0].text
+            content: str = str(response.content[0].text)
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -177,12 +173,7 @@ class ClaudeProvider(LLMProvider):
     def is_available(self) -> bool:
         if not self.api_key:
             return False
-        try:
-            import anthropic  # noqa: F401
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("anthropic") is not None
 
     @property
     def name(self) -> str:
@@ -215,22 +206,20 @@ class GeminiProvider(LLMProvider):
         try:
             from google import genai
             from google.genai import types
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="google-genai library not installed. Run: pip install google-genai",
-            )
+            ) from exc
 
         try:
             client = genai.Client(api_key=self.api_key)
             response = client.models.generate_content(
                 model=self.model_name,
                 contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=system_prompt, temperature=0
-                ),
+                config=types.GenerateContentConfig(system_instruction=system_prompt, temperature=0),
             )
-            content = response.text
+            content: str = str(response.text)
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -248,12 +237,7 @@ class GeminiProvider(LLMProvider):
     def is_available(self) -> bool:
         if not self.api_key:
             return False
-        try:
-            from google import genai  # noqa: F401
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("google.genai") is not None
 
     @property
     def name(self) -> str:
@@ -285,11 +269,11 @@ class OpenAIProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:
             from openai import OpenAI
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="openai library not installed. Run: pip install openai",
-            )
+            ) from exc
 
         try:
             client = OpenAI(api_key=self.api_key)
@@ -302,7 +286,7 @@ class OpenAIProvider(LLMProvider):
                 max_tokens=4096,
                 temperature=0,
             )
-            content = response.choices[0].message.content
+            content: str = str(response.choices[0].message.content)
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -320,12 +304,7 @@ class OpenAIProvider(LLMProvider):
     def is_available(self) -> bool:
         if not self.api_key:
             return False
-        try:
-            from openai import OpenAI  # noqa: F401
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("openai") is not None
 
     @property
     def name(self) -> str:
@@ -358,11 +337,11 @@ class OllamaProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:
             import requests
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="requests library not installed. Run: pip install requests",
-            )
+            ) from exc
 
         url = f"{self.base_url}/api/generate"
         payload = {
@@ -374,7 +353,7 @@ class OllamaProvider(LLMProvider):
         try:
             response = requests.post(url, json=payload, timeout=120)
             response.raise_for_status()
-            content = response.json().get("response", "")
+            content: str = str(response.json().get("response", ""))
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -394,7 +373,7 @@ class OllamaProvider(LLMProvider):
             import requests
 
             response = requests.get(f"{self.base_url}/api/tags", timeout=5)
-            return response.status_code == 200
+            return bool(response.status_code == 200)
         except Exception:
             return False
 
@@ -408,7 +387,7 @@ class OllamaProvider(LLMProvider):
 
     @property
     def model_name(self) -> str:
-        return self.model
+        return self.model or "llama3.2:3b"
 
 
 # ─── GROQ PROVIDER ────────────────────────────────────────────────────────────
@@ -428,11 +407,11 @@ class GroqProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:
             from groq import Groq
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="groq library not installed. Run: pip install groq",
-            )
+            ) from exc
 
         try:
             client = Groq(api_key=self.api_key)
@@ -445,7 +424,7 @@ class GroqProvider(LLMProvider):
                 max_tokens=4096,
                 temperature=0,
             )
-            content = response.choices[0].message.content
+            content: str = str(response.choices[0].message.content)
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -463,12 +442,7 @@ class GroqProvider(LLMProvider):
     def is_available(self) -> bool:
         if not self.api_key:
             return False
-        try:
-            from groq import Groq  # noqa: F401
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("groq") is not None
 
     @property
     def name(self) -> str:
@@ -500,11 +474,11 @@ class XAIProvider(LLMProvider):
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:
             from openai import OpenAI
-        except ImportError:
+        except ImportError as exc:
             raise ProviderUnavailableError(
                 self.name,
                 reason="openai library not installed. Run: pip install openai",
-            )
+            ) from exc
 
         try:
             client = OpenAI(api_key=self.api_key, base_url="https://api.x.ai/v1")
@@ -517,7 +491,7 @@ class XAIProvider(LLMProvider):
                 max_tokens=4096,
                 temperature=0,
             )
-            content = response.choices[0].message.content
+            content: str = str(response.choices[0].message.content)
             if not content:
                 raise InvalidResponseError(self.name, reason="empty response body")
             return content
@@ -535,12 +509,7 @@ class XAIProvider(LLMProvider):
     def is_available(self) -> bool:
         if not self.api_key:
             return False
-        try:
-            from openai import OpenAI  # noqa: F401
-
-            return True
-        except ImportError:
-            return False
+        return importlib.util.find_spec("openai") is not None
 
     @property
     def name(self) -> str:
@@ -645,9 +614,7 @@ def generate_with_retry(
 
         except Exception as exc:
             # Non-LLMError (e.g. ImportError) — wrap and re-raise immediately
-            logger.error(
-                "Unexpected error from %s: %s", provider.display_name, exc
-            )
+            logger.error("Unexpected error from %s: %s", provider.display_name, exc)
             raise LLMError(
                 f"Unexpected error: {exc}",
                 context={"provider": provider.name},
@@ -707,9 +674,7 @@ def generate_with_fallback(
             continue
 
         try:
-            content = generate_with_retry(
-                provider, prompt, system_prompt, max_retries=max_retries
-            )
+            content = generate_with_retry(provider, prompt, system_prompt, max_retries=max_retries)
             logger.info("Successfully generated with %s", provider.display_name)
             return content, name
 

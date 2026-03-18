@@ -20,14 +20,13 @@ import time
 from dataclasses import dataclass
 from typing import Callable, Optional
 
-from akf.error_normalizer import RetryPayload, normalize_errors
+from akf.error_normalizer import normalize_errors
 from akf.telemetry import (
     GenerationAttemptEvent,
     TelemetryWriter,
     ValidationErrorRecord,
 )
 from akf.validation_error import ErrorCode, ValidationError
-
 
 # ---------------------------------------------------------------------------
 # Types
@@ -43,11 +42,12 @@ ValidateFn = Callable[[str], list[ValidationError]]
 @dataclass
 class RetryResult:
     """Outcome of a retry cycle."""
+
     success: bool
-    document: str                    # final document (valid or last attempt)
-    attempts: int                    # how many LLM calls were made
-    abort_reason: Optional[str]      # set when success=False
-    errors: list[ValidationError]    # remaining errors if not success
+    document: str  # final document (valid or last attempt)
+    attempts: int  # how many LLM calls were made
+    abort_reason: Optional[str]  # set when success=False
+    errors: list[ValidationError]  # remaining errors if not success
 
     def __str__(self) -> str:
         if self.success:
@@ -227,6 +227,7 @@ def run_retry_loop(
 # Telemetry helpers (Phase 2.3)
 # ---------------------------------------------------------------------------
 
+
 def _emit_attempt(
     *,
     writer: Optional[TelemetryWriter],
@@ -287,6 +288,7 @@ def _to_record(e: ValidationError) -> ValidationErrorRecord:
 # ---------------------------------------------------------------------------
 # Convergence helpers (deterministic)
 # ---------------------------------------------------------------------------
+
 
 def _check_convergence(
     previous_errors: list[ValidationError],

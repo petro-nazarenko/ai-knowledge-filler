@@ -1,3 +1,13 @@
+"""Logging configuration for AKF.
+
+Provides JSONFormatter for structured log output and get_logger() factory.
+
+NOTE: This module must NOT import from akf or akf.pipeline. Those packages
+import llm_providers which imports this module, so any reverse import would
+create a circular dependency (akf -> akf.pipeline -> llm_providers -> logger
+-> akf).
+"""
+
 import logging
 import json
 import sys
@@ -9,9 +19,27 @@ class JSONFormatter(logging.Formatter):
     """Format log records as JSON lines."""
 
     _RESERVED = {
-        "name", "msg", "args", "levelname", "levelno", "pathname", "filename", "module",
-        "exc_info", "exc_text", "stack_info", "lineno", "funcName", "created", "msecs",
-        "relativeCreated", "thread", "threadName", "processName", "process", "message",
+        "name",
+        "msg",
+        "args",
+        "levelname",
+        "levelno",
+        "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
+        "lineno",
+        "funcName",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "message",
         "asctime",
     }
 

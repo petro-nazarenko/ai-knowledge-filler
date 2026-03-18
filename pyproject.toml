@@ -100,6 +100,15 @@ packages = ["akf", "akf.defaults", "rag"]
 "*" = ["*.md", "*.yaml", "*.yml"]
 akf = ["defaults/*.yaml"]
 
+[tool.pylint.messages_control]
+# C0415: import-outside-toplevel — lazy imports are an intentional architectural
+#   pattern throughout this codebase to break circular imports and speed up startup.
+# R0801: duplicate-code — some duplications are explicitly constrained (audit finding:
+#   "Do not merge the duplicate test file pairs yet — flag them in a TODO comment only").
+# W0718: broad-exception-caught — intentional in telemetry and retry controllers where
+#   failures must never interrupt the main pipeline ("observe, never influence").
+disable = ["C0415", "R0801", "W0718"]
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::coverage.exceptions.CoverageWarning",

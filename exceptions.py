@@ -1,4 +1,5 @@
 """AKF domain exception hierarchy."""
+
 from typing import Any
 
 

@@ -8,11 +8,11 @@ Start via: akf serve --mcp
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 # Top-level imports so unittest.mock.patch can find them by name
 from akf.pipeline import Pipeline
 from akf.validator import validate
-
 
 # ─── akf_generate ────────────────────────────────────────────────────────────
 
@@ -137,7 +137,9 @@ def akf_batch(
         "failed": len(results) - ok,
         "results": [
             {
-                "prompt": str(plan[i].get("prompt", "") if isinstance(plan[i], dict) else plan[i])[:50],
+                "prompt": str(plan[i].get("prompt", "") if isinstance(plan[i], dict) else plan[i])[
+                    :50
+                ],
                 "success": r.success,
                 "file_path": str(r.file_path) if r.file_path else None,
                 "attempts": r.attempts,
@@ -150,7 +152,7 @@ def akf_batch(
 # ─── entry point ─────────────────────────────────────────────────────────────
 
 
-def run(transport: str = "stdio") -> None:
+def run(transport: Literal["stdio", "sse", "streamable-http"] = "stdio") -> None:
     """Start the MCP server. Called from cli.py via: akf serve --mcp
 
     Args:

@@ -9,7 +9,7 @@ try:
     from rag.config import RAGConfig, load_config
 except ModuleNotFoundError:
     # Support direct execution: `python rag/retriever.py`
-    from config import RAGConfig, load_config
+    from config import RAGConfig, load_config  # type: ignore[no-redef]
 
 
 def _build_collection(config: RAGConfig) -> Any:

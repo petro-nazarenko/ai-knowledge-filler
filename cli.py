@@ -149,6 +149,7 @@ def cmd_init(args: argparse.Namespace) -> None:
     # Find bundled default
     try:
         import akf
+
         default_config = Path(akf.__file__).parent / "defaults" / "akf.yaml"
     except Exception:
         default_config = Path(__file__).parent / "akf" / "defaults" / "akf.yaml"
@@ -164,22 +165,22 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     target_dir.mkdir(parents=True, exist_ok=True)
     if target.exists() and args.force:
-        backup = target.with_suffix('.yaml.bak')
+        backup = target.with_suffix(".yaml.bak")
         shutil.copy(target, backup)
-        warn(f'Backup created: {backup}')
+        warn(f"Backup created: {backup}")
     shutil.copy(default_config, target)
     ok(f"Created: {target}")
     info("")
     info("Next steps:")
     info("  1. Edit akf.yaml — set vault_path and add your domains under taxonomy.domains")
     info("  2. Set your LLM API key:")
-    info("       export ANTHROPIC_API_KEY=\'sk-ant-...\'   # Claude (recommended)")
-    info("       export GOOGLE_API_KEY=\'AIza...\'         # Gemini")
-    info("       export OPENAI_API_KEY=\'sk-...\'          # GPT-4")
-    info("       export GROQ_API_KEY=\'gsk_...\'           # Groq (fast + free tier)")
+    info("       export ANTHROPIC_API_KEY='sk-ant-...'   # Claude (recommended)")
+    info("       export GOOGLE_API_KEY='AIza...'         # Gemini")
+    info("       export OPENAI_API_KEY='sk-...'          # GPT-4")
+    info("       export GROQ_API_KEY='gsk_...'           # Groq (fast + free tier)")
     info("       # or run Ollama locally — no key needed")
     info("  3. Generate your first file:")
-    info("       akf generate \"Create a concept about [topic] for the [domain] domain\"")
+    info('       akf generate "Create a concept about [topic] for the [domain] domain"')
     info("")
     info("Docs: https://github.com/petrnzrnk-creator/ai-knowledge-filler")
 
@@ -263,6 +264,7 @@ def load_system_prompt() -> str:
     """
     try:
         import akf
+
         pkg_path = Path(akf.__file__).parent / "system_prompt.md"
         info(f"[system_prompt] Loading from: {pkg_path}")
         if pkg_path.exists():
@@ -282,10 +284,7 @@ def extract_filename(content: str, prompt: str) -> str:
     return "_".join(re.sub(r"[^\w\s]", "", prompt).split()[:4]).lower() + ".md"
 
 
-
-_WINDOWS_RESERVED = re.compile(
-    r"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", re.IGNORECASE
-)
+_WINDOWS_RESERVED = re.compile(r"^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\.|$)", re.IGNORECASE)
 
 
 def sanitize_filename(filename: str, output_dir: Path) -> Path:
@@ -300,6 +299,7 @@ def sanitize_filename(filename: str, output_dir: Path) -> Path:
     if not resolved.is_relative_to(output_dir.resolve()):
         raise ValueError(f"Path traversal detected: {filename!r}")
     return resolved
+
 
 def save_file(content: str, filename: str, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -355,7 +355,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     system_prompt = load_system_prompt()
-    info(f'Generating via {provider.display_name}...')
+    info(f"Generating via {provider.display_name}...")
 
     # ── Telemetry setup ───────────────────────────────────────────────────────
     generation_id = new_generation_id()
@@ -400,6 +400,7 @@ def cmd_generate(args: argparse.Namespace) -> None:
     total_attempts = 0
 
     if blocking:
+
         def generate_fn(doc: str, retry_prompt: str) -> str:
             combined = (
                 f"Original request: {args.prompt}\n\n"
@@ -431,9 +432,9 @@ def cmd_generate(args: argparse.Namespace) -> None:
         total_attempts = retry_result.attempts
 
         # Collect rejected domain candidates from retry errors
-        for e in retry_result.errors:
-            if e.field == "domain" and e.received:
-                rejected_candidates.append(str(e.received))
+        for verr in retry_result.errors:
+            if verr.field == "domain" and verr.received:
+                rejected_candidates.append(str(verr.received))
     else:
         total_attempts = 1
 
@@ -499,10 +500,7 @@ def cmd_enrich(args: argparse.Namespace) -> None:
         md_files = [target]
     elif target.is_dir():
         exclude = CLI_EXCLUDE_PATTERNS + ["10-OVERHEAD"]
-        md_files = sorted(
-            f for f in target.rglob("*.md")
-            if not any(x in str(f) for x in exclude)
-        )
+        md_files = sorted(f for f in target.rglob("*.md") if not any(x in str(f) for x in exclude))
     else:
         err(f"Not a file or directory: {target}")
         sys.exit(3)
@@ -528,8 +526,11 @@ def cmd_enrich(args: argparse.Namespace) -> None:
             )
         except Exception as exc:
             from akf.pipeline import EnrichResult
+
             result = EnrichResult(
-                success=False, path=md_file, status="failed",
+                success=False,
+                path=md_file,
+                status="failed",
                 skip_reason=str(exc),
             )
         results.append(result)
@@ -551,9 +552,9 @@ def cmd_enrich(args: argparse.Namespace) -> None:
 
     print()
     enriched = sum(1 for r in results if r.status == "enriched")
-    skipped  = sum(1 for r in results if r.status == "skipped")
-    failed   = sum(1 for r in results if r.status == "failed")
-    warned   = sum(1 for r in results if r.status == "warning")
+    skipped = sum(1 for r in results if r.status == "skipped")
+    failed = sum(1 for r in results if r.status == "failed")
+    warned = sum(1 for r in results if r.status == "warning")
     info(f"Results: {enriched} enriched, {skipped} skipped, {failed} failed, {warned} warning(s)")
 
     sys.exit(1 if failed > 0 else 0)
@@ -626,6 +627,7 @@ def cmd_index(args: argparse.Namespace) -> None:
     if getattr(args, "reset", False):
         try:
             import chromadb
+
             cfg.persist_directory.mkdir(parents=True, exist_ok=True)
             client = chromadb.PersistentClient(path=str(cfg.persist_directory))
             try:
@@ -689,18 +691,21 @@ def cmd_ask(args: argparse.Namespace) -> None:
 
         try:
             from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
-            TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
-                generation_id=new_generation_id(),
-                tenant_id="cli",
-                mode="retrieval-only",
-                model="none",
-                top_k=top_k,
-                no_llm=no_llm,
-                max_distance=None,
-                hits_used=len(retrieval.hits),
-                insufficient_context=not bool(retrieval.hits),
-                duration_ms=int((time.monotonic() - t_start) * 1000),
-            ))
+
+            TelemetryWriter(path=TELEMETRY_PATH).write(
+                AskQueryEvent(
+                    generation_id=new_generation_id(),
+                    tenant_id="cli",
+                    mode="retrieval-only",
+                    model="none",
+                    top_k=top_k,
+                    no_llm=no_llm,
+                    max_distance=None,
+                    hits_used=len(retrieval.hits),
+                    insufficient_context=not bool(retrieval.hits),
+                    duration_ms=int((time.monotonic() - t_start) * 1000),
+                )
+            )
         except Exception:
             pass
 
@@ -727,18 +732,21 @@ def cmd_ask(args: argparse.Namespace) -> None:
 
     try:
         from akf.telemetry import TelemetryWriter, AskQueryEvent, new_generation_id
-        TelemetryWriter(path=TELEMETRY_PATH).write(AskQueryEvent(
-            generation_id=new_generation_id(),
-            tenant_id="cli",
-            mode="synthesis",
-            model=getattr(result, "model", model),
-            top_k=top_k,
-            no_llm=no_llm,
-            max_distance=None,
-            hits_used=getattr(result, "hits_used", 0),
-            insufficient_context=getattr(result, "insufficient_context", False),
-            duration_ms=int((time.monotonic() - t_start) * 1000),
-        ))
+
+        TelemetryWriter(path=TELEMETRY_PATH).write(
+            AskQueryEvent(
+                generation_id=new_generation_id(),
+                tenant_id="cli",
+                mode="synthesis",
+                model=getattr(result, "model", model),
+                top_k=top_k,
+                no_llm=no_llm,
+                max_distance=None,
+                hits_used=getattr(result, "hits_used", 0),
+                insufficient_context=getattr(result, "insufficient_context", False),
+                duration_ms=int((time.monotonic() - t_start) * 1000),
+            )
+        )
     except Exception:
         pass
 
@@ -870,16 +878,49 @@ def cmd_canvas(args: argparse.Namespace) -> None:
 
 # ─── GAPS HELPERS ─────────────────────────────────────────────────────────────
 
+
 def _normalize_link(link: str) -> str:
     """Normalize a WikiLink name for deduplication (spaces→underscores, lowercase)."""
     return link.strip().replace(" ", "_").lower()
 
 
 _DOMAIN_KEYWORDS: list[tuple[str, frozenset[str]]] = [
-    ("devops", frozenset({"docker", "kubernetes", "ci/cd", "ci", "cd", "github", "actions", "deploy", "deployment", "helm", "pipeline"})),
-    ("api-design", frozenset({"api", "rest", "graphql", "http", "openapi", "swagger", "endpoint", "endpoints"})),
-    ("security", frozenset({"jwt", "oauth", "security", "auth", "authentication", "authorization", "ssl", "tls"})),
-    ("backend-engineering", frozenset({"fastapi", "python", "service", "architecture", "microservice", "database", "backend"})),
+    (
+        "devops",
+        frozenset(
+            {
+                "docker",
+                "kubernetes",
+                "ci/cd",
+                "ci",
+                "cd",
+                "github",
+                "actions",
+                "deploy",
+                "deployment",
+                "helm",
+                "pipeline",
+            }
+        ),
+    ),
+    (
+        "api-design",
+        frozenset(
+            {"api", "rest", "graphql", "http", "openapi", "swagger", "endpoint", "endpoints"}
+        ),
+    ),
+    (
+        "security",
+        frozenset(
+            {"jwt", "oauth", "security", "auth", "authentication", "authorization", "ssl", "tls"}
+        ),
+    ),
+    (
+        "backend-engineering",
+        frozenset(
+            {"fastapi", "python", "service", "architecture", "microservice", "database", "backend"}
+        ),
+    ),
 ]
 
 _TYPE_KEYWORDS: list[tuple[str, frozenset[str]]] = [
@@ -951,8 +992,8 @@ def cmd_gaps(args: argparse.Namespace) -> None:
     md_files = list(vault_path.rglob("*.md"))
     existing_stems_normalized = {_normalize_link(f.stem) for f in md_files}
 
-    wikilink_re = re.compile(r'\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]')
-    frontmatter_re = re.compile(r'^---\s*\n(.*?)\n---', re.DOTALL)
+    wikilink_re = re.compile(r"\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]")
+    frontmatter_re = re.compile(r"^---\s*\n(.*?)\n---", re.DOTALL)
 
     # Map normalized key → canonical display name (underscore form), deduplicated
     all_links: dict[str, str] = {}
@@ -991,8 +1032,7 @@ def cmd_gaps(args: argparse.Namespace) -> None:
                 all_links[norm] = raw.replace(" ", "_")
 
     missing = sorted(
-        display for norm, display in all_links.items()
-        if norm not in existing_stems_normalized
+        display for norm, display in all_links.items() if norm not in existing_stems_normalized
     )
 
     fmt = getattr(args, "format", None)
@@ -1038,39 +1078,51 @@ def main() -> int:
     # Init command
     init = sub.add_parser("init", help="Generate akf.yaml for a new vault")
     init.add_argument("--path", "-p", help="Target directory (default: CWD)")
-    init.add_argument("--force", "-f", action="store_true",
-                      help="Overwrite existing akf.yaml")
+    init.add_argument("--force", "-f", action="store_true", help="Overwrite existing akf.yaml")
 
     # Generate command
     gen = sub.add_parser("generate", help="Generate knowledge file")
-    gen.add_argument("prompt", nargs="?", default=None,
-                     help="Generation prompt (omit when using --batch)")
-    gen.add_argument("--batch", "-b",
-                     metavar="PLAN_JSON",
-                     help="JSON file with batch plan (array of {prompt, domain, type})")
-    gen.add_argument("--model", "-m",
-                     choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
-                     default="auto",
-                     help="LLM provider (default: auto-select)")
+    gen.add_argument(
+        "prompt", nargs="?", default=None, help="Generation prompt (omit when using --batch)"
+    )
+    gen.add_argument(
+        "--batch",
+        "-b",
+        metavar="PLAN_JSON",
+        help="JSON file with batch plan (array of {prompt, domain, type})",
+    )
+    gen.add_argument(
+        "--model",
+        "-m",
+        choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
+        default="auto",
+        help="LLM provider (default: auto-select)",
+    )
     gen.add_argument("--output", "-o", help="Custom output path")
-    gen.add_argument("--no-rag", action="store_true", dest="no_rag",
-                     help="Disable RAG context injection (default: enabled if corpus indexed)")
+    gen.add_argument(
+        "--no-rag",
+        action="store_true",
+        dest="no_rag",
+        help="Disable RAG context injection (default: enabled if corpus indexed)",
+    )
 
     # Validate command
     val = sub.add_parser("validate", help="Check Markdown YAML")
     val.add_argument("--file", "-f", help="Validate single file")
     val.add_argument("--path", "-p", help="Validate all .md files in folder")
-    val.add_argument("--strict", "-s", action="store_true",
-                     help="Promote warnings to errors")
+    val.add_argument("--strict", "-s", action="store_true", help="Promote warnings to errors")
 
     # Enrich command
     enr = sub.add_parser("enrich", help="Add YAML frontmatter to existing Markdown files")
     enr.add_argument("path", help="File or directory to enrich")
     enr.add_argument("--dry-run", action="store_true", help="Print YAML without writing")
     enr.add_argument("--force", "-f", action="store_true", help="Overwrite valid frontmatter")
-    enr.add_argument("--model", "-m",
-                     choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
-                     default="auto")
+    enr.add_argument(
+        "--model",
+        "-m",
+        choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
+        default="auto",
+    )
     enr.add_argument("--output", "-o", help="Output directory (copies, no overwrite)")
 
     # Market Analysis command
@@ -1083,13 +1135,15 @@ def main() -> int:
         help='Market request, e.g. "B2B SaaS project management tools for SMEs"',
     )
     mkt.add_argument(
-        "--model", "-m",
+        "--model",
+        "-m",
         choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
         default="auto",
         help="LLM provider (default: auto-select)",
     )
     mkt.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         help="Output directory (default: ./market-analysis/)",
     )
     mkt.add_argument(
@@ -1100,7 +1154,7 @@ def main() -> int:
     )
 
     # Models command
-    models = sub.add_parser("models", help="List available LLM providers")
+    sub.add_parser("models", help="List available LLM providers")
 
     # Index command (RAG corpus indexing)
     idx = sub.add_parser("index", help="Index corpus into local vector database for RAG retrieval")
@@ -1117,24 +1171,38 @@ def main() -> int:
     # Ask command (RAG copilot)
     ask = sub.add_parser("ask", help="Ask a question over local RAG index")
     ask.add_argument("query", help="Natural-language question")
-    ask.add_argument("--top-k", type=int, default=5,
-                     help="Number of retrieved chunks (default: 5)")
-    ask.add_argument("--model", "-m",
-                     choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
-                     default="auto",
-                     help="LLM provider for synthesis (default: auto-select)")
-    ask.add_argument("--no-llm", action="store_true",
-                     help="Retrieval-only mode: return top-k chunks without synthesis")
+    ask.add_argument("--top-k", type=int, default=5, help="Number of retrieved chunks (default: 5)")
+    ask.add_argument(
+        "--model",
+        "-m",
+        choices=["auto", "claude", "gemini", "gpt4", "groq", "grok", "ollama"],
+        default="auto",
+        help="LLM provider for synthesis (default: auto-select)",
+    )
+    ask.add_argument(
+        "--no-llm",
+        action="store_true",
+        help="Retrieval-only mode: return top-k chunks without synthesis",
+    )
 
     # Canvas command
     cnv = sub.add_parser("canvas", help="Generate Obsidian Canvas JSON from validated corpus")
-    cnv.add_argument("--input", "-i", required=True, metavar="INPUT_DIR",
-                     help="Directory containing validated .md files")
-    cnv.add_argument("--output", "-o", required=True, metavar="OUTPUT_FILE",
-                     help="Output .canvas file path")
-    cnv.add_argument("--group-by", default="domain",
-                     choices=["domain", "type", "level"],
-                     help="Frontmatter field used to group nodes into columns (default: domain)")
+    cnv.add_argument(
+        "--input",
+        "-i",
+        required=True,
+        metavar="INPUT_DIR",
+        help="Directory containing validated .md files",
+    )
+    cnv.add_argument(
+        "--output", "-o", required=True, metavar="OUTPUT_FILE", help="Output .canvas file path"
+    )
+    cnv.add_argument(
+        "--group-by",
+        default="domain",
+        choices=["domain", "type", "level"],
+        help="Frontmatter field used to group nodes into columns (default: domain)",
+    )
 
     # Gaps command
     gaps = sub.add_parser(
@@ -1142,11 +1210,14 @@ def main() -> int:
         help="Find broken WikiLinks in related: fields and suggest plan.json entries",
     )
     gaps.add_argument(
-        "--path", "-p", required=True,
+        "--path",
+        "-p",
+        required=True,
         help="Vault directory to scan for .md files",
     )
     gaps.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         metavar="PLAN_JSON",
         help="Append suggestions to this plan.json file",
     )
@@ -1157,7 +1228,6 @@ def main() -> int:
     )
 
     # Serve command
-
 
     srv = sub.add_parser("serve", help="Start REST API server or MCP server")
     srv.add_argument("--host", default="0.0.0.0")
@@ -1200,8 +1270,6 @@ def main() -> int:
     return 0
 
 
-
-
 # ─── SERVE ────────────────────────────────────────────────────────────────────
 
 
@@ -1213,8 +1281,11 @@ def cmd_serve(args):
         except ImportError:
             err("MCP dependencies not installed. Run: pip install ai-knowledge-filler[mcp]")
             sys.exit(1)
-        info(f"Starting AKF MCP server (transport: {args.transport})...")
-        mcp_run(transport=args.transport)
+        from typing import Literal, cast as _cast
+
+        _transport = _cast(Literal["stdio", "sse", "streamable-http"], args.transport)
+        info(f"Starting AKF MCP server (transport: {_transport})...")
+        mcp_run(transport=_transport)
         return
 
     # REST API (default)
@@ -1229,6 +1300,7 @@ def cmd_serve(args):
     info(f"Starting AKF API on http://{host}:{port}")
     info(f"Docs: http://{host}:{port}/docs")
     uvicorn.run("akf.server:app", host=host, port=port, reload=False)
+
 
 if __name__ == "__main__":
     main()

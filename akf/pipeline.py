@@ -1,8 +1,12 @@
+"""AKF pipeline: generate, validate, enrich, and batch-generate Markdown knowledge files."""
+
 from __future__ import annotations
 import re, os, time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
+
 
 @dataclass
 class GenerateResult:
@@ -13,9 +17,11 @@ class GenerateResult:
     errors: list = field(default_factory=list)
     generation_id: str = ""
     duration_ms: int = 0
+
     def __repr__(self):
         s = "VALID" if self.success else "INVALID"
         return f"GenerateResult({s}, attempts={self.attempts}, errors={len(self.errors)})"
+
 
 @dataclass
 class ValidateResult:
@@ -23,19 +29,19 @@ class ValidateResult:
     errors: list = field(default_factory=list)
     warnings: list = field(default_factory=list)
     filepath: object = None
+
     def __repr__(self):
         s = "VALID" if self.valid else "INVALID"
         return f"ValidateResult({s}, errors={len(self.errors)}, warnings={len(self.warnings)})"
 
 
-
-
 @dataclass
 class EnrichResult:
     """Result of enriching a single Markdown file."""
+
     success: bool
     path: Path
-    status: str          # "enriched" | "skipped" | "failed" | "warning"
+    status: str  # "enriched" | "skipped" | "failed" | "warning"
     skip_reason: str = ""
     attempts: int = 0
     existing_fields: list[str] = field(default_factory=list)
@@ -54,7 +60,7 @@ def _strip_yaml_codeblock(content: str) -> str:
     stripped = content.strip()
     # Handle ```yaml\n---\n...\n---\n...``` or ```yaml\n...\n```
     if stripped.startswith("```yaml"):
-        stripped = stripped[len("```yaml"):]
+        stripped = stripped[len("```yaml") :]
         if stripped.startswith("\n"):
             stripped = stripped[1:]
         if stripped.endswith("\n```"):
@@ -80,6 +86,7 @@ def _patch_dates(content: str, today: str) -> str:
     Only modifies lines inside the opening --- block.
     """
     import re
+
     lines = content.splitlines(keepends=True)
     in_front = False
     result = []
@@ -105,8 +112,7 @@ def _try_retrieve(query: str, top_k: int = 3) -> str:
     """Attempt RAG retrieval; return formatted context string or '' on failure."""
     try:
         import rag.retriever as _retriever
-        if _retriever is None:
-            return ""
+
         result = _retriever.retrieve(query, top_k=top_k)
         if not result.hits:
             return ""
@@ -115,18 +121,33 @@ def _try_retrieve(query: str, top_k: int = 3) -> str:
             filename = hit.metadata.get("filename", "")
             parts.append(f"[{filename}]\n{hit.content}")
         return "\n\n---\n\n".join(parts)
-    except (ImportError, Exception):
+    except Exception:
         return ""
 
 
 class Pipeline:
-    def __init__(self, output=None, model="auto", telemetry_path=None, verbose=True, writer=None, config=None, rag_enabled: bool = True):
+    def __init__(
+        self,
+        output=None,
+        model="auto",
+        telemetry_path=None,
+        verbose=True,
+        writer=None,
+        config=None,
+        rag_enabled: bool = True,
+    ):
         self.model = model
         self.verbose = verbose
         self.rag_enabled = rag_enabled
-        self.output_dir = Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
-        self.telemetry_path = Path(telemetry_path).expanduser() if telemetry_path else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
-        self._system_prompt = None
+        self.output_dir = (
+            Path(output).expanduser() if output else Path(os.getenv("AKF_OUTPUT_DIR", "."))
+        )
+        self.telemetry_path = (
+            Path(telemetry_path).expanduser()
+            if telemetry_path
+            else Path(os.getenv("AKF_TELEMETRY_PATH", "telemetry/events.jsonl"))
+        )
+        self._system_prompt: Optional[str] = None
         self.writer = writer
         self._config = config
         self.model_name = model
@@ -138,23 +159,19 @@ class Pipeline:
     def _load_system_prompt(self):
         if self._system_prompt:
             return self._system_prompt
-        try:
-            import akf as _pkg
-            p = Path(_pkg.__file__).parent / "system_prompt.md"
-            if p.exists():
-                self._system_prompt = p.read_text(encoding="utf-8")
-                return self._system_prompt
-        except Exception:
-            pass
-        local = Path(__file__).parent / "system_prompt.md"
-        if local.exists():
-            self._system_prompt = local.read_text(encoding="utf-8")
+        # Path(__file__).parent is the akf/ package directory — same as akf.__file__.parent.
+        # Using __file__ directly avoids importing the akf package from within akf.pipeline,
+        # which would create a cyclic import: akf -> akf.pipeline -> akf.
+        p = Path(__file__).parent / "system_prompt.md"
+        if p.exists():
+            self._system_prompt = p.read_text(encoding="utf-8")
             return self._system_prompt
         raise FileNotFoundError("system_prompt.md not found")
 
     @staticmethod
     def _extract_filename(content, prompt):
         import re
+
         match = re.search(r'title:\s*["\'\']?(.+?)["\'\']?\s*\n', content)
         if match:
             title = match.group(1).strip().strip("\"'")
@@ -177,6 +194,7 @@ class Pipeline:
         from akf.commit_gate import commit as akf_commit
         from akf.validator import validate
         from akf.validation_error import Severity
+
         try:
             provider = get_provider(model or self.model)
         except Exception as e:
@@ -196,14 +214,18 @@ class Pipeline:
                 system_prompt += "\n\nContext for this generation:\n" + "\n".join(context_lines)
         self._log(f"Generating via {provider.display_name}...")
         generation_id = new_generation_id()
-        writer = self.writer if self.writer is not None else TelemetryWriter(path=self.telemetry_path)
+        writer = (
+            self.writer if self.writer is not None else TelemetryWriter(path=self.telemetry_path)
+        )
         t_start = time.monotonic()
         try:
             original_prompt = prompt
             prompt = f"Create a complete Markdown knowledge file about: {prompt}"
             content = provider.generate(prompt, system_prompt)
         except Exception as e:
-            return GenerateResult(success=False, content="", errors=[str(e)], generation_id=generation_id)
+            return GenerateResult(
+                success=False, content="", errors=[str(e)], generation_id=generation_id
+            )
         content = _strip_yaml_codeblock(content)
         content = _patch_dates(content, datetime.now().strftime("%Y-%m-%d"))
         out_dir = Path(output).expanduser() if output else self.output_dir
@@ -217,6 +239,7 @@ class Pipeline:
         rejected_candidates = []
         total_attempts = 1
         if blocking:
+
             def generate_fn(doc, retry_prompt):
                 combined = (
                     f"Original request: {original_prompt}\n\n"
@@ -224,48 +247,76 @@ class Pipeline:
                     f"{retry_prompt}"
                 )
                 return provider.generate(combined, system_prompt)
+
             def validate_fn(doc):
                 try:
                     return validate(doc)
                 except Exception:
                     return []
+
             retry_result = run_retry_loop(
-                document=content, errors=blocking,
-                generate_fn=generate_fn, validate_fn=validate_fn,
-                generation_id=generation_id, document_id=document_id,
-                schema_version="1.0.0", model=provider.model_name,
-                temperature=0, top_p=1, writer=writer,
+                document=content,
+                errors=blocking,
+                generate_fn=generate_fn,
+                validate_fn=validate_fn,
+                generation_id=generation_id,
+                document_id=document_id,
+                schema_version="1.0.0",
+                model=provider.model_name,
+                temperature=0,
+                top_p=1,
+                writer=writer,
             )
             content = retry_result.document
             total_attempts = retry_result.attempts
-            for e in retry_result.errors:
-                if e.field == "domain" and e.received:
-                    rejected_candidates.append(str(e.received))
+            for verr in retry_result.errors:
+                if verr.field == "domain" and verr.received:
+                    rejected_candidates.append(str(verr.received))
         total_duration_ms = int((time.monotonic() - t_start) * 1000)
         try:
             final_errors = validate(content)
         except Exception:
             final_errors = []
         commit_result = akf_commit(
-            document=content, output_path=output_path, errors=final_errors,
-            generation_id=generation_id, document_id=document_id,
-            schema_version="1.0.0", total_attempts=total_attempts,
-            rejected_candidates=rejected_candidates, model=provider.model_name,
-            temperature=0, total_duration_ms=total_duration_ms, writer=writer,
+            document=content,
+            output_path=output_path,
+            errors=final_errors,
+            generation_id=generation_id,
+            document_id=document_id,
+            schema_version="1.0.0",
+            total_attempts=total_attempts,
+            rejected_candidates=rejected_candidates,
+            model=provider.model_name,
+            temperature=0,
+            total_duration_ms=total_duration_ms,
+            writer=writer,
         )
         if commit_result.committed:
             self._log(f"Saved: {commit_result.path}")
-            return GenerateResult(success=True, content=content, file_path=commit_result.path,
-                attempts=total_attempts, generation_id=generation_id, duration_ms=total_duration_ms)
+            return GenerateResult(
+                success=True,
+                content=content,
+                file_path=commit_result.path,
+                attempts=total_attempts,
+                generation_id=generation_id,
+                duration_ms=total_duration_ms,
+            )
         else:
             output_path.write_text(content, encoding="utf-8")
-            return GenerateResult(success=False, content=content, file_path=output_path,
-                attempts=total_attempts, errors=commit_result.blocking_errors,
-                generation_id=generation_id, duration_ms=total_duration_ms)
+            return GenerateResult(
+                success=False,
+                content=content,
+                file_path=output_path,
+                attempts=total_attempts,
+                errors=commit_result.blocking_errors,
+                generation_id=generation_id,
+                duration_ms=total_duration_ms,
+            )
 
     def validate(self, filepath, strict=False):
         from akf.validator import validate as _validate
         from akf.validation_error import Severity
+
         fp = Path(filepath).expanduser()
         if not fp.exists():
             return ValidateResult(valid=False, errors=[f"File not found: {fp}"], filepath=fp)
@@ -316,12 +367,18 @@ class Pipeline:
         from akf.retry_controller import run_retry_loop
         from akf.config import get_config
         from akf.telemetry import TelemetryWriter, EnrichEvent, new_generation_id
+
         if self.writer is None and self.telemetry_path is not None:
             self.writer = TelemetryWriter(path=self.telemetry_path)
         from akf.enricher import (
-            REQUIRED_FIELDS, build_prompt, derive_title,
-            extract_missing_fields, merge_yaml, read_file,
-            write_back, _assemble,
+            REQUIRED_FIELDS,
+            build_prompt,
+            derive_title,
+            extract_missing_fields,
+            merge_yaml,
+            read_file,
+            write_back,
+            _assemble,
         )
 
         file_path = Path(path)
@@ -336,14 +393,20 @@ class Pipeline:
 
         if not body.strip() and not existing:
             return EnrichResult(
-                success=True, path=file_path, status="warning",
-                skip_reason="empty_file", generation_id=generation_id,
+                success=True,
+                path=file_path,
+                status="warning",
+                skip_reason="empty_file",
+                generation_id=generation_id,
             )
 
         if file_path.suffix.lower() != ".md":
             return EnrichResult(
-                success=True, path=file_path, status="skipped",
-                skip_reason="non_markdown", generation_id=generation_id,
+                success=True,
+                path=file_path,
+                status="skipped",
+                skip_reason="non_markdown",
+                generation_id=generation_id,
             )
 
         if "title" not in existing or not existing.get("title"):
@@ -353,16 +416,27 @@ class Pipeline:
 
         if not missing and not force:
             if not dry_run and self.writer is not None:
-                self.writer.write(EnrichEvent(
-                    generation_id=generation_id, file=str(file_path),
-                    schema_version="1.0.0", existing_fields=existing_field_names,
-                    generated_fields=[], attempts=0, converged=True,
-                    skipped=True, skip_reason="valid_frontmatter",
-                    model=model or self.model_name, temperature=0.0,
-                ))
+                self.writer.write(
+                    EnrichEvent(
+                        generation_id=generation_id,
+                        file=str(file_path),
+                        schema_version="1.0.0",
+                        existing_fields=existing_field_names,
+                        generated_fields=[],
+                        attempts=0,
+                        converged=True,
+                        skipped=True,
+                        skip_reason="valid_frontmatter",
+                        model=model or self.model_name,
+                        temperature=0.0,
+                    )
+                )
             return EnrichResult(
-                success=True, path=file_path, status="skipped",
-                skip_reason="valid_frontmatter", existing_fields=existing_field_names,
+                success=True,
+                path=file_path,
+                status="skipped",
+                skip_reason="valid_frontmatter",
+                existing_fields=existing_field_names,
                 generation_id=generation_id,
             )
 
@@ -378,8 +452,11 @@ class Pipeline:
             provider = get_provider(model or self.model_name)
         except Exception as exc:
             return EnrichResult(
-                success=False, path=file_path, status="failed",
-                skip_reason=str(exc), generation_id=generation_id,
+                success=False,
+                path=file_path,
+                status="failed",
+                skip_reason=str(exc),
+                generation_id=generation_id,
                 existing_fields=existing_field_names,
             )
         raw_generated = provider.generate(prompt, "")
@@ -404,6 +481,7 @@ class Pipeline:
         converged = not blocking
 
         if blocking:
+
             def _gen_fn(doc: str, retry_prompt: str) -> str:
                 return provider.generate(retry_prompt, "")
 
@@ -414,11 +492,17 @@ class Pipeline:
                     return []
 
             retry_result = run_retry_loop(
-                document=document, errors=blocking,
-                generate_fn=_gen_fn, validate_fn=_val_fn,
-                generation_id=generation_id, document_id=file_path.stem,
-                schema_version="1.0.0", model=provider.model_name,
-                temperature=0, top_p=1, writer=self.writer,
+                document=document,
+                errors=blocking,
+                generate_fn=_gen_fn,
+                validate_fn=_val_fn,
+                generation_id=generation_id,
+                document_id=file_path.stem,
+                schema_version="1.0.0",
+                model=provider.model_name,
+                temperature=0,
+                top_p=1,
+                writer=self.writer,
             )
             document = retry_result.document
             total_attempts = retry_result.attempts
@@ -441,11 +525,14 @@ class Pipeline:
             print(yaml.dump(final_merged, default_flow_style=False, allow_unicode=True), end="")
             print("---")
             return EnrichResult(
-                success=not blocking, path=file_path,
+                success=not blocking,
+                path=file_path,
                 status="enriched" if not blocking else "failed",
-                attempts=total_attempts, existing_fields=existing_field_names,
+                attempts=total_attempts,
+                existing_fields=existing_field_names,
                 generated_fields=generated_field_names,
-                generation_id=generation_id, errors=blocking,
+                generation_id=generation_id,
+                errors=blocking,
             )
 
         write_target = (Path(output) / file_path.name) if output else file_path
@@ -458,19 +545,31 @@ class Pipeline:
             status = "enriched"
 
         if not dry_run and self.writer is not None:
-            self.writer.write(EnrichEvent(
-                generation_id=generation_id, file=str(file_path),
-                schema_version="1.0.0", existing_fields=existing_field_names,
-                generated_fields=generated_field_names, attempts=total_attempts,
-                converged=converged, skipped=False, skip_reason="",
-                model=provider.model_name, temperature=0.0,
-            ))
+            self.writer.write(
+                EnrichEvent(
+                    generation_id=generation_id,
+                    file=str(file_path),
+                    schema_version="1.0.0",
+                    existing_fields=existing_field_names,
+                    generated_fields=generated_field_names,
+                    attempts=total_attempts,
+                    converged=converged,
+                    skipped=False,
+                    skip_reason="",
+                    model=provider.model_name,
+                    temperature=0.0,
+                )
+            )
 
         return EnrichResult(
-            success=(status == "enriched"), path=file_path, status=status,
-            attempts=total_attempts, existing_fields=existing_field_names,
+            success=(status == "enriched"),
+            path=file_path,
+            status=status,
+            attempts=total_attempts,
+            existing_fields=existing_field_names,
             generated_fields=generated_field_names,
-            generation_id=generation_id, errors=blocking,
+            generation_id=generation_id,
+            errors=blocking,
         )
 
     def enrich_dir(
@@ -486,4 +585,3 @@ class Pipeline:
             self.enrich(path=f, force=force, dry_run=dry_run, output=output, model=model)
             for f in sorted(Path(path).rglob("*.md"))
         ]
-
