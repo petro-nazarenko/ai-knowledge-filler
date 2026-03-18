@@ -345,10 +345,10 @@ def cmd_generate(args: argparse.Namespace) -> None:
         if "ProviderUnavailableError" in type(e).__name__ or "unavailable" in str(e).lower():
             err("No LLM provider available.")
             info("Set one of these environment variables and retry:")
-            info("  export ANTHROPIC_API_KEY='sk-ant-...'")
-            info("  export GOOGLE_API_KEY='AIza...'")
-            info("  export OPENAI_API_KEY='sk-...'")
-            info("  export GROQ_API_KEY='gsk_...'")
+            info("  export ANTHROPIC_API_KEY='sk-ant-...'   # pip install 'ai-knowledge-filler[anthropic]'")
+            info("  export GOOGLE_API_KEY='AIza...'         # pip install 'ai-knowledge-filler[all]'")
+            info("  export OPENAI_API_KEY='sk-...'          # pip install 'ai-knowledge-filler[all]'")
+            info("  export GROQ_API_KEY='gsk_...'           # pip install 'ai-knowledge-filler[groq]'")
             info("Or run Ollama locally (no key needed): https://ollama.com")
         else:
             err(f"Provider error: {e}")
@@ -578,14 +578,19 @@ def cmd_models(args: argparse.Namespace) -> None:
             # Show what's needed
             if name == "claude":
                 print(f"   {YELLOW}Set ANTHROPIC_API_KEY{NC}")
+                print(f"   {YELLOW}pip install 'ai-knowledge-filler[anthropic]'{NC}")
             elif name == "gemini":
                 print(f"   {YELLOW}Set GOOGLE_API_KEY{NC}")
+                print(f"   {YELLOW}pip install 'ai-knowledge-filler[all]'{NC}")
             elif name == "gpt4":
                 print(f"   {YELLOW}Set OPENAI_API_KEY{NC}")
+                print(f"   {YELLOW}pip install 'ai-knowledge-filler[all]'{NC}")
             elif name == "groq":
                 print(f"   {YELLOW}Set GROQ_API_KEY{NC}")
+                print(f"   {YELLOW}pip install 'ai-knowledge-filler[groq]'{NC}")
             elif name == "grok":
                 print(f"   {YELLOW}Set XAI_API_KEY{NC}")
+                print(f"   {YELLOW}pip install 'ai-knowledge-filler[all]'{NC}")
             elif name == "ollama":
                 print(f"   {YELLOW}Run Ollama server{NC}")
         print()
