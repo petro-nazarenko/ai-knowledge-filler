@@ -23,11 +23,13 @@ CLI_PATTERNS = [
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def apply_exclusion(files: list[str], patterns: list[str]) -> list[str]:
     return [f for f in files if not any(x in f for x in patterns)]
 
 
 # ── validate_yaml exclusion tests ─────────────────────────────────────────────
+
 
 class TestValidateYamlExclusions:
     def test_templates_root_excluded(self):
@@ -80,6 +82,7 @@ class TestValidateYamlExclusions:
 
 
 # ── cli.py exclusion tests ────────────────────────────────────────────────────
+
 
 class TestCliExclusions:
     def test_templates_excluded(self):

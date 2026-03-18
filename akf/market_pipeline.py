@@ -13,6 +13,7 @@ Dependency injection convention:
   them causes the pipeline to use the global config singleton and to skip
   telemetry respectively.
 """
+
 from __future__ import annotations
 
 import time
@@ -229,6 +230,7 @@ investment strategy.
 @dataclass
 class StageResult:
     """Result of a single pipeline stage."""
+
     success: bool
     content: str
     file_path: Optional[Path] = None
@@ -241,6 +243,7 @@ class StageResult:
 @dataclass
 class MarketPipelineResult:
     """Combined result of all four market analysis stages."""
+
     success: bool
     request: str
     market_analysis: StageResult = field(default_factory=lambda: StageResult(False, ""))
@@ -266,7 +269,8 @@ class MarketPipelineResult:
 
     def __repr__(self) -> str:
         stages_ok = sum(
-            1 for r in (
+            1
+            for r in (
                 self.market_analysis,
                 self.competitor_analysis,
                 self.positioning,
@@ -332,6 +336,7 @@ class MarketAnalysisPipeline:
 
     def _build_system_prompt(self) -> str:
         from akf.config import get_config
+
         cfg = get_config()
         valid_domains = ", ".join(cfg.domains) if cfg.domains else "business-strategy"
         return _SYSTEM_PROMPT.format(today=self._today(), valid_domains=valid_domains)
@@ -339,6 +344,7 @@ class MarketAnalysisPipeline:
     def _safe_filename(self, stage: str, request: str) -> str:
         """Derive a filesystem-safe filename from the stage name + request."""
         import re
+
         slug = re.sub(r"[^\w\s-]", "", request)
         slug = re.sub(r"[\s-]+", "_", slug).strip("_")[:40].lower()
         return f"market_{stage}_{slug}.md"
@@ -361,6 +367,7 @@ class MarketAnalysisPipeline:
     def _write(self, content: str, filename: str) -> Path:
         """Write content to output_dir, avoiding overwrites."""
         from datetime import datetime
+
         self.output_dir.mkdir(parents=True, exist_ok=True)
         # path traversal guard
         safe_name = Path(filename).name
@@ -374,6 +381,7 @@ class MarketAnalysisPipeline:
     def _call_llm(self, user_prompt: str) -> str:
         """Call the configured LLM provider."""
         from llm_providers import get_provider
+
         provider = get_provider(self.model)
         system = self._build_system_prompt()
         return provider.generate(user_prompt, system)
@@ -392,15 +400,21 @@ class MarketAnalysisPipeline:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
             return StageResult(
-                success=True, content=content, file_path=fp,
-                stage="market_analysis", duration_ms=duration_ms,
+                success=True,
+                content=content,
+                file_path=fp,
+                stage="market_analysis",
+                duration_ms=duration_ms,
             )
         except Exception as exc:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Stage 1 failed: {exc}")
             return StageResult(
-                success=False, content="", stage="market_analysis",
-                duration_ms=duration_ms, error=str(exc),
+                success=False,
+                content="",
+                stage="market_analysis",
+                duration_ms=duration_ms,
+                error=str(exc),
             )
 
     def analyze_competitors(
@@ -422,15 +436,21 @@ class MarketAnalysisPipeline:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
             return StageResult(
-                success=True, content=content, file_path=fp,
-                stage="competitor_analysis", duration_ms=duration_ms,
+                success=True,
+                content=content,
+                file_path=fp,
+                stage="competitor_analysis",
+                duration_ms=duration_ms,
             )
         except Exception as exc:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Stage 2 failed: {exc}")
             return StageResult(
-                success=False, content="", stage="competitor_analysis",
-                duration_ms=duration_ms, error=str(exc),
+                success=False,
+                content="",
+                stage="competitor_analysis",
+                duration_ms=duration_ms,
+                error=str(exc),
             )
 
     def determine_positioning(
@@ -447,12 +467,16 @@ class MarketAnalysisPipeline:
         self._log("Stage 3/3 — Positioning Determination...")
         if not market_context.strip():
             return StageResult(
-                success=False, content="", stage="positioning",
+                success=False,
+                content="",
+                stage="positioning",
                 error="market_context is empty — run Stage 1 first",
             )
         if not competitor_context.strip():
             return StageResult(
-                success=False, content="", stage="positioning",
+                success=False,
+                content="",
+                stage="positioning",
                 error="competitor_context is empty — run Stage 2 first",
             )
 
@@ -469,15 +493,21 @@ class MarketAnalysisPipeline:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
             return StageResult(
-                success=True, content=content, file_path=fp,
-                stage="positioning", duration_ms=duration_ms,
+                success=True,
+                content=content,
+                file_path=fp,
+                stage="positioning",
+                duration_ms=duration_ms,
             )
         except Exception as exc:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Stage 3 failed: {exc}")
             return StageResult(
-                success=False, content="", stage="positioning",
-                duration_ms=duration_ms, error=str(exc),
+                success=False,
+                content="",
+                stage="positioning",
+                duration_ms=duration_ms,
+                error=str(exc),
             )
 
     def assess_financial_value(
@@ -498,17 +528,23 @@ class MarketAnalysisPipeline:
         self._log("Stage 4/4 — Financial Assessment & Market Value...")
         if not market_context.strip():
             return StageResult(
-                success=False, content="", stage="financial_assessment",
+                success=False,
+                content="",
+                stage="financial_assessment",
                 error="market_context is empty — run Stage 1 first",
             )
         if not competitor_context.strip():
             return StageResult(
-                success=False, content="", stage="financial_assessment",
+                success=False,
+                content="",
+                stage="financial_assessment",
                 error="competitor_context is empty — run Stage 2 first",
             )
         if not positioning_context.strip():
             return StageResult(
-                success=False, content="", stage="financial_assessment",
+                success=False,
+                content="",
+                stage="financial_assessment",
                 error="positioning_context is empty — run Stage 3 first",
             )
 
@@ -526,15 +562,21 @@ class MarketAnalysisPipeline:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Saved: {fp.name} ({duration_ms} ms)")
             return StageResult(
-                success=True, content=content, file_path=fp,
-                stage="financial_assessment", duration_ms=duration_ms,
+                success=True,
+                content=content,
+                file_path=fp,
+                stage="financial_assessment",
+                duration_ms=duration_ms,
             )
         except Exception as exc:
             duration_ms = int((time.monotonic() - t0) * 1000)
             self._log(f"  Stage 4 failed: {exc}")
             return StageResult(
-                success=False, content="", stage="financial_assessment",
-                duration_ms=duration_ms, error=str(exc),
+                success=False,
+                content="",
+                stage="financial_assessment",
+                duration_ms=duration_ms,
+                error=str(exc),
             )
 
     # ── Full pipeline ──────────────────────────────────────────────────────────
@@ -557,7 +599,9 @@ class MarketAnalysisPipeline:
                 success=False,
                 request=request,
                 market_analysis=StageResult(
-                    False, "", stage="market_analysis",
+                    False,
+                    "",
+                    stage="market_analysis",
                     error="market request must not be empty",
                 ),
             )
@@ -570,6 +614,7 @@ class MarketAnalysisPipeline:
         generation_id: str = ""
         if self.writer is not None:
             from akf.telemetry import MarketAnalysisEvent, new_generation_id
+
             generation_id = new_generation_id()
 
         def _emit(stage_result: StageResult) -> None:
@@ -599,19 +644,21 @@ class MarketAnalysisPipeline:
             stage2 = self.analyze_competitors(request, stage1.content)
         else:
             stage2 = StageResult(
-                success=False, content="", stage="competitor_analysis",
+                success=False,
+                content="",
+                stage="competitor_analysis",
                 error="skipped — Stage 1 (market analysis) failed",
             )
         _emit(stage2)
 
         # Stage 3 — requires Stage 1 + 2 content
         if stage1.success and stage2.success:
-            stage3 = self.determine_positioning(
-                request, stage1.content, stage2.content
-            )
+            stage3 = self.determine_positioning(request, stage1.content, stage2.content)
         else:
             stage3 = StageResult(
-                success=False, content="", stage="positioning",
+                success=False,
+                content="",
+                stage="positioning",
                 error="skipped — prior stage failed",
             )
         _emit(stage3)
@@ -623,22 +670,20 @@ class MarketAnalysisPipeline:
             )
         else:
             stage4 = StageResult(
-                success=False, content="", stage="financial_assessment",
+                success=False,
+                content="",
+                stage="financial_assessment",
                 error="skipped — prior stage failed",
             )
         _emit(stage4)
 
         total_ms = int((time.monotonic() - t_start) * 1000)
-        overall_success = (
-            stage1.success and stage2.success and stage3.success and stage4.success
-        )
+        overall_success = stage1.success and stage2.success and stage3.success and stage4.success
 
         if overall_success:
             self._log(f"Pipeline complete — 4/4 stages succeeded ({total_ms} ms)")
         else:
-            failed = [
-                s.stage for s in (stage1, stage2, stage3, stage4) if not s.success
-            ]
+            failed = [s.stage for s in (stage1, stage2, stage3, stage4) if not s.success]
             self._log(f"Pipeline finished with failures: {failed}")
 
         return MarketPipelineResult(

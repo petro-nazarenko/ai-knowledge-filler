@@ -15,24 +15,24 @@ class TestDateValidation:
     """Test date format validation"""
 
     def test_valid_date_format(self):
-        assert validate_date_format('2026-02-10') == True
-        assert validate_date_format('2024-01-01') == True
-        assert validate_date_format('2025-12-31') == True
+        assert validate_date_format("2026-02-10") == True
+        assert validate_date_format("2024-01-01") == True
+        assert validate_date_format("2025-12-31") == True
 
     def test_invalid_date_format_dd_mm_yyyy(self):
-        assert validate_date_format('10-02-2026') == False
-        assert validate_date_format('01-01-2024') == False
+        assert validate_date_format("10-02-2026") == False
+        assert validate_date_format("01-01-2024") == False
 
     def test_invalid_date_format_slashes(self):
-        assert validate_date_format('2026/02/10') == False
-        assert validate_date_format('10/02/2026') == False
+        assert validate_date_format("2026/02/10") == False
+        assert validate_date_format("10/02/2026") == False
 
     def test_invalid_date_value(self):
-        assert validate_date_format('2026-13-01') == False
-        assert validate_date_format('2026-02-30') == False
+        assert validate_date_format("2026-13-01") == False
+        assert validate_date_format("2026-02-30") == False
 
     def test_invalid_date_feb_30(self):
-        assert validate_date_format('2024-02-30') == False
+        assert validate_date_format("2024-02-30") == False
 
 
 class TestFileValidation:
@@ -52,7 +52,7 @@ updated: 2026-02-10
 
 # Content here
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
@@ -63,13 +63,13 @@ updated: 2026-02-10
 
     def test_missing_frontmatter(self):
         content = """# Just a markdown file\nNo YAML here"""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             assert len(errors) == 1
-            assert 'No YAML frontmatter found' in errors[0]
+            assert "No YAML frontmatter found" in errors[0]
         finally:
             os.unlink(temp_path)
 
@@ -85,13 +85,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E002_MISSING_FIELD
-            assert any('E002_MISSING_FIELD' in err and 'title' in err for err in errors)
+            assert any("E002_MISSING_FIELD" in err and "title" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -113,13 +113,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E001_INVALID_ENUM
-            assert any('E001_INVALID_ENUM' in err and 'type' in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "type" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -137,13 +137,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E001_INVALID_ENUM
-            assert any('E001_INVALID_ENUM' in err and 'level' in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "level" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -161,13 +161,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E001_INVALID_ENUM
-            assert any('E001_INVALID_ENUM' in err and 'status' in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "status" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -186,14 +186,14 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E006_TAXONOMY_VIOLATION — must be error, not warning
-            assert any('E006_TAXONOMY_VIOLATION' in err for err in errors)
-            assert not any('domain' in w.lower() for w in warnings)
+            assert any("E006_TAXONOMY_VIOLATION" in err for err in errors)
+            assert not any("domain" in w.lower() for w in warnings)
         finally:
             os.unlink(temp_path)
 
@@ -211,13 +211,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E004_TYPE_MISMATCH
-            assert any('tags' in err.lower() for err in errors)
+            assert any("tags" in err.lower() for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -236,13 +236,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E004_TYPE_MISMATCH
-            assert any('related' in err.lower() for err in errors)
+            assert any("related" in err.lower() for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -260,13 +260,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
-            assert any('E004_TYPE_MISMATCH' in err and 'tags' in err for err in errors)
-            assert any('related' in warn for warn in warnings)
+            assert any("E004_TYPE_MISMATCH" in err and "tags" in err for err in errors)
+            assert any("related" in warn for warn in warnings)
         finally:
             os.unlink(temp_path)
 
@@ -284,13 +284,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             assert len(errors) == 0
-            assert any('related' in warn for warn in warnings)
+            assert any("related" in warn for warn in warnings)
         finally:
             os.unlink(temp_path)
 
@@ -308,13 +308,13 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E003_INVALID_DATE_FORMAT
-            assert any('E003_INVALID_DATE_FORMAT' in err and 'created' in err for err in errors)
+            assert any("E003_INVALID_DATE_FORMAT" in err and "created" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -332,13 +332,13 @@ updated: 10/02/2026
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             # Model C: E003_INVALID_DATE_FORMAT
-            assert any('E003_INVALID_DATE_FORMAT' in err and 'updated' in err for err in errors)
+            assert any("E003_INVALID_DATE_FORMAT" in err and "updated" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -358,23 +358,23 @@ status: active
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
-            assert any('YAML parsing error' in err for err in errors)
+            assert any("YAML parsing error" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
     def test_empty_yaml_frontmatter(self):
         content = """---\n---\n\n# Content\n"""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
-            assert any('Empty YAML frontmatter' in err for err in errors)
+            assert any("Empty YAML frontmatter" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -385,7 +385,7 @@ type: guide
 
 # Content starts without closing ---
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
@@ -393,10 +393,10 @@ type: guide
             assert len(errors) > 0
             # Either structure error or missing fields — both are valid outcomes
             assert any(
-                'Invalid YAML frontmatter structure' in err
-                or 'YAML parsing error' in err
-                or 'E005_SCHEMA_VIOLATION' in err
-                or 'E002_MISSING_FIELD' in err
+                "Invalid YAML frontmatter structure" in err
+                or "YAML parsing error" in err
+                or "E005_SCHEMA_VIOLATION" in err
+                or "E002_MISSING_FIELD" in err
                 for err in errors
             )
         finally:
@@ -414,16 +414,16 @@ type: guide
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             assert len(errors) >= 5
             # Model C: E002_MISSING_FIELD
-            assert any('E002_MISSING_FIELD' in err and 'domain' in err for err in errors)
-            assert any('E002_MISSING_FIELD' in err and 'level' in err for err in errors)
-            assert any('E002_MISSING_FIELD' in err and 'status' in err for err in errors)
+            assert any("E002_MISSING_FIELD" in err and "domain" in err for err in errors)
+            assert any("E002_MISSING_FIELD" in err and "level" in err for err in errors)
+            assert any("E002_MISSING_FIELD" in err and "status" in err for err in errors)
         finally:
             os.unlink(temp_path)
 
@@ -441,16 +441,16 @@ updated: 2026-02-10
 
 # Content
 """
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
             f.write(content)
             temp_path = f.name
         try:
             errors, warnings = validate_file(temp_path)
             assert len(errors) >= 4
             # Model C: E001 for type/level/status, E006 for domain
-            assert any('E001_INVALID_ENUM' in err and 'type' in err for err in errors)
-            assert any('E001_INVALID_ENUM' in err and 'level' in err for err in errors)
-            assert any('E001_INVALID_ENUM' in err and 'status' in err for err in errors)
-            assert any('E006_TAXONOMY_VIOLATION' in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "type" in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "level" in err for err in errors)
+            assert any("E001_INVALID_ENUM" in err and "status" in err for err in errors)
+            assert any("E006_TAXONOMY_VIOLATION" in err for err in errors)
         finally:
             os.unlink(temp_path)

@@ -35,21 +35,21 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
-
 # ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
 DEFAULT_TELEMETRY_PATH = Path("telemetry/events.jsonl")
 FLAG_THRESHOLD = 0.15  # domains with normalized retry rate > 15% flagged for review
 
-GREEN  = "\033[0;32m"
+GREEN = "\033[0;32m"
 YELLOW = "\033[1;33m"
-RED    = "\033[0;31m"
-BLUE   = "\033[0;34m"
-BOLD   = "\033[1m"
-NC     = "\033[0m"
+RED = "\033[0;31m"
+BLUE = "\033[0;34m"
+BOLD = "\033[1m"
+NC = "\033[0m"
 
 
 # ─── LOADER ───────────────────────────────────────────────────────────────────
+
 
 def load_events(path: Path) -> tuple[list[dict], list[dict], list[dict]]:
     """Load and split events into attempt and summary lists.
@@ -94,6 +94,7 @@ def load_events(path: Path) -> tuple[list[dict], list[dict], list[dict]]:
 
 
 # ─── REPORT A — Retry Rate ────────────────────────────────────────────────────
+
 
 def report_retry_rate(
     attempts: list[dict],
@@ -143,9 +144,11 @@ def report_retry_rate(
     signal_a_rate = len(failed_first) / total_docs if total_docs else 0
 
     print(f"  Total documents (first attempts): {total_docs}")
-    print(f"  Signal A — First-attempt invalid rate: "
-          f"{_pct(signal_a_rate)}  "
-          f"({len(failed_first)} failed / {total_docs} total)\n")
+    print(
+        f"  Signal A — First-attempt invalid rate: "
+        f"{_pct(signal_a_rate)}  "
+        f"({len(failed_first)} failed / {total_docs} total)\n"
+    )
 
     # Per-field breakdown
     all_fields = sorted(set(failures.keys()))
@@ -162,14 +165,20 @@ def report_retry_rate(
         for value, count in sorted(field_failures.items(), key=lambda x: -x[1]):
             # Normalized: failures for this value / total first-attempt events
             norm_rate = count / total_docs
-            flag = (f"  {RED}⚑ REVIEW (>{int(flag_threshold*100)}%){NC}"
-                    if norm_rate > flag_threshold else "")
-            print(f"    {value:<30}  failures: {count:>4}  "
-                  f"normalized rate: {_pct(norm_rate)}{flag}")
+            flag = (
+                f"  {RED}⚑ REVIEW (>{int(flag_threshold*100)}%){NC}"
+                if norm_rate > flag_threshold
+                else ""
+            )
+            print(
+                f"    {value:<30}  failures: {count:>4}  "
+                f"normalized rate: {_pct(norm_rate)}{flag}"
+            )
         print()
 
 
 # ─── REPORT B — Rejected Candidates ──────────────────────────────────────────
+
 
 def report_rejected_candidates(summaries: list[dict]) -> None:
     """Rejected candidate distribution from summary events.
@@ -186,12 +195,14 @@ def report_rejected_candidates(summaries: list[dict]) -> None:
         return
 
     # candidate → {total_count, unique_doc_ids, converged_count, not_converged_count}
-    stats: dict[str, dict] = defaultdict(lambda: {
-        "total": 0,
-        "docs": set(),
-        "converged": 0,
-        "not_converged": 0,
-    })
+    stats: dict[str, dict] = defaultdict(
+        lambda: {
+            "total": 0,
+            "docs": set(),
+            "converged": 0,
+            "not_converged": 0,
+        }
+    )
 
     total_sessions = len(summaries)
     sessions_with_rejections = 0
@@ -221,13 +232,12 @@ def report_rejected_candidates(summaries: list[dict]) -> None:
         return
 
     # Sort by unique doc count descending (governance signal)
-    sorted_candidates = sorted(
-        stats.items(),
-        key=lambda x: (-len(x[1]["docs"]), -x[1]["total"])
-    )
+    sorted_candidates = sorted(stats.items(), key=lambda x: (-len(x[1]["docs"]), -x[1]["total"]))
 
-    header = (f"  {'Value':<30}  {'Total':>6}  {'Unique docs':>11}  "
-              f"{'Converged':>9}  {'Failed':>6}  Defect signal")
+    header = (
+        f"  {'Value':<30}  {'Total':>6}  {'Unique docs':>11}  "
+        f"{'Converged':>9}  {'Failed':>6}  Defect signal"
+    )
     print(header)
     print("  " + "─" * (len(header) - 2))
 
@@ -247,13 +257,13 @@ def report_rejected_candidates(summaries: list[dict]) -> None:
         else:
             signal = "monitor"
 
-        print(f"  {value:<30}  {total:>6}  {unique_docs:>11}  "
-              f"{conv:>9}  {fail:>6}  {signal}")
+        print(f"  {value:<30}  {total:>6}  {unique_docs:>11}  " f"{conv:>9}  {fail:>6}  {signal}")
 
     print()
 
 
 # ─── REPORT C — Convergence Time ─────────────────────────────────────────────
+
 
 def report_convergence(summaries: list[dict]) -> None:
     """Convergence time per domain.
@@ -270,11 +280,13 @@ def report_convergence(summaries: list[dict]) -> None:
         return
 
     # domain → {attempts_list (converged only), non_converged_count, total}
-    by_domain: dict[str, dict] = defaultdict(lambda: {
-        "attempts": [],
-        "non_converged": 0,
-        "total": 0,
-    })
+    by_domain: dict[str, dict] = defaultdict(
+        lambda: {
+            "attempts": [],
+            "non_converged": 0,
+            "total": 0,
+        }
+    )
 
     global_converged = []
     global_not_converged = 0
@@ -295,14 +307,15 @@ def report_convergence(summaries: list[dict]) -> None:
 
     total_sessions = len(summaries)
     global_non_conv_rate = global_not_converged / total_sessions if total_sessions else 0
-    global_mean = (sum(global_converged) / len(global_converged)
-                   if global_converged else None)
+    global_mean = sum(global_converged) / len(global_converged) if global_converged else None
 
     print(f"  Total sessions:         {total_sessions}")
     if global_mean is not None:
         print(f"  Global mean attempts:   {global_mean:.2f}  (converged only)")
-    print(f"  Global non-convergence: {_pct(global_non_conv_rate)}  "
-          f"({global_not_converged} failed)\n")
+    print(
+        f"  Global non-convergence: {_pct(global_non_conv_rate)}  "
+        f"({global_not_converged} failed)\n"
+    )
 
     if len(by_domain) <= 1:
         print("  Insufficient domain diversity for per-domain breakdown.\n")
@@ -311,13 +324,12 @@ def report_convergence(summaries: list[dict]) -> None:
     # Sort by non-convergence rate descending
     sorted_domains = sorted(
         by_domain.items(),
-        key=lambda x: (
-            -(x[1]["non_converged"] / x[1]["total"] if x[1]["total"] else 0)
-        )
+        key=lambda x: (-(x[1]["non_converged"] / x[1]["total"] if x[1]["total"] else 0)),
     )
 
-    header = (f"  {'Domain':<35}  {'Total':>6}  {'Mean attempts':>13}  "
-              f"{'Non-conv rate':>13}  Status")
+    header = (
+        f"  {'Domain':<35}  {'Total':>6}  {'Mean attempts':>13}  " f"{'Non-conv rate':>13}  Status"
+    )
     print(header)
     print("  " + "─" * (len(header) - 2))
 
@@ -336,13 +348,15 @@ def report_convergence(summaries: list[dict]) -> None:
         else:
             status = f"{GREEN}ok{NC}"
 
-        print(f"  {domain:<35}  {total:>6}  {mean_str:>13}  "
-              f"{_pct(non_conv_rate):>13}  {status}")
+        print(
+            f"  {domain:<35}  {total:>6}  {mean_str:>13}  " f"{_pct(non_conv_rate):>13}  {status}"
+        )
 
     print()
 
 
 # ─── REPORT D — Ask Usage (Tenant) ──────────────────────────────────────────
+
 
 def report_ask_usage(asks: list[dict]) -> None:
     """Tenant-level usage report for RAG ask telemetry events."""
@@ -353,14 +367,16 @@ def report_ask_usage(asks: list[dict]) -> None:
         return
 
     # tenant -> counters
-    by_tenant: dict[str, dict[str, float]] = defaultdict(lambda: {
-        "total": 0,
-        "insufficient": 0,
-        "retrieval_only": 0,
-        "synthesis": 0,
-        "hits_sum": 0,
-        "duration_sum": 0,
-    })
+    by_tenant: dict[str, dict[str, float]] = defaultdict(
+        lambda: {
+            "total": 0,
+            "insufficient": 0,
+            "retrieval_only": 0,
+            "synthesis": 0,
+            "hits_sum": 0,
+            "duration_sum": 0,
+        }
+    )
 
     for evt in asks:
         tenant = str(evt.get("tenant_id", "default"))
@@ -410,6 +426,7 @@ def report_ask_usage(asks: list[dict]) -> None:
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+
 def _pct(rate: float) -> str:
     return f"{rate * 100:.1f}%"
 
@@ -424,19 +441,22 @@ def _print_header(path: Path, models: set[str], temps: set[float]) -> None:
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         prog="analyze_telemetry",
         description="AKF Phase 2.3 — Telemetry aggregation reports",
     )
     parser.add_argument(
-        "--input", "-i",
+        "--input",
+        "-i",
         type=Path,
         default=DEFAULT_TELEMETRY_PATH,
         help=f"Path to JSONL telemetry file (default: {DEFAULT_TELEMETRY_PATH})",
     )
     parser.add_argument(
-        "--report", "-r",
+        "--report",
+        "-r",
         choices=["retry-rate", "candidates", "convergence", "ask-usage", "all"],
         default="all",
         help="Which report to run (default: all)",
@@ -454,7 +474,7 @@ def main() -> None:
 
     # Extract environmental control fields for header
     models = {e.get("model", "unknown") for e in attempts + summaries + asks}
-    temps  = {e.get("temperature", 0) for e in attempts + summaries + asks}
+    temps = {e.get("temperature", 0) for e in attempts + summaries + asks}
 
     _print_header(args.input, models, temps)
 

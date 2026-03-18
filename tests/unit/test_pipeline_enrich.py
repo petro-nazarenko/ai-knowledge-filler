@@ -6,6 +6,7 @@ Unit tests for Pipeline.enrich() and Pipeline.enrich_dir().
 Patch targets use the module where each symbol is DEFINED,
 because enrich() uses local imports inside the method body.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -14,7 +15,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from akf.pipeline import Pipeline, EnrichResult
-
 
 # ─── Sample content ───────────────────────────────────────────────────────────
 
@@ -68,6 +68,7 @@ EMPTY_FILE = ""
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _mock_cfg():
     cfg = MagicMock()
     cfg.domains = ["ai-system", "devops"]
@@ -75,6 +76,7 @@ def _mock_cfg():
 
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture()
 def mock_provider():
@@ -103,17 +105,21 @@ def tmp_md(tmp_path):
         f = tmp_path / name
         f.write_text(content, encoding="utf-8")
         return f
+
     return _make
 
 
 # ─── enrich() ─────────────────────────────────────────────────────────────────
+
 
 class TestPipelineEnrich:
 
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_no_frontmatter_enriched(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider):
+    def test_no_frontmatter_enriched(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("no_fm.md", NO_FRONTMATTER_FILE)
         result = pipeline.enrich(path=f)
@@ -124,7 +130,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_incomplete_frontmatter_enriched(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider):
+    def test_incomplete_frontmatter_enriched(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("partial.md", INCOMPLETE_FRONTMATTER_FILE)
         result = pipeline.enrich(path=f, force=False)
@@ -143,7 +151,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_force_overwrites_valid(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider):
+    def test_force_overwrites_valid(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("valid_force.md", VALID_FRONTMATTER_FILE)
         result = pipeline.enrich(path=f, force=True)
@@ -166,7 +176,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_dry_run_no_file_write(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, capsys):
+    def test_dry_run_no_file_write(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, capsys
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("dry.md", NO_FRONTMATTER_FILE)
         mtime_before = f.stat().st_mtime
@@ -177,7 +189,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_dry_run_no_telemetry(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, mock_writer):
+    def test_dry_run_no_telemetry(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, mock_writer
+    ):
         mock_get_provider.return_value = mock_provider
         pipeline.writer = mock_writer
         f = tmp_md("dry_tel.md", NO_FRONTMATTER_FILE)
@@ -187,7 +201,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_output_dir_copies_file(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, tmp_path, mock_provider):
+    def test_output_dir_copies_file(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, tmp_path, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("orig.md", NO_FRONTMATTER_FILE)
         out_dir = tmp_path / "enriched"
@@ -198,11 +214,14 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_created_never_changes(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider):
+    def test_created_never_changes(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         f = tmp_md("created.md", "---\ncreated: 2024-01-15\n---\n# Doc\nContent.")
         pipeline.enrich(path=f, force=True)
         import yaml
+
         parts = f.read_text(encoding="utf-8").split("---", 2)
         meta = yaml.safe_load(parts[1])
         assert str(meta.get("created")) == "2024-01-15"
@@ -210,7 +229,9 @@ class TestPipelineEnrich:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_telemetry_event_emitted(self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, mock_writer):
+    def test_telemetry_event_emitted(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_md, mock_provider, mock_writer
+    ):
         mock_get_provider.return_value = mock_provider
         pipeline.writer = mock_writer
         f = tmp_md("tel.md", NO_FRONTMATTER_FILE)
@@ -224,12 +245,17 @@ class TestPipelineEnrich:
     @patch("akf.retry_controller.run_retry_loop")
     @patch("akf.validator.validate")
     @patch("llm_providers.get_provider")
-    def test_failed_after_max_retries(self, mock_get_provider, mock_validate, mock_retry, _mc, pipeline, tmp_md, mock_provider):
+    def test_failed_after_max_retries(
+        self, mock_get_provider, mock_validate, mock_retry, _mc, pipeline, tmp_md, mock_provider
+    ):
         from akf.validation_error import ValidationError, ErrorCode, Severity
+
         mock_get_provider.return_value = mock_provider
         blocking = ValidationError(
-            code=ErrorCode.TAXONOMY_VIOLATION, field="domain",
-            expected=["ai-system"], received="invalid-domain",
+            code=ErrorCode.TAXONOMY_VIOLATION,
+            field="domain",
+            expected=["ai-system"],
+            received="invalid-domain",
             severity=Severity.ERROR,
         )
         mock_validate.return_value = [blocking]
@@ -247,12 +273,15 @@ class TestPipelineEnrich:
 
 # ─── enrich_dir() ─────────────────────────────────────────────────────────────
 
+
 class TestPipelineEnrichDir:
 
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_processes_all_md_files(self, mock_get_provider, _mv, _mc, pipeline, tmp_path, mock_provider):
+    def test_processes_all_md_files(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_path, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         (tmp_path / "a.md").write_text(NO_FRONTMATTER_FILE, encoding="utf-8")
         (tmp_path / "b.md").write_text(NO_FRONTMATTER_FILE, encoding="utf-8")
@@ -265,7 +294,9 @@ class TestPipelineEnrichDir:
     @patch("akf.config.get_config", return_value=_mock_cfg())
     @patch("akf.validator.validate", return_value=[])
     @patch("llm_providers.get_provider")
-    def test_returns_list_of_enrich_results(self, mock_get_provider, _mv, _mc, pipeline, tmp_path, mock_provider):
+    def test_returns_list_of_enrich_results(
+        self, mock_get_provider, _mv, _mc, pipeline, tmp_path, mock_provider
+    ):
         mock_get_provider.return_value = mock_provider
         (tmp_path / "doc.md").write_text(NO_FRONTMATTER_FILE, encoding="utf-8")
         results = pipeline.enrich_dir(path=tmp_path)
@@ -277,6 +308,7 @@ class TestPipelineEnrichDir:
 
 
 # ─── EnrichResult dataclass ───────────────────────────────────────────────────
+
 
 class TestEnrichResult:
     def test_defaults(self):

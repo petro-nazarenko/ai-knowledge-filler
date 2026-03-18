@@ -95,9 +95,11 @@ class FlatIndex:
         return self._model
 
     def _embed(self, texts: list[str]) -> np.ndarray:
-        return self._get_model().encode(
-            texts, normalize_embeddings=True, convert_to_numpy=True
-        ).astype(np.float32)
+        return (
+            self._get_model()
+            .encode(texts, normalize_embeddings=True, convert_to_numpy=True)
+            .astype(np.float32)
+        )
 
     # ------------------------------------------------------------------
     # Collection API
@@ -127,9 +129,7 @@ class FlatIndex:
         """Embed *documents* and append them to the index."""
         new_emb = self._embed(documents)
         for i, doc_id in enumerate(ids):
-            self._docs.append(
-                {"id": doc_id, "document": documents[i], "metadata": metadatas[i]}
-            )
+            self._docs.append({"id": doc_id, "document": documents[i], "metadata": metadatas[i]})
         if self._embeddings.shape[0] == 0:
             self._embeddings = new_emb
         else:
@@ -147,7 +147,10 @@ class FlatIndex:
     ) -> dict[str, Any]:
         """Return top-n_results chunks closest to query_texts[0]."""
         empty: dict[str, Any] = {
-            "ids": [[]], "documents": [[]], "metadatas": [[]], "distances": [[]]
+            "ids": [[]],
+            "documents": [[]],
+            "metadatas": [[]],
+            "distances": [[]],
         }
         if not self._docs:
             return empty

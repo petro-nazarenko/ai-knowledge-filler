@@ -187,10 +187,7 @@ def main() -> None:
 
     all_files = glob.glob("**/*.md", recursive=True)
 
-    md_files = [
-        f for f in all_files
-        if not any(x in f for x in EXCLUDE_PATTERNS)
-    ]
+    md_files = [f for f in all_files if not any(x in f for x in EXCLUDE_PATTERNS)]
 
     total_files = len(md_files)
     valid_files = 0

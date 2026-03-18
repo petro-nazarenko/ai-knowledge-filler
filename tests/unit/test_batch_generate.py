@@ -16,8 +16,8 @@ from unittest.mock import MagicMock, patch
 
 from akf.pipeline import GenerateResult
 
-
 # ─── helpers ──────────────────────────────────────────────────────────────────
+
 
 def _make_result(success: bool, path: Path, attempts: int = 1) -> GenerateResult:
     return GenerateResult(
@@ -36,6 +36,7 @@ def _args(batch_path, output_dir, model="auto"):
 
 
 # ─── test_batch_json_valid_plan ───────────────────────────────────────────────
+
 
 class TestBatchJsonValidPlan:
     def test_batch_json_valid_plan(self, tmp_path, capsys):
@@ -57,6 +58,7 @@ class TestBatchJsonValidPlan:
             args = _args(plan_file, tmp_path)
             with pytest.raises(SystemExit) as exc:
                 from cli import _cmd_generate_batch
+
                 _cmd_generate_batch(args)
 
         assert exc.value.code == 0
@@ -77,14 +79,16 @@ class TestBatchJsonValidPlan:
             args = _args(plan_file, tmp_path)
             with pytest.raises(SystemExit):
                 from cli import _cmd_generate_batch
+
                 _cmd_generate_batch(args)
 
             call_args = MockPipeline.return_value.batch_generate.call_args
-            passed_plan = call_args[0][0]   # first positional arg
+            passed_plan = call_args[0][0]  # first positional arg
             assert passed_plan == plan
 
 
 # ─── test_batch_json_invalid_plan ─────────────────────────────────────────────
+
 
 class TestBatchJsonInvalidPlan:
     def test_batch_json_invalid_plan(self, tmp_path):
@@ -95,6 +99,7 @@ class TestBatchJsonInvalidPlan:
         args = _args(plan_file, tmp_path)
         with pytest.raises(SystemExit) as exc:
             from cli import _cmd_generate_batch
+
             _cmd_generate_batch(args)
 
         assert exc.value.code == 1
@@ -107,6 +112,7 @@ class TestBatchJsonInvalidPlan:
         args = _args(plan_file, tmp_path)
         with pytest.raises(SystemExit) as exc:
             from cli import _cmd_generate_batch
+
             _cmd_generate_batch(args)
 
         assert exc.value.code == 1
@@ -116,12 +122,14 @@ class TestBatchJsonInvalidPlan:
         args = _args(tmp_path / "nonexistent.json", tmp_path)
         with pytest.raises(SystemExit) as exc:
             from cli import _cmd_generate_batch
+
             _cmd_generate_batch(args)
 
         assert exc.value.code == 1
 
 
 # ─── test_batch_partial_failure ───────────────────────────────────────────────
+
 
 class TestBatchPartialFailure:
     def test_batch_partial_failure(self, tmp_path, capsys):
@@ -143,6 +151,7 @@ class TestBatchPartialFailure:
             args = _args(plan_file, tmp_path)
             with pytest.raises(SystemExit) as exc:
                 from cli import _cmd_generate_batch
+
                 _cmd_generate_batch(args)
 
         assert exc.value.code == 1
@@ -167,12 +176,14 @@ class TestBatchPartialFailure:
             args = _args(plan_file, tmp_path)
             with pytest.raises(SystemExit) as exc:
                 from cli import _cmd_generate_batch
+
                 _cmd_generate_batch(args)
 
         assert exc.value.code == 1
 
 
 # ─── test_batch_empty_plan ────────────────────────────────────────────────────
+
 
 class TestBatchEmptyPlan:
     def test_batch_empty_plan(self, tmp_path, capsys):
@@ -184,6 +195,7 @@ class TestBatchEmptyPlan:
             args = _args(plan_file, tmp_path)
             with pytest.raises(SystemExit) as exc:
                 from cli import _cmd_generate_batch
+
                 _cmd_generate_batch(args)
 
         assert exc.value.code == 0

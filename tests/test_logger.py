@@ -1,4 +1,5 @@
 """Tests for logger.py — JSONFormatter and get_logger."""
+
 import json
 import logging
 import pytest
@@ -65,9 +66,7 @@ def test_log_level_respected(capfd):
 def test_json_formatter_directly():
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        name="test", level=logging.INFO,
-        pathname="", lineno=0,
-        msg="direct", args=(), exc_info=None
+        name="test", level=logging.INFO, pathname="", lineno=0, msg="direct", args=(), exc_info=None
     )
     result = json.loads(formatter.format(record))
     assert result["message"] == "direct"

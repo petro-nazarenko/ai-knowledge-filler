@@ -23,6 +23,7 @@ from akf.validation_error import ErrorCode, Severity
 
 # ─── helpers ──────────────────────────────────────────────────────────────────
 
+
 def make_doc(**overrides) -> str:
     """Build a minimal valid document, overriding specific fields."""
     fields = {
@@ -50,6 +51,7 @@ def clear_config():
 
 
 # ─── CANON-DEFER-001: enums from config ───────────────────────────────────────
+
 
 class TestEnumsFromConfig:
     def test_default_config_accepts_standard_type(self):
@@ -83,8 +85,7 @@ class TestEnumsFromConfig:
     def test_custom_config_rejects_removed_type(self, tmp_path: Path):
         cfg_file = tmp_path / "akf.yaml"
         cfg_file.write_text(
-            "enums:\n  type:\n    - sop\n"
-            "taxonomy:\n  domains:\n    - ai-system\n",
+            "enums:\n  type:\n    - sop\n" "taxonomy:\n  domains:\n    - ai-system\n",
             encoding="utf-8",
         )
         reset_config()
@@ -162,6 +163,7 @@ class TestEnumsFromConfig:
 
 # ─── CANON-DEFER-002: created ≤ updated ──────────────────────────────────────
 
+
 class TestCreatedUpdatedConstraint:
     def test_valid_created_before_updated(self):
         doc = make_doc(created="2026-01-01", updated="2026-01-02")
@@ -184,6 +186,7 @@ class TestCreatedUpdatedConstraint:
 
     def test_created_after_updated_is_error_severity(self):
         from akf.validation_error import Severity
+
         doc = make_doc(created="2026-12-31", updated="2026-01-01")
         errors = validate(doc)
         date_errors = [e for e in errors if "created/updated" in e.field]
@@ -240,6 +243,7 @@ class TestCreatedUpdatedConstraint:
 
 
 # ─── CANON-DEFER-003: title isinstance str ───────────────────────────────────
+
 
 class TestTitleTypeEnforcement:
     def test_string_title_passes(self):
@@ -330,6 +334,7 @@ class TestTitleTypeEnforcement:
 
 # ─── backwards compatibility: taxonomy_path ───────────────────────────────────
 
+
 class TestTaxonomyPathBackwardsCompat:
     def test_taxonomy_path_ignored_when_config_exists(self, tmp_path: Path):
         """When akf.yaml is loaded, taxonomy_path is ignored."""
@@ -349,6 +354,7 @@ class TestTaxonomyPathBackwardsCompat:
 
 
 # ─── valid document end-to-end ────────────────────────────────────────────────
+
 
 class TestValidDocumentEndToEnd:
     def test_valid_doc_returns_no_errors(self):
@@ -496,8 +502,7 @@ class TestTypedRelationships:
         """Default types like 'implements' rejected if not in custom list."""
         cfg_file = tmp_path / "akf.yaml"
         cfg_file.write_text(
-            "taxonomy:\n  domains:\n    - ai-system\n"
-            "relationship_types:\n  - uses\n",
+            "taxonomy:\n  domains:\n    - ai-system\n" "relationship_types:\n  - uses\n",
             encoding="utf-8",
         )
         reset_config()
@@ -524,8 +529,12 @@ class TestTypedRelationships:
 
     def test_untyped_link_backward_compat_no_e008(self):
         """Backward compat: existing [[Note Name]] docs never get E008."""
-        doc = make_doc(related=["[[LLM_Output_Validation_Pipeline_Architecture]]",
-                                 "[[Prompt_Engineering_Techniques]]"])
+        doc = make_doc(
+            related=[
+                "[[LLM_Output_Validation_Pipeline_Architecture]]",
+                "[[Prompt_Engineering_Techniques]]",
+            ]
+        )
         errors = validate(doc)
         rel_errors = [e for e in errors if e.code == ErrorCode.INVALID_RELATIONSHIP_TYPE]
         assert rel_errors == []

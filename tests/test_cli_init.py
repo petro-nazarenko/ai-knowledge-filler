@@ -1,13 +1,16 @@
 """tests/test_cli_init.py — Tests for akf init command"""
+
 from __future__ import annotations
 from pathlib import Path
 import pytest
 from cli import cmd_init
 
+
 class Args:
     def __init__(self, path=None, force=False):
         self.path = path
         self.force = force
+
 
 class TestCmdInit:
     def test_creates_akf_yaml_in_cwd(self, tmp_path, monkeypatch):
@@ -26,6 +29,7 @@ class TestCmdInit:
 
     def test_created_file_is_valid_yaml(self, tmp_path):
         import yaml
+
         cmd_init(Args(path=str(tmp_path)))
         content = yaml.safe_load((tmp_path / "akf.yaml").read_text())
         assert "taxonomy" in content
@@ -58,13 +62,16 @@ def test_init_force_creates_backup(tmp_path):
     args.path = str(tmp_path)
     args.force = True
 
-    with patch("cli.Path") as mock_path, \
-         patch("shutil.copy") as mock_copy, \
-         patch("akf.__file__", str(tmp_path / "akf/__init__.py")):
+    with (
+        patch("cli.Path") as mock_path,
+        patch("shutil.copy") as mock_copy,
+        patch("akf.__file__", str(tmp_path / "akf/__init__.py")),
+    ):
         pass  # Use real implementation
 
     # Real test via CLI directly
     import sys, importlib
+
     cli = importlib.import_module("cli")
 
     args2 = MagicMock()

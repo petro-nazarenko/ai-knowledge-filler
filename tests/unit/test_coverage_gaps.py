@@ -1,4 +1,5 @@
 """Targeted coverage gap tests for AKF v0.4.2."""
+
 from __future__ import annotations
 import textwrap
 from pathlib import Path
@@ -6,15 +7,25 @@ from unittest.mock import MagicMock, patch
 import pytest
 from akf.pipeline import GenerateResult, ValidateResult, Pipeline
 from akf.validator import (
-    validate, _check_title_type, _check_enum_fields, _check_dates,
-    _check_tags, _check_related, _parse_taxonomy_file, _default_taxonomy,
+    validate,
+    _check_title_type,
+    _check_enum_fields,
+    _check_dates,
+    _check_tags,
+    _check_related,
+    _parse_taxonomy_file,
+    _default_taxonomy,
     _load_taxonomy,
 )
 from akf.config import get_config, reset_config, load_config, AKFConfig, AKFEnums
 from akf.validation_error import ErrorCode, Severity, ValidationError
 from akf.error_normalizer import (
-    normalize_errors, _render_missing_field, _render_type_mismatch,
-    _render_taxonomy_violation, _render_date_sequence, _render_generic,
+    normalize_errors,
+    _render_missing_field,
+    _render_type_mismatch,
+    _render_taxonomy_violation,
+    _render_date_sequence,
+    _render_generic,
 )
 from akf.commit_gate import _atomic_write
 from akf.retry_controller import RetryResult
@@ -63,6 +74,7 @@ def make_provider(content=None, raises=None):
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
+
 class TestGenerateResultRepr:
     def test_valid(self):
         r = GenerateResult(success=True, content="x", attempts=2)
@@ -100,6 +112,7 @@ class TestPipelineLoadSystemPrompt:
 
     def test_loads_from_package(self):
         import akf as _pkg
+
         sp = Path(_pkg.__file__).parent / "system_prompt.md"
         if not sp.exists():
             pytest.skip("system_prompt.md not installed")
@@ -130,21 +143,29 @@ class TestPipelineGenerate:
     def test_llm_exception(self, tmp_path):
         p = Pipeline(output=str(tmp_path))
         p._system_prompt = "## ROLE\nGen."
-        with patch("llm_providers.get_provider",
-                   return_value=make_provider(raises=RuntimeError("timeout"))):
+        with patch(
+            "llm_providers.get_provider", return_value=make_provider(raises=RuntimeError("timeout"))
+        ):
             r = p.generate("prompt")
         assert not r.success and "timeout" in str(r.errors)
 
     def test_retry_triggered(self, tmp_path):
         p = Pipeline(output=str(tmp_path))
         p._system_prompt = "## ROLE\nGen."
-        err = ValidationError(code=ErrorCode.TAXONOMY_VIOLATION, field="domain",
-                              expected=["devops"], received="INVALID")
-        fake_retry = RetryResult(success=True, document=VALID_DOC, attempts=2,
-                                 abort_reason=None, errors=[])
-        with patch("llm_providers.get_provider", return_value=make_provider()), \
-             patch("akf.validator.validate", return_value=[err]), \
-             patch("akf.retry_controller.run_retry_loop", return_value=fake_retry) as mock_rl:
+        err = ValidationError(
+            code=ErrorCode.TAXONOMY_VIOLATION,
+            field="domain",
+            expected=["devops"],
+            received="INVALID",
+        )
+        fake_retry = RetryResult(
+            success=True, document=VALID_DOC, attempts=2, abort_reason=None, errors=[]
+        )
+        with (
+            patch("llm_providers.get_provider", return_value=make_provider()),
+            patch("akf.validator.validate", return_value=[err]),
+            patch("akf.retry_controller.run_retry_loop", return_value=fake_retry) as mock_rl,
+        ):
             p.generate("prompt")
         assert mock_rl.called
 
@@ -152,33 +173,48 @@ class TestPipelineGenerate:
         p = Pipeline(output=str(tmp_path))
         p._system_prompt = "## ROLE\nGen."
         from akf.commit_gate import CommitResult
+
         fake_commit = CommitResult(
-            committed=False, path=None,
-            blocking_errors=[ValidationError(code=ErrorCode.MISSING_FIELD,
-                field="domain", expected=["devops"], received=None)],
+            committed=False,
+            path=None,
+            blocking_errors=[
+                ValidationError(
+                    code=ErrorCode.MISSING_FIELD, field="domain", expected=["devops"], received=None
+                )
+            ],
             schema_version="1.0.0",
         )
-        with patch("llm_providers.get_provider", return_value=make_provider()), \
-             patch("akf.validator.validate", return_value=[]), \
-             patch("akf.commit_gate.commit", return_value=fake_commit):
+        with (
+            patch("llm_providers.get_provider", return_value=make_provider()),
+            patch("akf.validator.validate", return_value=[]),
+            patch("akf.commit_gate.commit", return_value=fake_commit),
+        ):
             r = p.generate("prompt")
         assert not r.success and r.file_path is not None and r.file_path.exists()
 
     def test_rejected_domain_candidates(self, tmp_path):
         p = Pipeline(output=str(tmp_path))
         p._system_prompt = "## ROLE\nGen."
-        err = ValidationError(code=ErrorCode.TAXONOMY_VIOLATION, field="domain",
-                              expected=["devops"], received="backend")
-        fake_retry = RetryResult(success=True, document=VALID_DOC, attempts=2,
-                                 abort_reason=None, errors=[err])
-        with patch("llm_providers.get_provider", return_value=make_provider()), \
-             patch("akf.validator.validate", return_value=[err]), \
-             patch("akf.retry_controller.run_retry_loop", return_value=fake_retry) as mock_rl:
+        err = ValidationError(
+            code=ErrorCode.TAXONOMY_VIOLATION,
+            field="domain",
+            expected=["devops"],
+            received="backend",
+        )
+        fake_retry = RetryResult(
+            success=True, document=VALID_DOC, attempts=2, abort_reason=None, errors=[err]
+        )
+        with (
+            patch("llm_providers.get_provider", return_value=make_provider()),
+            patch("akf.validator.validate", return_value=[err]),
+            patch("akf.retry_controller.run_retry_loop", return_value=fake_retry) as mock_rl,
+        ):
             p.generate("prompt")
         assert mock_rl.called
 
 
 # ── Validator ─────────────────────────────────────────────────────────────────
+
 
 class TestTitleType:
     def test_int(self):
@@ -204,12 +240,16 @@ class TestEnumFields:
 
 class TestDates:
     def test_wrong_format(self):
-        assert any(e.field == "created" for e in
-                   _check_dates({"created": "12-02-2026", "updated": "2026-02-12"}))
+        assert any(
+            e.field == "created"
+            for e in _check_dates({"created": "12-02-2026", "updated": "2026-02-12"})
+        )
 
     def test_unparseable(self):
-        assert any(e.field == "created" for e in
-                   _check_dates({"created": "not-a-date", "updated": "2026-02-12"}))
+        assert any(
+            e.field == "created"
+            for e in _check_dates({"created": "not-a-date", "updated": "2026-02-12"})
+        )
 
 
 class TestTags:
@@ -282,40 +322,51 @@ class TestLegacyTaxonomy:
         """).lstrip()
         with patch("akf.validator.get_config", return_value=AKFConfig(source=None)):
             errors = validate(doc, taxonomy_path=f)
-        assert not any(e.field == "domain" and e.code == ErrorCode.TAXONOMY_VIOLATION
-                       for e in errors)
+        assert not any(
+            e.field == "domain" and e.code == ErrorCode.TAXONOMY_VIOLATION for e in errors
+        )
 
 
 # ── Error Normalizer ──────────────────────────────────────────────────────────
 
+
 class TestRenderMissingField:
     def test_domain_list(self):
-        e = ValidationError(code=ErrorCode.MISSING_FIELD, field="domain",
-                            expected=["api-design", "devops"], received=None)
+        e = ValidationError(
+            code=ErrorCode.MISSING_FIELD,
+            field="domain",
+            expected=["api-design", "devops"],
+            received=None,
+        )
         assert "api-design" in _render_missing_field(e)
 
     def test_other(self):
-        e = ValidationError(code=ErrorCode.MISSING_FIELD, field="title",
-                            expected="str", received=None)
+        e = ValidationError(
+            code=ErrorCode.MISSING_FIELD, field="title", expected="str", received=None
+        )
         assert "title" in _render_missing_field(e)
 
 
 class TestRenderTypeMismatch:
     def test_tags(self):
-        e = ValidationError(code=ErrorCode.TYPE_MISMATCH, field="tags",
-                            expected=list, received="api")
+        e = ValidationError(
+            code=ErrorCode.TYPE_MISMATCH, field="tags", expected=list, received="api"
+        )
         assert "YAML list" in _render_type_mismatch(e)
 
     def test_other(self):
-        e = ValidationError(code=ErrorCode.TYPE_MISMATCH, field="title",
-                            expected=str, received=42)
+        e = ValidationError(code=ErrorCode.TYPE_MISMATCH, field="title", expected=str, received=42)
         assert "title" in _render_type_mismatch(e)
 
 
 class TestRenderTaxonomy:
     def test_renders(self):
-        e = ValidationError(code=ErrorCode.TAXONOMY_VIOLATION, field="domain",
-                            expected=["api-design"], received="backend")
+        e = ValidationError(
+            code=ErrorCode.TAXONOMY_VIOLATION,
+            field="domain",
+            expected=["api-design"],
+            received="backend",
+        )
         assert "backend" in _render_taxonomy_violation(e)
 
 
@@ -323,14 +374,14 @@ class TestRenderDateSeq:
     def test_renders(self):
         from datetime import date
         from akf.validation_error import date_sequence_violation
+
         e = date_sequence_violation(date(2026, 3, 1), date(2026, 2, 1))
         assert "created" in _render_date_sequence(e)
 
 
 class TestRenderGeneric:
     def test_renders(self):
-        e = ValidationError(code=ErrorCode.SCHEMA_VIOLATION, field="fm",
-                            expected="x", received="y")
+        e = ValidationError(code=ErrorCode.SCHEMA_VIOLATION, field="fm", expected="x", received="y")
         assert "fm" in _render_generic(e)
 
 
@@ -339,23 +390,33 @@ class TestNormalizeErrors:
         assert not normalize_errors([]).has_blocking_errors
 
     def test_warning_not_blocking(self):
-        w = ValidationError(code=ErrorCode.SCHEMA_VIOLATION, field="related",
-                            expected="list", received="absent",
-                            severity=Severity.WARNING)
+        w = ValidationError(
+            code=ErrorCode.SCHEMA_VIOLATION,
+            field="related",
+            expected="list",
+            received="absent",
+            severity=Severity.WARNING,
+        )
         p = normalize_errors([w])
         assert not p.has_blocking_errors and p.warning_count == 1
 
     def test_mixed(self):
-        err = ValidationError(code=ErrorCode.MISSING_FIELD, field="title",
-                              expected="str", received=None)
-        warn = ValidationError(code=ErrorCode.SCHEMA_VIOLATION, field="related",
-                               expected="list", received="absent",
-                               severity=Severity.WARNING)
+        err = ValidationError(
+            code=ErrorCode.MISSING_FIELD, field="title", expected="str", received=None
+        )
+        warn = ValidationError(
+            code=ErrorCode.SCHEMA_VIOLATION,
+            field="related",
+            expected="list",
+            received="absent",
+            severity=Severity.WARNING,
+        )
         p = normalize_errors([err, warn])
         assert p.has_blocking_errors and p.error_count == 1 and p.warning_count == 1
 
 
 # ── Commit Gate ───────────────────────────────────────────────────────────────
+
 
 class TestAtomicWrite:
     def test_cleans_tmp_on_error(self, tmp_path):
@@ -367,17 +428,20 @@ class TestAtomicWrite:
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
+
 class TestConfigParse:
     def test_empty_domains_fallback(self, tmp_path):
         f = tmp_path / "akf.yaml"
         f.write_text("schema_version: '1.0.0'\ntaxonomy:\n  domains: []\n")
         from akf.config import _parse_yaml
+
         assert "devops" in _parse_yaml(f).domains
 
     def test_non_list_fallback(self, tmp_path):
         f = tmp_path / "akf.yaml"
         f.write_text("schema_version: '1.0.0'\ntaxonomy:\n  domains: not-a-list\n")
         from akf.config import _parse_yaml
+
         assert "devops" in _parse_yaml(f).domains
 
 

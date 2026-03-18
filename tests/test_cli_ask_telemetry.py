@@ -3,6 +3,7 @@
 Fix 8 — verify that TelemetryWriter.write() is called with an AskQueryEvent
 when `akf ask` is run from the CLI (cmd_ask).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

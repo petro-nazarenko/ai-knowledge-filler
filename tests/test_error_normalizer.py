@@ -6,15 +6,21 @@ ADR-001: Validation Layer Architecture
 import pytest
 from akf.error_normalizer import normalize_errors, RetryPayload
 from akf.validation_error import (
-    ValidationError, ErrorCode, Severity,
-    missing_field, invalid_enum, invalid_date_format,
-    type_mismatch, schema_violation, taxonomy_violation,
+    ValidationError,
+    ErrorCode,
+    Severity,
+    missing_field,
+    invalid_enum,
+    invalid_date_format,
+    type_mismatch,
+    schema_violation,
+    taxonomy_violation,
 )
-
 
 # ---------------------------------------------------------------------------
 # normalize_errors — output contract
 # ---------------------------------------------------------------------------
+
 
 class TestNormalizeErrors:
 
@@ -77,6 +83,7 @@ class TestNormalizeErrors:
 # RetryPayload.to_prompt_text()
 # ---------------------------------------------------------------------------
 
+
 class TestRetryPayloadPromptText:
 
     def test_no_blocking_returns_empty_string(self):
@@ -120,6 +127,7 @@ class TestRetryPayloadPromptText:
 # ---------------------------------------------------------------------------
 # Per-error-code instruction rendering
 # ---------------------------------------------------------------------------
+
 
 class TestInstructionRendering:
 
@@ -169,6 +177,7 @@ class TestInstructionRendering:
 # ---------------------------------------------------------------------------
 # Determinism — same input, same output
 # ---------------------------------------------------------------------------
+
 
 class TestDeterminism:
 

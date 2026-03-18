@@ -20,8 +20,8 @@ from akf.telemetry import (
     ROTATION_BYTES,
 )
 
-
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def gen_id() -> str:
@@ -81,6 +81,7 @@ def writer(tmp_path) -> TelemetryWriter:
 
 # ─── ValidationErrorRecord ────────────────────────────────────────────────────
 
+
 class TestValidationErrorRecord:
     def test_to_dict_all_fields(self, error_record):
         d = error_record.to_dict()
@@ -92,11 +93,16 @@ class TestValidationErrorRecord:
 
     def test_to_dict_keys_complete(self, error_record):
         assert set(error_record.to_dict().keys()) == {
-            "code", "field", "expected", "received", "severity"
+            "code",
+            "field",
+            "expected",
+            "received",
+            "severity",
         }
 
 
 # ─── GenerationAttemptEvent ───────────────────────────────────────────────────
+
 
 class TestGenerationAttemptEvent:
     def test_event_type_fixed(self, attempt_event):
@@ -113,10 +119,21 @@ class TestGenerationAttemptEvent:
     def test_to_dict_required_fields(self, attempt_event):
         d = attempt_event.to_dict()
         required = {
-            "event_type", "event_id", "generation_id", "document_id",
-            "schema_version", "attempt", "max_attempts", "is_final_attempt",
-            "converged", "errors", "model", "temperature", "top_p",
-            "timestamp", "duration_ms",
+            "event_type",
+            "event_id",
+            "generation_id",
+            "document_id",
+            "schema_version",
+            "attempt",
+            "max_attempts",
+            "is_final_attempt",
+            "converged",
+            "errors",
+            "model",
+            "temperature",
+            "top_p",
+            "timestamp",
+            "duration_ms",
         }
         assert required.issubset(set(d.keys()))
 
@@ -151,10 +168,20 @@ class TestGenerationAttemptEvent:
     def test_two_instances_have_different_event_ids(self, gen_id):
         def make():
             return GenerationAttemptEvent(
-                generation_id=gen_id, document_id="doc", schema_version="1.0.0",
-                attempt=1, max_attempts=3, is_final_attempt=False, converged=False,
-                errors=[], model="m", temperature=0, top_p=1, duration_ms=100,
+                generation_id=gen_id,
+                document_id="doc",
+                schema_version="1.0.0",
+                attempt=1,
+                max_attempts=3,
+                is_final_attempt=False,
+                converged=False,
+                errors=[],
+                model="m",
+                temperature=0,
+                top_p=1,
+                duration_ms=100,
             )
+
         assert make().event_id != make().event_id
 
     def test_determinism_fields(self, attempt_event):
@@ -164,6 +191,7 @@ class TestGenerationAttemptEvent:
 
 
 # ─── GenerationSummaryEvent ───────────────────────────────────────────────────
+
 
 class TestGenerationSummaryEvent:
     def test_event_type_fixed(self, summary_event):
@@ -175,10 +203,20 @@ class TestGenerationSummaryEvent:
     def test_to_dict_required_fields(self, summary_event):
         d = summary_event.to_dict()
         required = {
-            "event_type", "event_id", "generation_id", "document_id",
-            "schema_version", "total_attempts", "converged", "abort_reason",
-            "rejected_candidates", "final_domain", "model", "temperature",
-            "timestamp", "total_duration_ms",
+            "event_type",
+            "event_id",
+            "generation_id",
+            "document_id",
+            "schema_version",
+            "total_attempts",
+            "converged",
+            "abort_reason",
+            "rejected_candidates",
+            "final_domain",
+            "model",
+            "temperature",
+            "timestamp",
+            "total_duration_ms",
         }
         assert required.issubset(set(d.keys()))
 
@@ -229,6 +267,7 @@ class TestGenerationSummaryEvent:
 
 # ─── TelemetryWriter ──────────────────────────────────────────────────────────
 
+
 class TestTelemetryWriter:
     def test_write_creates_file(self, writer, attempt_event):
         writer.write(attempt_event)
@@ -267,10 +306,18 @@ class TestTelemetryWriter:
         deep_path = tmp_path / "a" / "b" / "events.jsonl"
         w = TelemetryWriter(path=deep_path)
         evt = GenerationAttemptEvent(
-            generation_id=str(uuid.uuid4()), document_id="doc",
-            schema_version="1.0.0", attempt=1, max_attempts=3,
-            is_final_attempt=False, converged=True, errors=[],
-            model="m", temperature=0, top_p=1, duration_ms=100,
+            generation_id=str(uuid.uuid4()),
+            document_id="doc",
+            schema_version="1.0.0",
+            attempt=1,
+            max_attempts=3,
+            is_final_attempt=False,
+            converged=True,
+            errors=[],
+            model="m",
+            temperature=0,
+            top_p=1,
+            duration_ms=100,
         )
         w.write(evt)
         assert deep_path.exists()
@@ -321,10 +368,18 @@ class TestTelemetryWriter:
 
         w = TelemetryWriter(path=path)
         evt = GenerationAttemptEvent(
-            generation_id=str(uuid.uuid4()), document_id="doc",
-            schema_version="1.0.0", attempt=1, max_attempts=3,
-            is_final_attempt=True, converged=True, errors=[],
-            model="m", temperature=0, top_p=1, duration_ms=50,
+            generation_id=str(uuid.uuid4()),
+            document_id="doc",
+            schema_version="1.0.0",
+            attempt=1,
+            max_attempts=3,
+            is_final_attempt=True,
+            converged=True,
+            errors=[],
+            model="m",
+            temperature=0,
+            top_p=1,
+            duration_ms=50,
         )
         w.write(evt)
 
@@ -338,6 +393,7 @@ class TestTelemetryWriter:
 
 # ─── new_generation_id ────────────────────────────────────────────────────────
 
+
 class TestNewGenerationId:
     def test_returns_valid_uuid(self):
         gid = new_generation_id()
@@ -348,6 +404,7 @@ class TestNewGenerationId:
 
 
 # ─── AskQueryEvent ───────────────────────────────────────────────────────────
+
 
 class TestAskQueryEvent:
     def test_event_type_fixed(self):
@@ -387,6 +444,7 @@ class TestAskQueryEvent:
 
 # ─── MarketAnalysisEvent ──────────────────────────────────────────────────────
 
+
 class TestMarketAnalysisEvent:
     def _make(self, **kwargs) -> MarketAnalysisEvent:
         defaults = dict(
@@ -414,14 +472,24 @@ class TestMarketAnalysisEvent:
         evt = self._make()
         d = evt.to_dict()
         expected = {
-            "event_type", "event_id", "timestamp", "generation_id",
-            "request", "stage", "success", "duration_ms", "model", "error",
+            "event_type",
+            "event_id",
+            "timestamp",
+            "generation_id",
+            "request",
+            "stage",
+            "success",
+            "duration_ms",
+            "model",
+            "error",
         }
         assert set(d.keys()) == expected
 
     def test_to_dict_values(self):
         gen_id = str(uuid.uuid4())
-        evt = self._make(generation_id=gen_id, stage="competitor_analysis", success=False, error="oops")
+        evt = self._make(
+            generation_id=gen_id, stage="competitor_analysis", success=False, error="oops"
+        )
         d = evt.to_dict()
         assert d["generation_id"] == gen_id
         assert d["stage"] == "competitor_analysis"
@@ -437,6 +505,7 @@ class TestMarketAnalysisEvent:
 
 
 # ─── EnrichEvent (writer acceptance) ─────────────────────────────────────────
+
 
 class TestEnrichEventWriterAcceptance:
     """Verify TelemetryWriter.write() accepts EnrichEvent (was missing from isinstance guard)."""

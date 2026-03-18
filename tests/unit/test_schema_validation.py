@@ -13,7 +13,6 @@ import pytest
 
 from Scripts.validate_yaml import _validate_arrays, validate_file
 
-
 # ─── VALID FRONTMATTER for reuse ─────────────────────────────────────────────
 
 VALID_FM = textwrap.dedent("""\
@@ -148,9 +147,7 @@ class TestStrictMode:
     """Tests for strict=True mode in validate_file."""
 
     def _tmp(self, content: str) -> str:
-        f = tempfile.NamedTemporaryFile(
-            mode="w", suffix=".md", delete=False, encoding="utf-8"
-        )
+        f = tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8")
         f.write(content)
         f.close()
         return f.name

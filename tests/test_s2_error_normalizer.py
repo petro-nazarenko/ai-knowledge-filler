@@ -5,9 +5,15 @@ AKF Phase 2.1 / ADR-001
 
 import pytest
 from akf.validation_error import (
-    ValidationError, ErrorCode, Severity,
-    missing_field, invalid_enum, invalid_date_format,
-    type_mismatch, schema_violation, taxonomy_violation,
+    ValidationError,
+    ErrorCode,
+    Severity,
+    missing_field,
+    invalid_enum,
+    invalid_date_format,
+    type_mismatch,
+    schema_violation,
+    taxonomy_violation,
 )
 from akf.error_normalizer import normalize_errors, RetryPayload, _format_list
 
@@ -90,10 +96,12 @@ class TestToPromptText:
         assert "1." in text
 
     def test_two_errors_numbered_1_and_2(self):
-        payload = normalize_errors([
-            missing_field("domain"),
-            missing_field("type"),
-        ])
+        payload = normalize_errors(
+            [
+                missing_field("domain"),
+                missing_field("type"),
+            ]
+        )
         text = payload.to_prompt_text()
         assert "1." in text
         assert "2." in text
