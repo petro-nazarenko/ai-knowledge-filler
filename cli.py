@@ -868,6 +868,102 @@ def cmd_canvas(args: argparse.Namespace) -> None:
     ok(f"Canvas written → {output_file}  ({n_nodes} nodes, {n_edges} edges)")
 
 
+# ─── GAPS ─────────────────────────────────────────────────────────────────────
+
+
+def cmd_gaps(args: argparse.Namespace) -> None:
+    """Scan vault for broken WikiLinks in related: fields and suggest plan.json entries.
+
+    Reads all .md files under --path, parses YAML frontmatter, collects
+    [[WikiLink]] values from the ``related`` field, then reports which links
+    point to files that do not exist in the vault.
+    """
+    import json
+    import yaml
+
+    vault_path = Path(args.path)
+    if not vault_path.exists():
+        err(f"Path not found: {vault_path}")
+        sys.exit(1)
+    if not vault_path.is_dir():
+        err(f"--path must be a directory: {vault_path}")
+        sys.exit(1)
+
+    md_files = list(vault_path.rglob("*.md"))
+    existing_stems = {f.stem for f in md_files}
+
+    wikilink_re = re.compile(r'\[\[([^\]|#\n]+?)(?:\|[^\]]*)?\]\]')
+    frontmatter_re = re.compile(r'^---\s*\n(.*?)\n---', re.DOTALL)
+
+    all_links: set[str] = set()
+    for md_file in md_files:
+        try:
+            content = md_file.read_text(encoding="utf-8")
+        except Exception:
+            continue
+
+        m = frontmatter_re.match(content)
+        if not m:
+            continue
+
+        try:
+            frontmatter = yaml.safe_load(m.group(1))
+        except Exception:
+            continue
+
+        if not isinstance(frontmatter, dict):
+            continue
+
+        related = frontmatter.get("related")
+        if not related:
+            continue
+
+        if isinstance(related, list):
+            related_str = " ".join(str(x) for x in related)
+        else:
+            related_str = str(related)
+
+        for link in wikilink_re.findall(related_str):
+            all_links.add(link.strip())
+
+    missing = sorted(link for link in all_links if link not in existing_stems)
+
+    fmt = getattr(args, "format", None)
+    output_path = getattr(args, "output", None)
+
+    suggestions = [
+        {"prompt": f"Create a file on {link.replace('_', ' ')}"}
+        for link in missing
+    ]
+
+    if fmt == "json":
+        print(json.dumps(suggestions, indent=2))
+    else:
+        if not missing:
+            ok("No missing files found. All WikiLinks in related: fields are resolved.")
+        else:
+            print(f"\nMissing files ({len(missing)}):")
+            for name in missing:
+                print(f"  - {name}")
+            print("\nSuggested plan.json additions:")
+            print(json.dumps(suggestions, indent=2))
+
+    if output_path and missing:
+        plan_file = Path(output_path)
+        existing_plan: list = []
+        if plan_file.exists():
+            try:
+                raw = plan_file.read_text(encoding="utf-8")
+                parsed = json.loads(raw)
+                if isinstance(parsed, list):
+                    existing_plan = parsed
+            except Exception:
+                pass
+        existing_plan.extend(suggestions)
+        plan_file.write_text(json.dumps(existing_plan, indent=2) + "\n", encoding="utf-8")
+        ok(f"Written to {plan_file} ({len(suggestions)} new entries)")
+
+
 # ─── ENTRY POINT ──────────────────────────────────────────────────────────────
 
 
@@ -976,6 +1072,26 @@ def main() -> int:
                      choices=["domain", "type", "level"],
                      help="Frontmatter field used to group nodes into columns (default: domain)")
 
+    # Gaps command
+    gaps = sub.add_parser(
+        "gaps",
+        help="Find broken WikiLinks in related: fields and suggest plan.json entries",
+    )
+    gaps.add_argument(
+        "--path", "-p", required=True,
+        help="Vault directory to scan for .md files",
+    )
+    gaps.add_argument(
+        "--output", "-o",
+        metavar="PLAN_JSON",
+        help="Append suggestions to this plan.json file",
+    )
+    gaps.add_argument(
+        "--format",
+        choices=["json"],
+        help="Output format: 'json' prints only the JSON array",
+    )
+
     # Serve command
 
 
@@ -1013,6 +1129,8 @@ def main() -> int:
         cmd_canvas(args)
     elif args.command == "market-analysis":
         cmd_market_analysis(args)
+    elif args.command == "gaps":
+        cmd_gaps(args)
     elif args.command == "serve":
         cmd_serve(args)
     return 0
