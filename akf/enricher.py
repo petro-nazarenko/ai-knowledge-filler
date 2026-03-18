@@ -15,7 +15,6 @@ from typing import Any
 
 import yaml
 
-
 # ─── REQUIRED FIELDS (Canon v1.2) ─────────────────────────────────────────────
 
 REQUIRED_FIELDS: list[str] = [
@@ -177,11 +176,45 @@ def merge_yaml(
 
 _ACRONYMS: frozenset[str] = frozenset(
     {
-        "akf", "ai", "api", "cli", "ci", "cd", "css", "csv",
-        "db", "dns", "gpu", "html", "http", "https", "id", "io",
-        "json", "jwt", "llm", "mcp", "ml", "orm", "os", "pdf",
-        "pkm", "qa", "rest", "sdk", "sql", "ssh", "tls", "ui",
-        "url", "ux", "uuid", "vm", "vpn", "xml", "yaml",
+        "akf",
+        "ai",
+        "api",
+        "cli",
+        "ci",
+        "cd",
+        "css",
+        "csv",
+        "db",
+        "dns",
+        "gpu",
+        "html",
+        "http",
+        "https",
+        "id",
+        "io",
+        "json",
+        "jwt",
+        "llm",
+        "mcp",
+        "ml",
+        "orm",
+        "os",
+        "pdf",
+        "pkm",
+        "qa",
+        "rest",
+        "sdk",
+        "sql",
+        "ssh",
+        "tls",
+        "ui",
+        "url",
+        "ux",
+        "uuid",
+        "vm",
+        "vpn",
+        "xml",
+        "yaml",
     }
 )
 
@@ -214,9 +247,7 @@ def write_back(path: Path, yaml_dict: dict[str, Any], body: str) -> None:
     """
     content = _assemble(yaml_dict, body)
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(
-        dir=path.parent, prefix=".akf_enrich_tmp_", suffix=".md"
-    )
+    fd, tmp_path = tempfile.mkstemp(dir=path.parent, prefix=".akf_enrich_tmp_", suffix=".md")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(content)

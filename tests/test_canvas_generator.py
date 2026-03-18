@@ -1,4 +1,5 @@
 """Tests for akf/canvas_generator.py — Obsidian Canvas JSON generation."""
+
 import json
 import textwrap
 from pathlib import Path
@@ -16,7 +17,6 @@ from akf.canvas_generator import (
     NODE_SPACING,
     NODE_WIDTH,
 )
-
 
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
@@ -117,7 +117,7 @@ def test_parse_related_untyped():
 
 
 def test_parse_related_typed():
-    pairs = _parse_related(['[[Other_Note|implements]]'])
+    pairs = _parse_related(["[[Other_Note|implements]]"])
     assert pairs == [("Other_Note", "implements")]
 
 
@@ -285,8 +285,7 @@ def test_build_edges_dangling_link_skipped(tmp_path):
     """Links that point to non-existent files must not produce edges."""
     md = tmp_path / "Note.md"
     md.write_text(
-        "---\ntitle: Note\ndomain: ai-system\n---\n"
-        "[[Does_Not_Exist]]\n",
+        "---\ntitle: Note\ndomain: ai-system\n---\n" "[[Does_Not_Exist]]\n",
         encoding="utf-8",
     )
     # Add related in frontmatter properly
@@ -413,7 +412,8 @@ def test_generate_group_by_level(corpus_dir, canvas_output):
 def test_generate_no_dangling_edges(tmp_path, canvas_output):
     """Output must not contain edges pointing to nodes not in the canvas."""
     md = tmp_path / "Lone.md"
-    md.write_text(textwrap.dedent("""\
+    md.write_text(
+        textwrap.dedent("""\
         ---
         title: Lone
         domain: devops
@@ -421,7 +421,9 @@ def test_generate_no_dangling_edges(tmp_path, canvas_output):
           - "[[Ghost_File]]"
         ---
         Body.
-    """), encoding="utf-8")
+    """),
+        encoding="utf-8",
+    )
     canvas = CanvasGenerator().generate(tmp_path, canvas_output)
     assert canvas["edges"] == []
 

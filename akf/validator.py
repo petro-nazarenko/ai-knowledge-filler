@@ -50,8 +50,14 @@ from akf.validation_error import (
 # ---------------------------------------------------------------------------
 
 REQUIRED_FIELDS = [
-    "title", "type", "domain", "level",
-    "status", "tags", "created", "updated",
+    "title",
+    "type",
+    "domain",
+    "level",
+    "status",
+    "tags",
+    "created",
+    "updated",
 ]
 
 DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -66,6 +72,7 @@ _RELATED_LINK_RE = re.compile(r"^\[\[([^\|\]]+?)(?:\|([^\]]+))?\]\]$")
 # ---------------------------------------------------------------------------
 # Validation Engine
 # ---------------------------------------------------------------------------
+
 
 def validate(document: str, taxonomy_path: Path | None = None) -> list[ValidationError]:
     """
@@ -95,12 +102,12 @@ def validate(document: str, taxonomy_path: Path | None = None) -> list[Validatio
         valid_domains = cfg.domains
 
     errors.extend(_check_required_fields(metadata))
-    errors.extend(_check_title_type(metadata))           # CANON-DEFER-003
-    errors.extend(_check_enum_fields(metadata, cfg))     # CANON-DEFER-001
+    errors.extend(_check_title_type(metadata))  # CANON-DEFER-003
+    errors.extend(_check_enum_fields(metadata, cfg))  # CANON-DEFER-001
     errors.extend(_check_taxonomy(metadata, valid_domains))
-    errors.extend(_check_dates(metadata))                # includes CANON-DEFER-002
+    errors.extend(_check_dates(metadata))  # includes CANON-DEFER-002
     errors.extend(_check_tags(metadata))
-    errors.extend(_check_related(metadata, cfg))         # WARNING + E008 typed links
+    errors.extend(_check_related(metadata, cfg))  # WARNING + E008 typed links
 
     return errors
 
@@ -108,6 +115,7 @@ def validate(document: str, taxonomy_path: Path | None = None) -> list[Validatio
 # ---------------------------------------------------------------------------
 # Frontmatter parser
 # ---------------------------------------------------------------------------
+
 
 def _parse_frontmatter(document: str) -> tuple[dict, ValidationError | None]:
     """Parse YAML frontmatter block from Markdown document."""
@@ -152,6 +160,7 @@ def _parse_frontmatter(document: str) -> tuple[dict, ValidationError | None]:
 # Field checkers
 # ---------------------------------------------------------------------------
 
+
 def _check_required_fields(metadata: dict) -> list[ValidationError]:
     return [missing_field(f) for f in REQUIRED_FIELDS if f not in metadata]
 
@@ -183,8 +192,8 @@ def _check_enum_fields(metadata: dict, cfg=None) -> list[ValidationError]:
 
     errors = []
     checks = [
-        ("type",   cfg.enums.type),
-        ("level",  cfg.enums.level),
+        ("type", cfg.enums.type),
+        ("level", cfg.enums.level),
         ("status", cfg.enums.status),
     ]
     for field_name, valid_values in checks:
@@ -254,12 +263,14 @@ def _check_tags(metadata: dict) -> list[ValidationError]:
     if not isinstance(tags, list):
         return [type_mismatch("tags", list, tags)]
     if len(tags) < TAGS_MIN:
-        return [ValidationError(
-            code=ErrorCode.TYPE_MISMATCH,
-            field="tags",
-            expected=f"list with >= {TAGS_MIN} items",
-            received=f"list with {len(tags)} items",
-        )]
+        return [
+            ValidationError(
+                code=ErrorCode.TYPE_MISMATCH,
+                field="tags",
+                expected=f"list with >= {TAGS_MIN} items",
+                received=f"list with {len(tags)} items",
+            )
+        ]
     return []
 
 
@@ -285,13 +296,15 @@ def _check_related(metadata: dict, cfg=None) -> list[ValidationError]:
 
     related = metadata.get("related")
     if not related:
-        return [ValidationError(
-            code=ErrorCode.SCHEMA_VIOLATION,
-            field="related",
-            expected="list with >= 1 WikiLink",
-            received="absent" if related is None else "empty list",
-            severity=Severity.WARNING,
-        )]
+        return [
+            ValidationError(
+                code=ErrorCode.SCHEMA_VIOLATION,
+                field="related",
+                expected="list with >= 1 WikiLink",
+                received="absent" if related is None else "empty list",
+                severity=Severity.WARNING,
+            )
+        ]
 
     if not isinstance(related, list):
         return [type_mismatch("related", list, related)]
@@ -317,6 +330,7 @@ def _check_related(metadata: dict, cfg=None) -> list[ValidationError]:
 # Legacy taxonomy loader (backwards compatibility — taxonomy_path API)
 # ---------------------------------------------------------------------------
 
+
 def _load_taxonomy(taxonomy_path: Path | None = None) -> list[str]:
     """Legacy loader. Used only when taxonomy_path is passed and no akf.yaml exists."""
     if taxonomy_path and taxonomy_path.exists():
@@ -336,14 +350,35 @@ def _parse_taxonomy_file(path: Path) -> list[str]:
 
 def _default_taxonomy() -> list[str]:
     """Legacy fallback — used only when no akf.yaml and no taxonomy_path."""
-    return sorted([
-        "ai-system", "api-design", "backend-engineering",
-        "business-strategy", "consulting", "data-engineering",
-        "data-science", "devops", "documentation",
-        "e-commerce", "education-tech", "finance",
-        "finance-tech", "frontend-engineering", "healthcare",
-        "infrastructure", "knowledge-management", "learning-systems",
-        "machine-learning", "marketing", "operations",
-        "product-management", "project-management", "prompt-engineering",
-        "sales", "security", "system-design", "workflow-automation",
-    ])
+    return sorted(
+        [
+            "ai-system",
+            "api-design",
+            "backend-engineering",
+            "business-strategy",
+            "consulting",
+            "data-engineering",
+            "data-science",
+            "devops",
+            "documentation",
+            "e-commerce",
+            "education-tech",
+            "finance",
+            "finance-tech",
+            "frontend-engineering",
+            "healthcare",
+            "infrastructure",
+            "knowledge-management",
+            "learning-systems",
+            "machine-learning",
+            "marketing",
+            "operations",
+            "product-management",
+            "project-management",
+            "prompt-engineering",
+            "sales",
+            "security",
+            "system-design",
+            "workflow-automation",
+        ]
+    )

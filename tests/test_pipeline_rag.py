@@ -14,7 +14,6 @@ import pytest
 
 from rag.retriever import RetrievalResult, RetrievalHit
 
-
 # ─── SHARED FIXTURES ──────────────────────────────────────────────────────────
 
 MOCK_HIT = RetrievalHit(
@@ -85,6 +84,7 @@ def _mock_commit(committed=True):
 
 # ─── TEST 1: RAG hits → system_prompt injected ────────────────────────────────
 
+
 def test_rag_context_injected_when_hits_available():
     """When _try_retrieve returns non-empty context, system_prompt gets ## RELEVANT CORPUS CONTEXT."""
     pipeline = _make_pipeline(rag_enabled=True)
@@ -98,12 +98,14 @@ def test_rag_context_injected_when_hits_available():
 
     provider.generate.side_effect = capture_generate
 
-    with patch("akf.pipeline._try_retrieve", return_value=RAG_CONTEXT_SNIPPET) as mock_retrieve, \
-         patch("llm_providers.get_provider", return_value=provider), \
-         patch("akf.telemetry.TelemetryWriter"), \
-         patch("akf.telemetry.new_generation_id", return_value="test-gen-id"), \
-         patch("akf.validator.validate", return_value=[]), \
-         patch("akf.commit_gate.commit", return_value=_mock_commit()):
+    with (
+        patch("akf.pipeline._try_retrieve", return_value=RAG_CONTEXT_SNIPPET) as mock_retrieve,
+        patch("llm_providers.get_provider", return_value=provider),
+        patch("akf.telemetry.TelemetryWriter"),
+        patch("akf.telemetry.new_generation_id", return_value="test-gen-id"),
+        patch("akf.validator.validate", return_value=[]),
+        patch("akf.commit_gate.commit", return_value=_mock_commit()),
+    ):
 
         result = pipeline.generate("Python decorators guide")
 
@@ -115,17 +117,20 @@ def test_rag_context_injected_when_hits_available():
 
 # ─── TEST 2: RAG unavailable (import error) → proceeds without exception ──────
 
+
 def test_rag_unavailable_proceeds_without_exception():
     """When _try_retrieve returns '' (e.g. ImportError swallowed), generate() continues normally."""
     pipeline = _make_pipeline(rag_enabled=True)
     provider = _mock_provider()
 
-    with patch("akf.pipeline._try_retrieve", return_value=""), \
-         patch("llm_providers.get_provider", return_value=provider), \
-         patch("akf.telemetry.TelemetryWriter"), \
-         patch("akf.telemetry.new_generation_id", return_value="test-gen-id"), \
-         patch("akf.validator.validate", return_value=[]), \
-         patch("akf.commit_gate.commit", return_value=_mock_commit()):
+    with (
+        patch("akf.pipeline._try_retrieve", return_value=""),
+        patch("llm_providers.get_provider", return_value=provider),
+        patch("akf.telemetry.TelemetryWriter"),
+        patch("akf.telemetry.new_generation_id", return_value="test-gen-id"),
+        patch("akf.validator.validate", return_value=[]),
+        patch("akf.commit_gate.commit", return_value=_mock_commit()),
+    ):
 
         result = pipeline.generate("Python decorators guide")
 
@@ -146,6 +151,7 @@ def test_try_retrieve_silently_swallows_import_error():
 
 # ─── TEST 3: RAG returns empty hits → system_prompt unchanged ─────────────────
 
+
 def test_rag_empty_hits_system_prompt_unchanged():
     """When _try_retrieve returns '', system_prompt does NOT contain RAG section."""
     pipeline = _make_pipeline(rag_enabled=True)
@@ -159,12 +165,14 @@ def test_rag_empty_hits_system_prompt_unchanged():
 
     provider.generate.side_effect = capture_generate
 
-    with patch("akf.pipeline._try_retrieve", return_value=""), \
-         patch("llm_providers.get_provider", return_value=provider), \
-         patch("akf.telemetry.TelemetryWriter"), \
-         patch("akf.telemetry.new_generation_id", return_value="test-gen-id"), \
-         patch("akf.validator.validate", return_value=[]), \
-         patch("akf.commit_gate.commit", return_value=_mock_commit()):
+    with (
+        patch("akf.pipeline._try_retrieve", return_value=""),
+        patch("llm_providers.get_provider", return_value=provider),
+        patch("akf.telemetry.TelemetryWriter"),
+        patch("akf.telemetry.new_generation_id", return_value="test-gen-id"),
+        patch("akf.validator.validate", return_value=[]),
+        patch("akf.commit_gate.commit", return_value=_mock_commit()),
+    ):
 
         result = pipeline.generate("Python decorators guide")
 
@@ -174,17 +182,20 @@ def test_rag_empty_hits_system_prompt_unchanged():
 
 # ─── TEST 4: rag_enabled=False → _try_retrieve never called ───────────────────
 
+
 def test_no_rag_flag_skips_retrieval():
     """When Pipeline(rag_enabled=False), _try_retrieve is never invoked."""
     pipeline = _make_pipeline(rag_enabled=False)
     provider = _mock_provider()
 
-    with patch("akf.pipeline._try_retrieve") as mock_retrieve, \
-         patch("llm_providers.get_provider", return_value=provider), \
-         patch("akf.telemetry.TelemetryWriter"), \
-         patch("akf.telemetry.new_generation_id", return_value="test-gen-id"), \
-         patch("akf.validator.validate", return_value=[]), \
-         patch("akf.commit_gate.commit", return_value=_mock_commit()):
+    with (
+        patch("akf.pipeline._try_retrieve") as mock_retrieve,
+        patch("llm_providers.get_provider", return_value=provider),
+        patch("akf.telemetry.TelemetryWriter"),
+        patch("akf.telemetry.new_generation_id", return_value="test-gen-id"),
+        patch("akf.validator.validate", return_value=[]),
+        patch("akf.commit_gate.commit", return_value=_mock_commit()),
+    ):
 
         result = pipeline.generate("Python decorators guide")
 
@@ -192,6 +203,7 @@ def test_no_rag_flag_skips_retrieval():
 
 
 # ─── TEST 5: _try_retrieve() formats hits correctly ───────────────────────────
+
 
 def test_try_retrieve_formats_multiple_hits():
     """_try_retrieve() builds correct formatted string using filename metadata."""

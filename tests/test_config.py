@@ -28,7 +28,6 @@ from akf.config import (
     _DEFAULT_ENUMS,
 )
 
-
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
 
@@ -339,7 +338,9 @@ class TestGetConfigSingleton:
         assert cfg is not None
         assert isinstance(cfg, AKFConfig)
 
-    def test_second_call_ignores_new_path_argument(self, full_yaml: Path, minimal_yaml: Path) -> None:
+    def test_second_call_ignores_new_path_argument(
+        self, full_yaml: Path, minimal_yaml: Path
+    ) -> None:
         """Once cached, passing a different path has no effect."""
         cfg1 = get_config(path=full_yaml)
         cfg2 = get_config(path=minimal_yaml)  # should be ignored

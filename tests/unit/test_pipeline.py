@@ -7,8 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from akf.pipeline import Pipeline, GenerateResult, ValidateResult, _patch_dates, _strip_yaml_codeblock
-
+from akf.pipeline import (
+    Pipeline,
+    GenerateResult,
+    ValidateResult,
+    _patch_dates,
+    _strip_yaml_codeblock,
+)
 
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
@@ -54,6 +59,7 @@ INVALID_CONTENT = textwrap.dedent("""\
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
+
 def make_mock_provider(content=VALID_CONTENT):
     provider = MagicMock()
     provider.display_name = "MockLLM"
@@ -63,6 +69,7 @@ def make_mock_provider(content=VALID_CONTENT):
 
 
 # ─── GenerateResult ───────────────────────────────────────────────────────────
+
 
 class TestGenerateResult:
     def test_repr_valid(self):
@@ -83,6 +90,7 @@ class TestGenerateResult:
 
 # ─── ValidateResult ───────────────────────────────────────────────────────────
 
+
 class TestValidateResult:
     def test_repr_valid(self):
         r = ValidateResult(valid=True)
@@ -100,6 +108,7 @@ class TestValidateResult:
 
 
 # ─── Pipeline init ────────────────────────────────────────────────────────────
+
 
 class TestPipelineInit:
     def test_default_model(self):
@@ -124,6 +133,7 @@ class TestPipelineInit:
 
     def test_writer_injection(self):
         from unittest.mock import MagicMock
+
         writer = MagicMock()
         p = Pipeline(writer=writer)
         assert p.writer is writer
@@ -134,6 +144,7 @@ class TestPipelineInit:
 
     def test_config_injection(self):
         from akf.config import AKFConfig, AKFEnums
+
         cfg = AKFConfig(
             domains=["test-domain"],
             enums=AKFEnums(type=["guide"], level=["beginner"], status=["active"]),
@@ -171,8 +182,13 @@ class TestPipelineInit:
         )
 
         # Spy on build_prompt to verify injected config domains are forwarded
-        with patch("akf.enricher.build_prompt", wraps=__import__("akf.enricher", fromlist=["build_prompt"]).build_prompt) as spy_build_prompt, \
-             patch("llm_providers.get_provider", return_value=mock_provider):
+        with (
+            patch(
+                "akf.enricher.build_prompt",
+                wraps=__import__("akf.enricher", fromlist=["build_prompt"]).build_prompt,
+            ) as spy_build_prompt,
+            patch("llm_providers.get_provider", return_value=mock_provider),
+        ):
             p.enrich(str(md))
 
         assert spy_build_prompt.call_count >= 1
@@ -181,6 +197,7 @@ class TestPipelineInit:
 
 
 # ─── Pipeline.validate ────────────────────────────────────────────────────────
+
 
 class TestPipelineValidate:
     def test_valid_file(self, tmp_path):
@@ -210,9 +227,7 @@ class TestPipelineValidate:
     def test_strict_mode(self, tmp_path):
         f = tmp_path / "warn.md"
         # File with warnings (no related field)
-        content = VALID_CONTENT.replace(
-            "related:\n  - \"[[Docker Basics]]\"\n", ""
-        )
+        content = VALID_CONTENT.replace('related:\n  - "[[Docker Basics]]"\n', "")
         f.write_text(content)
         p = Pipeline(verbose=False)
         normal = p.validate(str(f), strict=False)
@@ -229,6 +244,7 @@ class TestPipelineValidate:
 
 
 # ─── Pipeline.generate ────────────────────────────────────────────────────────
+
 
 class TestPipelineGenerate:
     def test_generate_success(self, tmp_path):
@@ -281,6 +297,7 @@ class TestPipelineGenerate:
 
 # ─── Pipeline.batch_generate ──────────────────────────────────────────────────
 
+
 class TestPipelineBatchGenerate:
     def test_batch_returns_list(self, tmp_path):
         p = Pipeline(output=str(tmp_path), verbose=False)
@@ -306,6 +323,7 @@ class TestPipelineBatchGenerate:
 
 
 # ─── _strip_yaml_codeblock ────────────────────────────────────────────────────
+
 
 class TestStripYamlCodeblock:
     """Tests for _strip_yaml_codeblock — fixes weaker-LLM code block wrapping."""
@@ -357,6 +375,7 @@ class TestStripYamlCodeblock:
 
 # ─── _patch_dates ─────────────────────────────────────────────────────────────
 
+
 class TestPatchDates:
     """Tests for _patch_dates — ensures LLM stale dates are overwritten."""
 
@@ -396,5 +415,6 @@ class TestPatchDates:
         content = "---\ncreated: 2023-01-01\nupdated: 2023-01-01\n---\n"
         result = _patch_dates(content, "2026-03-17")
         import re
+
         assert re.search(r"created: \d{4}-\d{2}-\d{2}", result)
         assert re.search(r"updated: \d{4}-\d{2}-\d{2}", result)

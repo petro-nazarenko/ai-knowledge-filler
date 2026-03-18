@@ -3,6 +3,7 @@
 Fix 7 — verify that MarketAnalysisPipeline._build_system_prompt() loads
 domain taxonomy from akf.yaml config instead of hardcoding business-strategy.
 """
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch

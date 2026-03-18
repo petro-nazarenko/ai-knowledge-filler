@@ -16,7 +16,6 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-
 # ─── shared fixtures ─────────────────────────────────────────────────────────
 
 VALID_MD = textwrap.dedent("""\
@@ -69,8 +68,14 @@ def _gen_result(
 
 
 def _enrich_result(path: str, status: str) -> SimpleNamespace:
-    return SimpleNamespace(path=Path(path), status=status, success=status == "enriched",
-                           skip_reason=None, attempts=1, errors=[])
+    return SimpleNamespace(
+        path=Path(path),
+        status=status,
+        success=status == "enriched",
+        skip_reason=None,
+        attempts=1,
+        errors=[],
+    )
 
 
 def _make_validation_error(severity_value: str = "error") -> MagicMock:
@@ -79,6 +84,7 @@ def _make_validation_error(severity_value: str = "error") -> MagicMock:
     e.severity.value = severity_value
     # Match how Severity.ERROR comparison works
     from akf.validation_error import Severity
+
     e.severity = Severity.ERROR if severity_value == "error" else Severity.WARNING
     e.__str__ = lambda self: f"E001 ({severity_value})"
     return e
@@ -95,6 +101,7 @@ class TestAkfGenerateTool:
         MockPipeline.return_value.generate.return_value = _gen_result()
 
         from akf.mcp_server import akf_generate
+
         response = akf_generate(prompt="Explain AKF validation pipeline")
 
         assert response["success"] is True
@@ -110,6 +117,7 @@ class TestAkfGenerateTool:
         mock_instance.generate.return_value = _gen_result()
 
         from akf.mcp_server import akf_generate
+
         akf_generate(prompt="Guide to API design", domain="api-design", type="guide", model="groq")
 
         mock_instance.generate.assert_called_once_with(
@@ -124,6 +132,7 @@ class TestAkfGenerateTool:
         MockPipeline.return_value.generate.side_effect = RuntimeError("GROQ_API_KEY not set")
 
         from akf.mcp_server import akf_generate
+
         with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
             akf_generate(prompt="test", model="groq")
 
@@ -141,6 +150,7 @@ class TestAkfValidateTool:
         mock_validate.return_value = []
 
         from akf.mcp_server import akf_validate
+
         response = akf_validate(path=str(f))
 
         assert response["is_valid"] is True
@@ -156,6 +166,7 @@ class TestAkfValidateTool:
         mock_validate.return_value = [err]
 
         from akf.mcp_server import akf_validate
+
         response = akf_validate(path=str(f))
 
         assert response["is_valid"] is False
@@ -176,6 +187,7 @@ class TestAkfValidateTool:
         mock_validate.side_effect = side_effect
 
         from akf.mcp_server import akf_validate
+
         response = akf_validate(path=str(tmp_path))
 
         assert response["total"] == 3
@@ -186,6 +198,7 @@ class TestAkfValidateTool:
     def test_nonexistent_path_returns_error(self):
         """Non-existent path → error key in response."""
         from akf.mcp_server import akf_validate
+
         response = akf_validate(path="/nonexistent/path/file.md")
 
         assert "error" in response
@@ -206,6 +219,7 @@ class TestAkfEnrichTool:
         MockPipeline.return_value.enrich.return_value = _enrich_result(str(f), "enriched")
 
         from akf.mcp_server import akf_enrich
+
         response = akf_enrich(path=str(f))
 
         assert response["total"] == 1
@@ -222,6 +236,7 @@ class TestAkfEnrichTool:
         MockPipeline.return_value.enrich.return_value = _enrich_result(str(f), "skipped")
 
         from akf.mcp_server import akf_enrich
+
         response = akf_enrich(path=str(f), force=False)
 
         assert response["skipped"] == 1
@@ -237,6 +252,7 @@ class TestAkfEnrichTool:
         mock_instance.enrich.return_value = _enrich_result(str(f), "enriched")
 
         from akf.mcp_server import akf_enrich
+
         akf_enrich(path=str(f), dry_run=True)
 
         mock_instance.enrich.assert_called_once_with(
@@ -254,14 +270,15 @@ class TestAkfBatchTool:
         """Plan 3 items → total=3, ok=3."""
         plan = [
             {"prompt": "Concept A", "domain": "ai-system", "type": "concept"},
-            {"prompt": "Guide B",   "domain": "devops",    "type": "guide"},
-            {"prompt": "Ref C",     "domain": "api-design","type": "reference"},
+            {"prompt": "Guide B", "domain": "devops", "type": "guide"},
+            {"prompt": "Ref C", "domain": "api-design", "type": "reference"},
         ]
         MockPipeline.return_value.batch_generate.return_value = [
             _gen_result(file_path=f"/vault/f{i}.md") for i in range(3)
         ]
 
         from akf.mcp_server import akf_batch
+
         response = akf_batch(plan=plan)
 
         assert response["total"] == 3
@@ -272,6 +289,7 @@ class TestAkfBatchTool:
     def test_empty_plan(self):
         """Empty plan → zeros, no Pipeline created."""
         from akf.mcp_server import akf_batch
+
         response = akf_batch(plan=[])
 
         assert response == {"total": 0, "ok": 0, "failed": 0, "results": []}
@@ -281,12 +299,13 @@ class TestAkfBatchTool:
         """2 ok + 1 fail → ok=2, failed=1."""
         plan = [{"prompt": "OK 1"}, {"prompt": "FAIL"}, {"prompt": "OK 2"}]
         MockPipeline.return_value.batch_generate.return_value = [
-            _gen_result(success=True,  file_path="/vault/ok1.md"),
+            _gen_result(success=True, file_path="/vault/ok1.md"),
             _gen_result(success=False, file_path=None, errors=[MagicMock()]),
-            _gen_result(success=True,  file_path="/vault/ok2.md"),
+            _gen_result(success=True, file_path="/vault/ok2.md"),
         ]
 
         from akf.mcp_server import akf_batch
+
         response = akf_batch(plan=plan)
 
         assert response["total"] == 3

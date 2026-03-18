@@ -21,10 +21,13 @@ from akf.retry_controller import (
     MAX_ATTEMPTS,
 )
 from akf.validation_error import (
-    ValidationError, ErrorCode, Severity,
-    missing_field, invalid_enum, taxonomy_violation,
+    ValidationError,
+    ErrorCode,
+    Severity,
+    missing_field,
+    invalid_enum,
+    taxonomy_violation,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +79,7 @@ def _validate_invalid(doc: str) -> list[ValidationError]:
 
 # ── Immediate success ─────────────────────────────────────────────────────────
 
+
 class TestImmediateSuccess:
 
     def test_no_errors_returns_success_with_zero_attempts(self):
@@ -109,6 +113,7 @@ class TestImmediateSuccess:
 
 
 # ── Convergence on retry ──────────────────────────────────────────────────────
+
 
 class TestConvergenceOnRetry:
 
@@ -193,6 +198,7 @@ body
 
 # ── Identical output abort ────────────────────────────────────────────────────
 
+
 class TestIdenticalOutputAbort:
 
     def test_same_doc_twice_aborts_with_identical_output(self):
@@ -248,6 +254,7 @@ class TestIdenticalOutputAbort:
 
 # ── Convergence failure (same field+code twice) ───────────────────────────────
 
+
 class TestConvergenceFailure:
 
     def test_same_field_code_consecutive_aborts(self):
@@ -289,7 +296,7 @@ class TestConvergenceFailure:
         With max_attempts=2 and 2 attempts both failing, abort with max_attempts_reached.
         """
         errors_sequence = [
-            [domain_error()],        # attempt 1: different field from initial 'level'
+            [domain_error()],  # attempt 1: different field from initial 'level'
             [invalid_enum("type", ["concept", "guide"], "article")],  # attempt 2: different field
         ]
         gen_calls = {"n": 0}
@@ -318,6 +325,7 @@ class TestConvergenceFailure:
 
 
 # ── max_attempts exhaustion ───────────────────────────────────────────────────
+
 
 class TestMaxAttempts:
 
@@ -368,6 +376,7 @@ class TestMaxAttempts:
 
 # ── _check_convergence direct tests ──────────────────────────────────────────
 
+
 class TestCheckConvergence:
 
     def test_same_field_and_code_returns_abort_reason(self):
@@ -398,6 +407,7 @@ class TestCheckConvergence:
 
 
 # ── _hash determinism ─────────────────────────────────────────────────────────
+
 
 class TestHash:
 

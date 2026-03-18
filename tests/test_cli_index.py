@@ -1,4 +1,5 @@
 """Tests for `akf index` CLI subcommand (cli.cmd_index)."""
+
 import argparse
 import sys
 from pathlib import Path
@@ -13,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 def _invoke(args_dict: dict) -> None:
     """Import and invoke cmd_index with a synthetic argparse.Namespace."""
     from cli import cmd_index  # noqa: PLC0415  (lazy import intentional)
+
     cmd_index(argparse.Namespace(**args_dict))
 
 
@@ -38,8 +40,10 @@ class TestCmdIndexSuccess:
         )
         mock_stats = MagicMock(files_indexed=3, chunks_indexed=7)
 
-        with patch("rag.config.load_config", return_value=cfg), \
-             patch("rag.indexer.index_corpus", return_value=mock_stats):
+        with (
+            patch("rag.config.load_config", return_value=cfg),
+            patch("rag.indexer.index_corpus", return_value=mock_stats),
+        ):
             # Should not raise SystemExit
             _invoke({"corpus": None, "reset": False})
 

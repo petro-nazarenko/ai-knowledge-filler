@@ -11,7 +11,7 @@ try:
     from rag.config import RAGConfig, load_config
 except ModuleNotFoundError:
     # Support direct execution: `python rag/indexer.py`
-    from config import RAGConfig, load_config
+    from config import RAGConfig, load_config  # type: ignore[no-redef]
 
 
 @dataclass
@@ -72,7 +72,7 @@ def _read_markdown(path: Path, frontmatter_module: Any) -> tuple[dict[str, Any],
 
 def _split_by_h2(content: str, splitter_class: Any) -> list[Any]:
     splitter = splitter_class(headers_to_split_on=[("##", "section")], strip_headers=False)
-    docs = splitter.split_text(content)
+    docs: list[Any] = splitter.split_text(content)
     if not docs and content.strip():
         docs = splitter.split_text(f"## Content\n\n{content}")
     return docs

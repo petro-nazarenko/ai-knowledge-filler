@@ -36,17 +36,19 @@ ROTATION_BYTES = 10 * 1024 * 1024  # 10MB
 
 # ─── VALUE OBJECTS ────────────────────────────────────────────────────────────
 
+
 @dataclass
 class ValidationErrorRecord:
     """Serializable representation of a ValidationError for telemetry.
 
     Mirrors ValidationError contract from ADR-001 Decision 3.
     """
-    code: str       # E001–E006
-    field: str      # YAML field name
-    expected: Any   # Valid set or pattern
-    received: Any   # Value that failed validation
-    severity: str   # "error" | "warning"
+
+    code: str  # E001–E006
+    field: str  # YAML field name
+    expected: Any  # Valid set or pattern
+    received: Any  # Value that failed validation
+    severity: str  # "error" | "warning"
 
     def to_dict(self) -> dict:
         return {
@@ -60,6 +62,7 @@ class ValidationErrorRecord:
 
 # ─── EVENTS ───────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class GenerationAttemptEvent:
     """One event per generation attempt.
@@ -69,24 +72,25 @@ class GenerationAttemptEvent:
 
     Emitted by: RetryController after each attempt.
     """
+
     # Identity
     generation_id: str
     document_id: str
     schema_version: str
 
     # Attempt context
-    attempt: int          # 1-indexed
-    max_attempts: int     # RetryController ceiling (currently 3)
+    attempt: int  # 1-indexed
+    max_attempts: int  # RetryController ceiling (currently 3)
     is_final_attempt: bool
-    converged: bool       # True if ValidationEngine returned VALID
+    converged: bool  # True if ValidationEngine returned VALID
 
     # Validation outcome
     errors: list[ValidationErrorRecord]
 
     # LLM config (required for drift separation)
     model: str
-    temperature: float    # Must be 0 per Determinism Contract
-    top_p: float          # Must be 1 per Determinism Contract
+    temperature: float  # Must be 0 per Determinism Contract
+    top_p: float  # Must be 1 per Determinism Contract
 
     # Timing
     duration_ms: int
@@ -122,6 +126,7 @@ class GenerationSummaryEvent:
 
     Emitted by: CommitGate after session completes (converged or aborted).
     """
+
     # Identity
     generation_id: str
     document_id: str
@@ -130,12 +135,12 @@ class GenerationSummaryEvent:
     # Session outcome
     total_attempts: int
     converged: bool
-    abort_reason: Optional[str]   # None if converged.
-                                  # "identical_error_hash" | "max_attempts_exceeded"
+    abort_reason: Optional[str]  # None if converged.
+    # "identical_error_hash" | "max_attempts_exceeded"
 
     # Ontology signals
-    rejected_candidates: list[str]   # All enum values attempted and rejected, in order
-    final_domain: Optional[str]      # Committed domain value. None if not converged.
+    rejected_candidates: list[str]  # All enum values attempted and rejected, in order
+    final_domain: Optional[str]  # Committed domain value. None if not converged.
 
     # LLM config
     model: str
@@ -171,10 +176,10 @@ class GenerationSummaryEvent:
 # ─── WRITER ───────────────────────────────────────────────────────────────────
 
 
-
 @dataclass
 class EnrichEvent:
     """One telemetry event per enriched file (ADR-001 Decision 9)."""
+
     generation_id: str
     file: str
     schema_version: str
@@ -215,7 +220,7 @@ class AskQueryEvent:
 
     generation_id: str
     tenant_id: str
-    mode: str                    # synthesis | retrieval-only
+    mode: str  # synthesis | retrieval-only
     model: str
     top_k: int
     no_llm: bool
@@ -255,12 +260,12 @@ class MarketAnalysisEvent:
     """
 
     generation_id: str
-    request: str             # first 80 chars of the market request
-    stage: str               # "market_analysis" | "competitor_analysis" | "positioning" | "financial_assessment"
+    request: str  # first 80 chars of the market request
+    stage: str  # "market_analysis" | "competitor_analysis" | "positioning" | "financial_assessment"
     success: bool
     duration_ms: int
     model: str
-    error: str = ""          # empty string when success=True
+    error: str = ""  # empty string when success=True
     event_type: str = field(default="market_analysis", init=False)
     event_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: str = field(default_factory=lambda: _utc_now())
@@ -314,7 +319,13 @@ class TelemetryWriter:
         """
         if not isinstance(
             event,
-            (GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, MarketAnalysisEvent, AskQueryEvent),
+            (
+                GenerationAttemptEvent,
+                GenerationSummaryEvent,
+                EnrichEvent,
+                MarketAnalysisEvent,
+                AskQueryEvent,
+            ),
         ):
             raise TypeError(
                 f"Expected GenerationAttemptEvent, GenerationSummaryEvent, EnrichEvent, "
@@ -333,9 +344,7 @@ class TelemetryWriter:
         """Return current write target, rotating if file exceeds ROTATION_BYTES."""
         if self._path.exists() and self._path.stat().st_size >= ROTATION_BYTES:
             suffix = datetime.now(timezone.utc).strftime("%Y-%m")
-            rotated = self._path.with_name(
-                f"{self._path.stem}_{suffix}{self._path.suffix}"
-            )
+            rotated = self._path.with_name(f"{self._path.stem}_{suffix}{self._path.suffix}")
             self._path = rotated
         return self._path
 
@@ -345,6 +354,7 @@ class TelemetryWriter:
 
 
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
+
 
 def new_generation_id() -> str:
     """Generate a UUID v4 for use as generation_id across pipeline components."""

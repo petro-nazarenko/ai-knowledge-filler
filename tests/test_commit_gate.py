@@ -28,7 +28,6 @@ from akf.validation_error import (
     taxonomy_violation,
 )
 
-
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
 GEN_ID = str(uuid.uuid4())
@@ -97,6 +96,7 @@ def run_commit(doc, output_path, errors, writer, rejected=None):
 
 # ─── Success path ─────────────────────────────────────────────────────────────
 
+
 class TestSummaryOnSuccess:
     def test_emits_one_summary_event(self, tmp_path):
         writer = make_writer(tmp_path)
@@ -159,6 +159,7 @@ class TestSummaryOnSuccess:
 
 # ─── Blocking errors path ─────────────────────────────────────────────────────
 
+
 class TestSummaryOnBlockingErrors:
     def test_emits_summary_on_blocking_error(self, tmp_path):
         writer = make_writer(tmp_path)
@@ -190,6 +191,7 @@ class TestSummaryOnBlockingErrors:
 
 # ─── Schema version mismatch path ─────────────────────────────────────────────
 
+
 class TestSummaryOnSchemaVersionMismatch:
     def test_emits_summary_on_version_mismatch(self, tmp_path):
         writer = make_writer(tmp_path)
@@ -209,6 +211,7 @@ class TestSummaryOnSchemaVersionMismatch:
 
 
 # ─── writer=None and generation_id=None ───────────────────────────────────────
+
 
 class TestNoTelemetry:
     def test_writer_none_commit_succeeds(self, tmp_path):
@@ -240,6 +243,7 @@ class TestNoTelemetry:
 
 
 # ─── Telemetry failure isolation ──────────────────────────────────────────────
+
 
 class TestTelemetryFailureIsolation:
     def test_writer_exception_does_not_abort_commit(self, tmp_path):

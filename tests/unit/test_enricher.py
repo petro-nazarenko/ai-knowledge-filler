@@ -25,17 +25,18 @@ from akf.enricher import (
     write_back,
 )
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture()
 def tmp_md(tmp_path: Path):
     """Return a factory that creates .md files in tmp_path."""
+
     def _make(name: str, content: str) -> Path:
         p = tmp_path / name
         p.write_text(content, encoding="utf-8")
         return p
+
     return _make
 
 
@@ -183,8 +184,8 @@ class TestMergeYaml:
         existing = {"title": "Old Title", "type": "guide"}
         generated = {"title": "New Title", "domain": "ai-system"}
         merged = merge_yaml(existing, generated, force=False, today="2026-02-27")
-        assert merged["title"] == "Old Title"      # existing wins
-        assert merged["domain"] == "ai-system"     # new field added
+        assert merged["title"] == "Old Title"  # existing wins
+        assert merged["domain"] == "ai-system"  # new field added
 
     def test_force_overwrites_existing(self):
         existing = {"title": "Old", "type": "guide"}
@@ -238,6 +239,7 @@ class TestMergeYaml:
 
     def test_today_default_used(self):
         from datetime import date
+
         merged = merge_yaml({}, {})
         assert merged["updated"] == date.today().isoformat()
 

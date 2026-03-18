@@ -90,6 +90,7 @@ _DEFAULT_ENUMS: dict[str, list[str]] = {
 @dataclass
 class AKFEnums:
     """Controlled vocabulary sets."""
+
     type: list[str] = field(default_factory=lambda: list(_DEFAULT_ENUMS["type"]))
     level: list[str] = field(default_factory=lambda: list(_DEFAULT_ENUMS["level"]))
     status: list[str] = field(default_factory=lambda: list(_DEFAULT_ENUMS["status"]))
@@ -107,11 +108,10 @@ class AKFConfig:
         schema_version:      Version of the akf.yaml schema used.
         source:              Path to the loaded config file, or None if using defaults.
     """
+
     domains: list[str] = field(default_factory=lambda: list(_DEFAULT_DOMAINS))
     enums: AKFEnums = field(default_factory=AKFEnums)
-    relationship_types: list[str] = field(
-        default_factory=lambda: list(_DEFAULT_RELATIONSHIP_TYPES)
-    )
+    relationship_types: list[str] = field(default_factory=lambda: list(_DEFAULT_RELATIONSHIP_TYPES))
     schema_version: str = "1.0.0"
     source: Optional[Path] = None
 
@@ -242,9 +242,7 @@ def load_config(path: Optional[Path | str] = None) -> AKFConfig:
         if candidate.exists():
             return _parse_yaml(candidate)
         if raise_if_missing:
-            raise FileNotFoundError(
-                f"AKF config file not found: {candidate}"
-            )
+            raise FileNotFoundError(f"AKF config file not found: {candidate}")
 
     # 5. Built-in defaults — no file required
     return _defaults()

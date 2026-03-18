@@ -216,6 +216,7 @@ def _extract_tenant_id(request: Request) -> str:
 
 # ─── SCHEMAS ──────────────────────────────────────────────────────────────────
 
+
 class GenerateRequest(BaseModel):
     prompt: str = Field(..., min_length=1, max_length=2000)
     output: Optional[str] = None
@@ -278,6 +279,7 @@ class AskResponse(BaseModel):
 
 # ─── ENDPOINTS ────────────────────────────────────────────────────────────────
 
+
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "1.0.0", "env": _env()}
@@ -314,6 +316,7 @@ def metrics():
 @app.get("/v1/models", dependencies=[Depends(verify_key)])
 def models():
     from llm_providers import list_providers
+
     return {"providers": list_providers()}
 
 
@@ -348,6 +351,7 @@ def generate(request: Request, req: GenerateRequest):
 def validate(request: Request, req: ValidateRequest):
     from akf.validator import validate as _validate
     from akf.validation_error import Severity
+
     all_errors = _validate(req.content)
     if req.strict:
         errors = [str(e) for e in all_errors]

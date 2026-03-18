@@ -27,8 +27,8 @@ from analyze_telemetry import (
     main,
 )
 
-
 # ─── FACTORIES ────────────────────────────────────────────────────────────────
+
 
 def attempt(
     generation_id="gen-1",
@@ -132,6 +132,7 @@ def ask_event(
 
 # ─── load_events ──────────────────────────────────────────────────────────────
 
+
 class TestLoadEvents:
     def test_splits_attempt_and_summary(self, tmp_path):
         path = tmp_path / "events.jsonl"
@@ -226,6 +227,7 @@ class TestReportAskUsage:
 
 # ─── report_retry_rate ────────────────────────────────────────────────────────
 
+
 class TestReportRetryRate:
     def test_no_attempts_prints_message(self, capsys):
         report_retry_rate([])
@@ -240,8 +242,7 @@ class TestReportRetryRate:
     def test_signal_a_rate_all_fail(self, capsys):
         events = [
             attempt(attempt_num=1, converged=False, errors=[domain_error()]),
-            attempt(attempt_num=1, converged=False, errors=[domain_error()],
-                    document_id="doc-2"),
+            attempt(attempt_num=1, converged=False, errors=[domain_error()], document_id="doc-2"),
         ]
         report_retry_rate(events)
         out = capsys.readouterr().out
@@ -275,10 +276,7 @@ class TestReportRetryRate:
         events = [
             attempt(attempt_num=1, converged=True, errors=[], document_id=f"doc-{i}")
             for i in range(19)
-        ] + [
-            attempt(attempt_num=1, converged=False, errors=[domain_error()],
-                    document_id="doc-19")
-        ]
+        ] + [attempt(attempt_num=1, converged=False, errors=[domain_error()], document_id="doc-19")]
         report_retry_rate(events, flag_threshold=0.15)
         assert "REVIEW" not in capsys.readouterr().out
 
@@ -300,6 +298,7 @@ class TestReportRetryRate:
 
 
 # ─── report_rejected_candidates ──────────────────────────────────────────────
+
 
 class TestReportRejectedCandidates:
     def test_no_summaries_prints_message(self, capsys):
@@ -370,6 +369,7 @@ class TestReportRejectedCandidates:
 
 # ─── report_convergence ───────────────────────────────────────────────────────
 
+
 class TestReportConvergence:
     def test_no_summaries_prints_message(self, capsys):
         report_convergence([])
@@ -378,8 +378,9 @@ class TestReportConvergence:
     def test_all_converged_zero_non_convergence(self, capsys):
         events = [
             summary(total_attempts=1, converged=True, final_domain="api-design"),
-            summary(total_attempts=2, converged=True, final_domain="api-design",
-                    document_id="doc-2"),
+            summary(
+                total_attempts=2, converged=True, final_domain="api-design", document_id="doc-2"
+            ),
         ]
         report_convergence(events)
         out = capsys.readouterr().out
@@ -387,10 +388,15 @@ class TestReportConvergence:
 
     def test_non_convergence_rate_calculated(self, capsys):
         events = [
-            summary(total_attempts=3, converged=False, final_domain=None,
-                    abort_reason="max_attempts_exceeded"),
-            summary(total_attempts=1, converged=True, final_domain="api-design",
-                    document_id="doc-2"),
+            summary(
+                total_attempts=3,
+                converged=False,
+                final_domain=None,
+                abort_reason="max_attempts_exceeded",
+            ),
+            summary(
+                total_attempts=1, converged=True, final_domain="api-design", document_id="doc-2"
+            ),
         ]
         report_convergence(events)
         out = capsys.readouterr().out
@@ -401,10 +407,10 @@ class TestReportConvergence:
         # Non-converged (3 attempts) must NOT affect mean
         events = [
             summary(total_attempts=1, converged=True, final_domain="api-design"),
-            summary(total_attempts=3, converged=True, final_domain="api-design",
-                    document_id="doc-2"),
-            summary(total_attempts=3, converged=False, final_domain=None,
-                    document_id="doc-3"),
+            summary(
+                total_attempts=3, converged=True, final_domain="api-design", document_id="doc-2"
+            ),
+            summary(total_attempts=3, converged=False, final_domain=None, document_id="doc-3"),
         ]
         report_convergence(events)
         assert "2.00" in capsys.readouterr().out
@@ -418,8 +424,7 @@ class TestReportConvergence:
     def test_multiple_domains_shown(self, capsys):
         events = [
             summary(total_attempts=1, converged=True, final_domain="api-design"),
-            summary(total_attempts=2, converged=True, final_domain="devops",
-                    document_id="doc-2"),
+            summary(total_attempts=2, converged=True, final_domain="devops", document_id="doc-2"),
         ]
         report_convergence(events)
         out = capsys.readouterr().out
@@ -451,14 +456,19 @@ class TestReportConvergence:
 
 # ─── main() ───────────────────────────────────────────────────────────────────
 
+
 class TestMain:
     def _write_sample(self, tmp_path: Path) -> Path:
         path = tmp_path / "events.jsonl"
         events = [
             attempt(attempt_num=1, converged=False, errors=[domain_error()]),
             attempt(attempt_num=2, converged=True, errors=[]),
-            summary(total_attempts=2, converged=True,
-                    rejected_candidates=["backend"], final_domain="api-design"),
+            summary(
+                total_attempts=2,
+                converged=True,
+                rejected_candidates=["backend"],
+                final_domain="api-design",
+            ),
         ]
         write_jsonl(path, events)
         return path
@@ -475,7 +485,8 @@ class TestMain:
     def test_retry_rate_only(self, tmp_path, capsys, monkeypatch):
         path = self._write_sample(tmp_path)
         monkeypatch.setattr(
-            sys, "argv",
+            sys,
+            "argv",
             ["analyze_telemetry", "--input", str(path), "--report", "retry-rate"],
         )
         main()
@@ -487,7 +498,8 @@ class TestMain:
     def test_candidates_only(self, tmp_path, capsys, monkeypatch):
         path = self._write_sample(tmp_path)
         monkeypatch.setattr(
-            sys, "argv",
+            sys,
+            "argv",
             ["analyze_telemetry", "--input", str(path), "--report", "candidates"],
         )
         main()
@@ -498,7 +510,8 @@ class TestMain:
     def test_convergence_only(self, tmp_path, capsys, monkeypatch):
         path = self._write_sample(tmp_path)
         monkeypatch.setattr(
-            sys, "argv",
+            sys,
+            "argv",
             ["analyze_telemetry", "--input", str(path), "--report", "convergence"],
         )
         main()
@@ -509,9 +522,17 @@ class TestMain:
     def test_custom_flag_threshold(self, tmp_path, capsys, monkeypatch):
         path = self._write_sample(tmp_path)
         monkeypatch.setattr(
-            sys, "argv",
-            ["analyze_telemetry", "--input", str(path),
-             "--report", "retry-rate", "--flag-threshold", "0.01"],
+            sys,
+            "argv",
+            [
+                "analyze_telemetry",
+                "--input",
+                str(path),
+                "--report",
+                "retry-rate",
+                "--flag-threshold",
+                "0.01",
+            ],
         )
         main()
         # Very low threshold → everything flagged
@@ -519,7 +540,8 @@ class TestMain:
 
     def test_missing_file_exits(self, tmp_path, monkeypatch):
         monkeypatch.setattr(
-            sys, "argv",
+            sys,
+            "argv",
             ["analyze_telemetry", "--input", str(tmp_path / "nope.jsonl")],
         )
         with pytest.raises(SystemExit):

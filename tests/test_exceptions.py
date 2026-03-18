@@ -1,11 +1,22 @@
 """Tests for exceptions.py — AKF exception hierarchy."""
+
 import pytest
 from exceptions import (
-    AKFError, ValidationError, MissingFieldError,
-    InvalidFieldValueError, InvalidDomainError,
-    LLMError, ProviderUnavailableError, ProviderTimeoutError,
-    InvalidResponseError, ConfigError, MissingConfigError,
-    InvalidConfigError, FileError, AKFFileNotFoundError, FileParseError,
+    AKFError,
+    ValidationError,
+    MissingFieldError,
+    InvalidFieldValueError,
+    InvalidDomainError,
+    LLMError,
+    ProviderUnavailableError,
+    ProviderTimeoutError,
+    InvalidResponseError,
+    ConfigError,
+    MissingConfigError,
+    InvalidConfigError,
+    FileError,
+    AKFFileNotFoundError,
+    FileParseError,
 )
 
 

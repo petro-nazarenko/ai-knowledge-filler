@@ -25,10 +25,13 @@ from akf.commit_gate import (
     SCHEMA_VERSION,
 )
 from akf.validation_error import (
-    ValidationError, ErrorCode, Severity,
-    missing_field, invalid_enum, schema_violation,
+    ValidationError,
+    ErrorCode,
+    Severity,
+    missing_field,
+    invalid_enum,
+    schema_violation,
 )
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -73,6 +76,7 @@ def _warning() -> ValidationError:
 
 # ── Blocked by errors ─────────────────────────────────────────────────────────
 
+
 class TestBlockedByErrors:
 
     def test_blocking_error_prevents_commit(self, tmp_path):
@@ -96,6 +100,7 @@ class TestBlockedByErrors:
 
 # ── Warnings don't block ──────────────────────────────────────────────────────
 
+
 class TestWarningsDoNotBlock:
 
     def test_warnings_only_allows_commit(self, tmp_path):
@@ -110,6 +115,7 @@ class TestWarningsDoNotBlock:
 
 
 # ── schema_version enforcement ────────────────────────────────────────────────
+
 
 class TestSchemaVersionEnforcement:
 
@@ -145,6 +151,7 @@ class TestSchemaVersionEnforcement:
 
 
 # ── Successful commit ─────────────────────────────────────────────────────────
+
 
 class TestSuccessfulCommit:
 
@@ -183,6 +190,7 @@ class TestSuccessfulCommit:
 
 # ── CommitResult.__str__ ──────────────────────────────────────────────────────
 
+
 class TestCommitResultStr:
 
     def test_success_str_contains_path(self, tmp_path):
@@ -198,6 +206,7 @@ class TestCommitResultStr:
 
 
 # ── _check_schema_version ─────────────────────────────────────────────────────
+
 
 class TestCheckSchemaVersion:
 
@@ -219,10 +228,11 @@ class TestCheckSchemaVersion:
 
 # ── _extract_schema_version ───────────────────────────────────────────────────
 
+
 class TestExtractSchemaVersion:
 
     def test_extracts_quoted_version(self):
-        doc = "---\nschema_version: \"1.0.0\"\ntitle: X\n---\nbody"
+        doc = '---\nschema_version: "1.0.0"\ntitle: X\n---\nbody'
         assert _extract_schema_version(doc) == "1.0.0"
 
     def test_extracts_single_quoted_version(self):

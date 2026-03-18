@@ -14,8 +14,8 @@ import yaml
 
 # ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-COLUMN_SPACING = 600   # horizontal gap between groups (px)
-NODE_SPACING = 300     # vertical gap between nodes within a group (px)
+COLUMN_SPACING = 600  # horizontal gap between groups (px)
+NODE_SPACING = 300  # vertical gap between nodes within a group (px)
 NODE_WIDTH = 300
 NODE_HEIGHT = 200
 
@@ -179,8 +179,7 @@ class CanvasGenerator:
         """
         # Build lookup: stem → node id
         stem_to_id: dict[str, str] = {
-            file_info["stem"]: node["id"]
-            for file_info, node in zip(files, nodes)
+            file_info["stem"]: node["id"] for file_info, node in zip(files, nodes)
         }
         # Build lookup: stem → set for fast existence checks
         stems = set(stem_to_id.keys())

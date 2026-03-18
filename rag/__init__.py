@@ -6,13 +6,13 @@ from rag.indexer import IndexStats, index_corpus
 from rag.retriever import RetrievalHit, RetrievalResult, retrieve
 
 __all__ = [
-	"RAGConfig",
-	"load_config",
-	"CopilotAnswer",
-	"answer_question",
-	"IndexStats",
-	"index_corpus",
-	"RetrievalHit",
-	"RetrievalResult",
-	"retrieve",
+    "RAGConfig",
+    "load_config",
+    "CopilotAnswer",
+    "answer_question",
+    "IndexStats",
+    "index_corpus",
+    "RetrievalHit",
+    "RetrievalResult",
+    "retrieve",
 ]

@@ -20,7 +20,7 @@ class ErrorCode(str, Enum):
 
 
 class Severity(str, Enum):
-    ERROR = "error"    # blocks commit, triggers retry
+    ERROR = "error"  # blocks commit, triggers retry
     WARNING = "warning"  # allows commit, logged only, never triggers retry
 
 
@@ -51,6 +51,7 @@ class ValidationError:
 
 
 # --- Convenience constructors ---
+
 
 def missing_field(field: str) -> ValidationError:
     return ValidationError(
@@ -122,9 +123,7 @@ def date_sequence_violation(created: Any, updated: Any) -> ValidationError:
     )
 
 
-def invalid_relationship_type(
-    link: str, rel_type: str, valid_types: list
-) -> ValidationError:
+def invalid_relationship_type(link: str, rel_type: str, valid_types: list) -> ValidationError:
     """Construct E008 error for an unrecognized typed relationship."""
     return ValidationError(
         code=ErrorCode.INVALID_RELATIONSHIP_TYPE,

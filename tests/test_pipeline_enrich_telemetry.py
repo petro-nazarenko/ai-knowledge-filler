@@ -3,6 +3,7 @@
 Fix 6 — verify that TelemetryWriter.write() is called during Pipeline.enrich()
 when telemetry_path is set (i.e. the writer is no longer always-None).
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -11,7 +12,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from akf.pipeline import Pipeline
-
 
 NO_FRONTMATTER_FILE = """\
 # A Document

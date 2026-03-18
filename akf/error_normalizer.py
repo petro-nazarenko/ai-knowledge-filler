@@ -18,17 +18,18 @@ from typing import Any
 
 from akf.validation_error import ErrorCode, Severity, ValidationError
 
-
 # ---------------------------------------------------------------------------
 # Output contract
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RetryPayload:
     """Structured retry instruction passed to the LLM."""
-    instructions: list[str]   # one instruction per blocking error
-    error_count: int           # total blocking errors
-    warning_count: int         # total warnings (informational only)
+
+    instructions: list[str]  # one instruction per blocking error
+    error_count: int  # total blocking errors
+    warning_count: int  # total warnings (informational only)
     has_blocking_errors: bool  # True → retry required
 
     def to_prompt_text(self) -> str:
@@ -49,9 +50,7 @@ class RetryPayload:
         if not self.has_blocking_errors:
             return ""
 
-        lines = [
-            "VALIDATION ERRORS — fix the following fields before regenerating:\n"
-        ]
+        lines = ["VALIDATION ERRORS — fix the following fields before regenerating:\n"]
         for i, instruction in enumerate(self.instructions, start=1):
             lines.append(f"{i}. {instruction}")
 
@@ -61,6 +60,7 @@ class RetryPayload:
 # ---------------------------------------------------------------------------
 # Normalizer
 # ---------------------------------------------------------------------------
+
 
 def normalize_errors(errors: list[ValidationError]) -> RetryPayload:
     """
@@ -86,15 +86,16 @@ def normalize_errors(errors: list[ValidationError]) -> RetryPayload:
 # Per-error-code renderers (deterministic, pure)
 # ---------------------------------------------------------------------------
 
+
 def _render_instruction(error: ValidationError) -> str:
     renderers = {
-        ErrorCode.INVALID_ENUM:              _render_invalid_enum,
-        ErrorCode.MISSING_FIELD:             _render_missing_field,
-        ErrorCode.INVALID_DATE_FORMAT:       _render_invalid_date_format,
-        ErrorCode.TYPE_MISMATCH:             _render_type_mismatch,
-        ErrorCode.SCHEMA_VIOLATION:          _render_schema_violation,
-        ErrorCode.TAXONOMY_VIOLATION:        _render_taxonomy_violation,
-        ErrorCode.DATE_SEQUENCE:             _render_date_sequence,
+        ErrorCode.INVALID_ENUM: _render_invalid_enum,
+        ErrorCode.MISSING_FIELD: _render_missing_field,
+        ErrorCode.INVALID_DATE_FORMAT: _render_invalid_date_format,
+        ErrorCode.TYPE_MISMATCH: _render_type_mismatch,
+        ErrorCode.SCHEMA_VIOLATION: _render_schema_violation,
+        ErrorCode.TAXONOMY_VIOLATION: _render_taxonomy_violation,
+        ErrorCode.DATE_SEQUENCE: _render_date_sequence,
         ErrorCode.INVALID_RELATIONSHIP_TYPE: _render_invalid_relationship_type,
     }
     renderer = renderers.get(error.code, _render_generic)
@@ -195,6 +196,7 @@ def _render_generic(e: ValidationError) -> str:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _format_list(value: Any) -> str:
     """Format a list as a compact JSON-style string."""

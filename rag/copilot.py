@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 from llm_providers import get_provider
 
@@ -11,7 +10,7 @@ try:
     from rag.retriever import RetrievalHit, RetrievalResult, retrieve
 except ModuleNotFoundError:
     # Support direct execution: `python rag/copilot.py`
-    from retriever import RetrievalHit, RetrievalResult, retrieve
+    from retriever import RetrievalHit, RetrievalResult, retrieve  # type: ignore[no-redef]
 
 
 _SYSTEM_PROMPT = """You are AKF RAG Copilot.
@@ -69,7 +68,9 @@ def _build_user_prompt(query: str, retrieval: RetrievalResult) -> str:
     )
 
 
-def _filter_hits_by_distance(hits: list[RetrievalHit], max_distance: float | None) -> list[RetrievalHit]:
+def _filter_hits_by_distance(
+    hits: list[RetrievalHit], max_distance: float | None
+) -> list[RetrievalHit]:
     if max_distance is None:
         return hits
     return [hit for hit in hits if hit.distance <= max_distance]

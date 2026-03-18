@@ -31,7 +31,6 @@ from akf.validation_error import (
     taxonomy_violation,
 )
 
-
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
 GEN_ID = str(uuid.uuid4())
@@ -70,6 +69,7 @@ def make_writer(tmp_path):
 
 # ─── _to_record ───────────────────────────────────────────────────────────────
 
+
 class TestToRecord:
     def test_maps_all_fields(self):
         err = make_error()
@@ -92,6 +92,7 @@ class TestToRecord:
 
 
 # ─── Telemetry emission ───────────────────────────────────────────────────────
+
 
 class TestAttemptEventEmission:
 
@@ -116,6 +117,7 @@ class TestAttemptEventEmission:
 
         # Second document is valid — no errors
         calls = [0]
+
         def generate(doc, prompt):
             calls[0] += 1
             return VALID_DOC
@@ -313,6 +315,7 @@ class TestAttemptEventEmission:
 
 # ─── writer=None — telemetry disabled ─────────────────────────────────────────
 
+
 class TestNoWriter:
     def test_writer_none_pipeline_succeeds(self):
         def generate(doc, prompt):
@@ -352,6 +355,7 @@ class TestNoWriter:
 
 # ─── Telemetry failure isolation ──────────────────────────────────────────────
 
+
 class TestTelemetryFailureIsolation:
     def test_writer_exception_does_not_abort_pipeline(self, tmp_path):
         """Telemetry write failure must never interrupt generation."""
@@ -382,8 +386,10 @@ class TestTelemetryFailureIsolation:
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _read_events(writer: TelemetryWriter) -> list[dict]:
     import json
+
     if not writer.path.exists():
         return []
     return [json.loads(line) for line in writer.path.read_text().strip().split("\n") if line]

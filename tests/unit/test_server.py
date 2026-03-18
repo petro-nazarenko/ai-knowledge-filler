@@ -14,6 +14,7 @@ from rag.retriever import RetrievalHit, RetrievalResult
 
 # ─── FIXTURES ─────────────────────────────────────────────────────────────────
 
+
 def _no_auth():
     """Override verify_key — skip auth in most tests."""
     return None
@@ -68,6 +69,7 @@ def _make_result(success=True, idx=0):
 
 # ─── HEALTH ───────────────────────────────────────────────────────────────────
 
+
 class TestHealth:
     def test_health_ok(self):
         r = client.get("/health")
@@ -105,6 +107,7 @@ class TestHealth:
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
 
+
 class TestAuth:
     def test_no_key_configured_allows_access(self):
         """When AKF_API_KEY not set in dev mode, auth is disabled."""
@@ -126,8 +129,12 @@ class TestAuth:
     def test_valid_key_grants_access(self):
         """Correct Bearer token grants access."""
         app.dependency_overrides.clear()
-        with patch.dict(os.environ, {"AKF_API_KEY": "test-secret-key", "AKF_ENV": "prod"}, clear=False), \
-             patch("llm_providers.list_providers", return_value={}):
+        with (
+            patch.dict(
+                os.environ, {"AKF_API_KEY": "test-secret-key", "AKF_ENV": "prod"}, clear=False
+            ),
+            patch("llm_providers.list_providers", return_value={}),
+        ):
             r = client.get(
                 "/v1/models",
                 headers={"Authorization": "Bearer test-secret-key"},
@@ -157,6 +164,7 @@ class TestAuth:
 
 # ─── MODELS ───────────────────────────────────────────────────────────────────
 
+
 class TestModels:
     def test_models_returns_providers(self):
         with patch("llm_providers.list_providers", return_value={"claude": False, "groq": False}):
@@ -166,6 +174,7 @@ class TestModels:
 
 
 # ─── GENERATE ─────────────────────────────────────────────────────────────────
+
 
 class TestGenerate:
     def test_generate_success(self):
@@ -222,6 +231,7 @@ class TestGenerate:
 
 # ─── VALIDATE ─────────────────────────────────────────────────────────────────
 
+
 class TestValidate:
     def test_validate_valid_content(self):
         r = client.post("/v1/validate", json={"content": VALID_CONTENT})
@@ -252,11 +262,13 @@ class TestValidate:
 
 # ─── BATCH ────────────────────────────────────────────────────────────────────
 
+
 class TestBatch:
     def test_batch_success(self):
         with patch("akf.server.get_pipeline") as mock_get:
             mock_get.return_value.batch_generate.return_value = [
-                _make_result(True, 0), _make_result(True, 1)
+                _make_result(True, 0),
+                _make_result(True, 1),
             ]
             r = client.post("/v1/batch", json={"prompts": ["Guide 1", "Guide 2"]})
         assert r.status_code == 200
@@ -293,6 +305,7 @@ class TestBatch:
 
 # ─── ASK (RAG) ───────────────────────────────────────────────────────────────
 
+
 class TestAsk:
     def test_ask_synthesis_success(self):
         fake = CopilotAnswer(
@@ -304,8 +317,10 @@ class TestAsk:
             hits_used=2,
         )
         fake_writer = MagicMock()
-        with patch("rag.copilot.answer_question", return_value=fake), \
-             patch("akf.server.get_telemetry_writer", return_value=fake_writer):
+        with (
+            patch("rag.copilot.answer_question", return_value=fake),
+            patch("akf.server.get_telemetry_writer", return_value=fake_writer),
+        ):
             r = client.post(
                 "/v1/ask",
                 json={"query": "How to rate limit?", "top_k": 3},
@@ -343,8 +358,10 @@ class TestAsk:
             ],
         )
         fake_writer = MagicMock()
-        with patch("rag.retriever.retrieve", return_value=fake), \
-             patch("akf.server.get_telemetry_writer", return_value=fake_writer):
+        with (
+            patch("rag.retriever.retrieve", return_value=fake),
+            patch("akf.server.get_telemetry_writer", return_value=fake_writer),
+        ):
             r = client.post(
                 "/v1/ask",
                 json={"query": "How to rate limit?", "top_k": 2, "no_llm": True},

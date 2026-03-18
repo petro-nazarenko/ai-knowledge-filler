@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _make_args(**kwargs) -> argparse.Namespace:
     defaults = {"path": ".", "output": None, "format": None}
@@ -60,18 +60,27 @@ updated: 2026-01-01
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def vault(tmp_path: Path) -> Path:
     """Vault with a mix of linked and missing files."""
     # Existing files
-    _write_md(tmp_path, "API_Design.md", FRONTMATTER_TEMPLATE.format(
-        title="API Design",
-        related="[[Docker_Basics]] [[JWT_Authentication_Guide]]",
-    ))
-    _write_md(tmp_path, "Docker_Basics.md", FRONTMATTER_TEMPLATE.format(
-        title="Docker Basics",
-        related="[[API_Design]]",
-    ))
+    _write_md(
+        tmp_path,
+        "API_Design.md",
+        FRONTMATTER_TEMPLATE.format(
+            title="API Design",
+            related="[[Docker_Basics]] [[JWT_Authentication_Guide]]",
+        ),
+    )
+    _write_md(
+        tmp_path,
+        "Docker_Basics.md",
+        FRONTMATTER_TEMPLATE.format(
+            title="Docker Basics",
+            related="[[API_Design]]",
+        ),
+    )
     # No related field
     _write_md(tmp_path, "Orphan.md", FRONTMATTER_NO_RELATED)
     return tmp_path
@@ -81,9 +90,11 @@ def vault(tmp_path: Path) -> Path:
 # Unit tests for cmd_gaps
 # ---------------------------------------------------------------------------
 
+
 class TestCmdGapsBasic:
     def test_detects_missing_file(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault)))
         out = capsys.readouterr().out
         assert "JWT_Authentication_Guide" in out
@@ -91,6 +102,7 @@ class TestCmdGapsBasic:
 
     def test_no_false_positives_for_existing_file(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault)))
         out = capsys.readouterr().out
         # Docker_Basics exists — should NOT appear in missing list
@@ -100,6 +112,7 @@ class TestCmdGapsBasic:
 
     def test_suggests_prompt_for_missing(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault)))
         out = capsys.readouterr().out
         # New format: "Create a <type> on <topic> for <audience>"
@@ -108,10 +121,16 @@ class TestCmdGapsBasic:
 
     def test_no_missing_files_message(self, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
+
         # File links only to existing file
-        _write_md(tmp_path, "A.md", FRONTMATTER_TEMPLATE.format(
-            title="A", related="[[B]]",
-        ))
+        _write_md(
+            tmp_path,
+            "A.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="A",
+                related="[[B]]",
+            ),
+        )
         _write_md(tmp_path, "B.md", FRONTMATTER_NO_RELATED)
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
@@ -119,12 +138,14 @@ class TestCmdGapsBasic:
 
     def test_empty_vault(self, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         assert "No missing files" in out
 
     def test_files_without_related_are_ignored(self, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
+
         _write_md(tmp_path, "Orphan.md", FRONTMATTER_NO_RELATED)
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
@@ -134,6 +155,7 @@ class TestCmdGapsBasic:
 class TestCmdGapsFormatJson:
     def test_format_json_outputs_array(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault), format="json"))
         out = capsys.readouterr().out
         parsed = json.loads(out)
@@ -141,6 +163,7 @@ class TestCmdGapsFormatJson:
 
     def test_format_json_contains_prompt_key(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault), format="json"))
         out = capsys.readouterr().out
         parsed = json.loads(out)
@@ -150,6 +173,7 @@ class TestCmdGapsFormatJson:
 
     def test_format_json_no_human_text(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(vault), format="json"))
         out = capsys.readouterr().out
         # Must be parseable as JSON — no "Missing files" header
@@ -157,6 +181,7 @@ class TestCmdGapsFormatJson:
 
     def test_format_json_empty_vault(self, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
+
         cmd_gaps(_make_args(path=str(tmp_path), format="json"))
         out = capsys.readouterr().out
         assert json.loads(out) == []
@@ -165,6 +190,7 @@ class TestCmdGapsFormatJson:
 class TestCmdGapsOutputFlag:
     def test_writes_to_new_plan_json(self, vault: Path, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
+
         plan_file = tmp_path / "plan.json"
         cmd_gaps(_make_args(path=str(vault), output=str(plan_file)))
         assert plan_file.exists()
@@ -174,6 +200,7 @@ class TestCmdGapsOutputFlag:
 
     def test_appends_to_existing_plan_json(self, vault: Path, tmp_path: Path) -> None:
         from cli import cmd_gaps
+
         plan_file = tmp_path / "plan.json"
         existing = [{"prompt": "Existing entry"}]
         plan_file.write_text(json.dumps(existing), encoding="utf-8")
@@ -187,9 +214,15 @@ class TestCmdGapsOutputFlag:
 
     def test_no_output_file_when_no_missing(self, tmp_path: Path) -> None:
         from cli import cmd_gaps
-        _write_md(tmp_path, "A.md", FRONTMATTER_TEMPLATE.format(
-            title="A", related="[[B]]",
-        ))
+
+        _write_md(
+            tmp_path,
+            "A.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="A",
+                related="[[B]]",
+            ),
+        )
         _write_md(tmp_path, "B.md", FRONTMATTER_NO_RELATED)
         plan_file = tmp_path / "plan.json"
         cmd_gaps(_make_args(path=str(tmp_path), output=str(plan_file)))
@@ -198,6 +231,7 @@ class TestCmdGapsOutputFlag:
 
     def test_output_file_contains_correct_prompts(self, vault: Path, tmp_path: Path) -> None:
         from cli import cmd_gaps
+
         plan_file = tmp_path / "plan.json"
         cmd_gaps(_make_args(path=str(vault), output=str(plan_file)))
         data = json.loads(plan_file.read_text())
@@ -209,18 +243,26 @@ class TestCmdGapsEdgeCases:
     def test_wikilink_with_alias(self, tmp_path: Path, capsys) -> None:
         """[[Target|Display Name]] — only 'Target' should be collected."""
         from cli import cmd_gaps
-        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
-            title="Source",
-            related="[[MissingTarget|Display Name]]",
-        ))
+
+        _write_md(
+            tmp_path,
+            "Source.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="Source",
+                related="[[MissingTarget|Display Name]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         assert "MissingTarget" in out
-        assert "Display Name" not in out.split("Missing files")[1] if "Missing files" in out else True
+        assert (
+            "Display Name" not in out.split("Missing files")[1] if "Missing files" in out else True
+        )
 
     def test_related_as_yaml_list(self, tmp_path: Path, capsys) -> None:
         """related field as YAML list of wikilinks."""
         from cli import cmd_gaps
+
         content = """\
 ---
 title: "List Related"
@@ -246,12 +288,14 @@ related:
 
     def test_invalid_path_exits(self, capsys) -> None:
         from cli import cmd_gaps
+
         with pytest.raises(SystemExit) as exc_info:
             cmd_gaps(_make_args(path="/nonexistent/vault/path"))
         assert exc_info.value.code == 1
 
     def test_file_path_instead_of_dir_exits(self, tmp_path: Path) -> None:
         from cli import cmd_gaps
+
         f = tmp_path / "file.md"
         f.write_text("# hi", encoding="utf-8")
         with pytest.raises(SystemExit) as exc_info:
@@ -261,11 +305,16 @@ related:
     def test_duplicate_links_reported_once(self, tmp_path: Path, capsys) -> None:
         """Same missing link referenced in multiple files → listed once in missing section."""
         from cli import cmd_gaps
+
         for i in range(3):
-            _write_md(tmp_path, f"File{i}.md", FRONTMATTER_TEMPLATE.format(
-                title=f"File {i}",
-                related="[[SharedMissing]]",
-            ))
+            _write_md(
+                tmp_path,
+                f"File{i}.md",
+                FRONTMATTER_TEMPLATE.format(
+                    title=f"File {i}",
+                    related="[[SharedMissing]]",
+                ),
+            )
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         # Missing files count should be 1, not 3
@@ -274,12 +323,17 @@ related:
     def test_subdirectory_md_files_scanned(self, tmp_path: Path, capsys) -> None:
         """Files in subdirectories are included in the scan."""
         from cli import cmd_gaps
+
         subdir = tmp_path / "subdir"
         subdir.mkdir()
-        _write_md(subdir, "Nested.md", FRONTMATTER_TEMPLATE.format(
-            title="Nested",
-            related="[[DeepMissing]]",
-        ))
+        _write_md(
+            subdir,
+            "Nested.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="Nested",
+                related="[[DeepMissing]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         assert "DeepMissing" in out
@@ -287,13 +341,18 @@ related:
     def test_subdirectory_files_count_as_existing(self, tmp_path: Path, capsys) -> None:
         """A file in a subdirectory resolves a WikiLink by stem name."""
         from cli import cmd_gaps
+
         subdir = tmp_path / "subdir"
         subdir.mkdir()
         _write_md(subdir, "TargetFile.md", FRONTMATTER_NO_RELATED)
-        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
-            title="Source",
-            related="[[TargetFile]]",
-        ))
+        _write_md(
+            tmp_path,
+            "Source.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="Source",
+                related="[[TargetFile]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         assert "No missing files" in out
@@ -303,10 +362,12 @@ related:
 # Argparse integration: ensure `gaps` appears as a valid subcommand
 # ---------------------------------------------------------------------------
 
+
 class TestGapsSubparser:
     def test_gaps_is_registered(self) -> None:
         import cli as cli_module
         import importlib
+
         # Parse --help output via argparse internals
         parser = argparse.ArgumentParser(prog="akf")
         sub = parser.add_subparsers(dest="command", required=True)
@@ -316,6 +377,7 @@ class TestGapsSubparser:
 
     def test_main_dispatches_gaps(self, vault: Path, monkeypatch, capsys) -> None:
         import cli as cli_module
+
         monkeypatch.setattr(sys, "argv", ["akf", "gaps", "--path", str(vault)])
         # main() returns 0 and does not raise
         result = cli_module.main()
@@ -326,19 +388,29 @@ class TestGapsSubparser:
 # Tests for deduplication normalization (Bug 1)
 # ---------------------------------------------------------------------------
 
+
 class TestDeduplication:
     def test_space_and_underscore_variants_deduplicated(self, tmp_path: Path, capsys) -> None:
         """'API Design Principles' and 'API_Design_Principles' → only one entry."""
         from cli import cmd_gaps
+
         # One file links with spaces, another with underscores — same logical target
-        _write_md(tmp_path, "FileA.md", FRONTMATTER_TEMPLATE.format(
-            title="File A",
-            related="[[API Design Principles]]",
-        ))
-        _write_md(tmp_path, "FileB.md", FRONTMATTER_TEMPLATE.format(
-            title="File B",
-            related="[[API_Design_Principles]]",
-        ))
+        _write_md(
+            tmp_path,
+            "FileA.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="File A",
+                related="[[API Design Principles]]",
+            ),
+        )
+        _write_md(
+            tmp_path,
+            "FileB.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="File B",
+                related="[[API_Design_Principles]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path), format="json"))
         out = capsys.readouterr().out
         parsed = json.loads(out)
@@ -347,14 +419,23 @@ class TestDeduplication:
     def test_case_insensitive_deduplication(self, tmp_path: Path, capsys) -> None:
         """'docker_basics' and 'Docker_Basics' are the same file."""
         from cli import cmd_gaps
-        _write_md(tmp_path, "FileA.md", FRONTMATTER_TEMPLATE.format(
-            title="File A",
-            related="[[docker_basics]]",
-        ))
-        _write_md(tmp_path, "FileB.md", FRONTMATTER_TEMPLATE.format(
-            title="File B",
-            related="[[Docker_Basics]]",
-        ))
+
+        _write_md(
+            tmp_path,
+            "FileA.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="File A",
+                related="[[docker_basics]]",
+            ),
+        )
+        _write_md(
+            tmp_path,
+            "FileB.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="File B",
+                related="[[Docker_Basics]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path), format="json"))
         out = capsys.readouterr().out
         parsed = json.loads(out)
@@ -363,17 +444,23 @@ class TestDeduplication:
     def test_normalized_link_resolves_against_existing_file(self, tmp_path: Path, capsys) -> None:
         """A link 'API Design Principles' (with spaces) matches file 'API_Design_Principles.md'."""
         from cli import cmd_gaps
+
         _write_md(tmp_path, "API_Design_Principles.md", FRONTMATTER_NO_RELATED)
-        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
-            title="Source",
-            related="[[API Design Principles]]",
-        ))
+        _write_md(
+            tmp_path,
+            "Source.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="Source",
+                related="[[API Design Principles]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path)))
         out = capsys.readouterr().out
         assert "No missing files" in out
 
     def test_normalize_link_helper(self) -> None:
         from cli import _normalize_link
+
         assert _normalize_link("API Design Principles") == "api_design_principles"
         assert _normalize_link("API_Design_Principles") == "api_design_principles"
         assert _normalize_link("Docker_Basics") == "docker_basics"
@@ -384,9 +471,11 @@ class TestDeduplication:
 # Tests for structured prompt generation (Bug 2)
 # ---------------------------------------------------------------------------
 
+
 class TestPromptGeneration:
     def test_make_suggestion_has_required_keys(self) -> None:
         from cli import _make_suggestion
+
         result = _make_suggestion("Docker_Basics")
         assert "prompt" in result
         assert "domain" in result
@@ -394,6 +483,7 @@ class TestPromptGeneration:
 
     def test_make_suggestion_prompt_format(self) -> None:
         from cli import _make_suggestion
+
         result = _make_suggestion("Docker_Basics")
         # Format: "Create a <type> on <topic> for <audience>"
         assert result["prompt"].startswith("Create a ")
@@ -402,53 +492,63 @@ class TestPromptGeneration:
 
     def test_domain_devops_keywords(self) -> None:
         from cli import _infer_domain
+
         assert _infer_domain("Docker_Basics") == "devops"
         assert _infer_domain("Kubernetes_Deployments") == "devops"
         assert _infer_domain("GitHub_Actions_CI") == "devops"
 
     def test_domain_api_design_keywords(self) -> None:
         from cli import _infer_domain
+
         assert _infer_domain("REST_API_Design") == "api-design"
         assert _infer_domain("GraphQL_Patterns") == "api-design"
         assert _infer_domain("HTTP_Caching") == "api-design"
 
     def test_domain_security_keywords(self) -> None:
         from cli import _infer_domain
+
         assert _infer_domain("JWT_Authentication_Guide") == "security"
         assert _infer_domain("OAuth_Strategies") == "security"
         assert _infer_domain("Security_Checklist") == "security"
 
     def test_domain_backend_engineering_keywords(self) -> None:
         from cli import _infer_domain
+
         assert _infer_domain("FastAPI_Service") == "backend-engineering"
         assert _infer_domain("Python_Architecture") == "backend-engineering"
 
     def test_domain_default(self) -> None:
         from cli import _infer_domain
+
         assert _infer_domain("Some_Random_Topic") == "backend-engineering"
 
     def test_type_checklist_keywords(self) -> None:
         from cli import _infer_type
+
         assert _infer_type("Security_Checklist") == "checklist"
         assert _infer_type("Code_Review") == "checklist"
 
     def test_type_guide_keywords(self) -> None:
         from cli import _infer_type
+
         assert _infer_type("Docker_Guide") == "guide"
         assert _infer_type("Getting_Started_Tutorial") == "guide"
 
     def test_type_concept_keywords(self) -> None:
         from cli import _infer_type
+
         assert _infer_type("API_Design_Principles") == "concept"
         assert _infer_type("Design_Patterns") == "concept"
         assert _infer_type("Caching_Strategies") == "concept"
 
     def test_type_default(self) -> None:
         from cli import _infer_type
+
         assert _infer_type("Docker_Basics") == "concept"
 
     def test_jwt_guide_generates_security_guide(self) -> None:
         from cli import _make_suggestion
+
         result = _make_suggestion("JWT_Authentication_Guide")
         assert result["domain"] == "security"
         assert result["type"] == "guide"
@@ -457,6 +557,7 @@ class TestPromptGeneration:
 
     def test_docker_basics_generates_devops_concept(self) -> None:
         from cli import _make_suggestion
+
         result = _make_suggestion("Docker_Basics")
         assert result["domain"] == "devops"
         assert result["type"] == "concept"
@@ -466,10 +567,15 @@ class TestPromptGeneration:
     def test_format_json_output_contains_domain_and_type(self, tmp_path: Path, capsys) -> None:
         """JSON output includes domain and type keys in each suggestion."""
         from cli import cmd_gaps
-        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
-            title="Source",
-            related="[[Docker_Basics]] [[JWT_Auth_Guide]]",
-        ))
+
+        _write_md(
+            tmp_path,
+            "Source.md",
+            FRONTMATTER_TEMPLATE.format(
+                title="Source",
+                related="[[Docker_Basics]] [[JWT_Auth_Guide]]",
+            ),
+        )
         cmd_gaps(_make_args(path=str(tmp_path), format="json"))
         out = capsys.readouterr().out
         parsed = json.loads(out)
