@@ -1,6 +1,6 @@
 [project]
 name = "ai-knowledge-filler"
-version = "1.0.6"
+version = "1.0.7"
 description = "AI-powered content production system."
 readme = "README.md"
 license = "MIT"
@@ -12,7 +12,11 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = ["pyyaml>=6.0", "pydantic>=2.0", "requests>=2.28"]
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.0",
+    "requests>=2.28",
+]
 
 [project.optional-dependencies]
 anthropic = ["anthropic>=0.50.0"]

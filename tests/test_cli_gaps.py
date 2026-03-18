@@ -102,7 +102,9 @@ class TestCmdGapsBasic:
         from cli import cmd_gaps
         cmd_gaps(_make_args(path=str(vault)))
         out = capsys.readouterr().out
-        assert "Create a file on JWT Authentication Guide" in out
+        # New format: "Create a <type> on <topic> for <audience>"
+        assert "Create a" in out
+        assert "JWT Authentication Guide" in out
 
     def test_no_missing_files_message(self, tmp_path: Path, capsys) -> None:
         from cli import cmd_gaps
@@ -143,6 +145,8 @@ class TestCmdGapsFormatJson:
         out = capsys.readouterr().out
         parsed = json.loads(out)
         assert all("prompt" in item for item in parsed)
+        assert all("domain" in item for item in parsed)
+        assert all("type" in item for item in parsed)
 
     def test_format_json_no_human_text(self, vault: Path, capsys) -> None:
         from cli import cmd_gaps
@@ -316,3 +320,165 @@ class TestGapsSubparser:
         # main() returns 0 and does not raise
         result = cli_module.main()
         assert result == 0
+
+
+# ---------------------------------------------------------------------------
+# Tests for deduplication normalization (Bug 1)
+# ---------------------------------------------------------------------------
+
+class TestDeduplication:
+    def test_space_and_underscore_variants_deduplicated(self, tmp_path: Path, capsys) -> None:
+        """'API Design Principles' and 'API_Design_Principles' → only one entry."""
+        from cli import cmd_gaps
+        # One file links with spaces, another with underscores — same logical target
+        _write_md(tmp_path, "FileA.md", FRONTMATTER_TEMPLATE.format(
+            title="File A",
+            related="[[API Design Principles]]",
+        ))
+        _write_md(tmp_path, "FileB.md", FRONTMATTER_TEMPLATE.format(
+            title="File B",
+            related="[[API_Design_Principles]]",
+        ))
+        cmd_gaps(_make_args(path=str(tmp_path), format="json"))
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert len(parsed) == 1, f"Expected 1 deduplicated entry, got {len(parsed)}: {parsed}"
+
+    def test_case_insensitive_deduplication(self, tmp_path: Path, capsys) -> None:
+        """'docker_basics' and 'Docker_Basics' are the same file."""
+        from cli import cmd_gaps
+        _write_md(tmp_path, "FileA.md", FRONTMATTER_TEMPLATE.format(
+            title="File A",
+            related="[[docker_basics]]",
+        ))
+        _write_md(tmp_path, "FileB.md", FRONTMATTER_TEMPLATE.format(
+            title="File B",
+            related="[[Docker_Basics]]",
+        ))
+        cmd_gaps(_make_args(path=str(tmp_path), format="json"))
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert len(parsed) == 1, f"Expected 1 deduplicated entry, got {len(parsed)}: {parsed}"
+
+    def test_normalized_link_resolves_against_existing_file(self, tmp_path: Path, capsys) -> None:
+        """A link 'API Design Principles' (with spaces) matches file 'API_Design_Principles.md'."""
+        from cli import cmd_gaps
+        _write_md(tmp_path, "API_Design_Principles.md", FRONTMATTER_NO_RELATED)
+        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
+            title="Source",
+            related="[[API Design Principles]]",
+        ))
+        cmd_gaps(_make_args(path=str(tmp_path)))
+        out = capsys.readouterr().out
+        assert "No missing files" in out
+
+    def test_normalize_link_helper(self) -> None:
+        from cli import _normalize_link
+        assert _normalize_link("API Design Principles") == "api_design_principles"
+        assert _normalize_link("API_Design_Principles") == "api_design_principles"
+        assert _normalize_link("Docker_Basics") == "docker_basics"
+        assert _normalize_link("  Spaces  ") == "spaces"
+
+
+# ---------------------------------------------------------------------------
+# Tests for structured prompt generation (Bug 2)
+# ---------------------------------------------------------------------------
+
+class TestPromptGeneration:
+    def test_make_suggestion_has_required_keys(self) -> None:
+        from cli import _make_suggestion
+        result = _make_suggestion("Docker_Basics")
+        assert "prompt" in result
+        assert "domain" in result
+        assert "type" in result
+
+    def test_make_suggestion_prompt_format(self) -> None:
+        from cli import _make_suggestion
+        result = _make_suggestion("Docker_Basics")
+        # Format: "Create a <type> on <topic> for <audience>"
+        assert result["prompt"].startswith("Create a ")
+        assert " on " in result["prompt"]
+        assert " for " in result["prompt"]
+
+    def test_domain_devops_keywords(self) -> None:
+        from cli import _infer_domain
+        assert _infer_domain("Docker_Basics") == "devops"
+        assert _infer_domain("Kubernetes_Deployments") == "devops"
+        assert _infer_domain("GitHub_Actions_CI") == "devops"
+
+    def test_domain_api_design_keywords(self) -> None:
+        from cli import _infer_domain
+        assert _infer_domain("REST_API_Design") == "api-design"
+        assert _infer_domain("GraphQL_Patterns") == "api-design"
+        assert _infer_domain("HTTP_Caching") == "api-design"
+
+    def test_domain_security_keywords(self) -> None:
+        from cli import _infer_domain
+        assert _infer_domain("JWT_Authentication_Guide") == "security"
+        assert _infer_domain("OAuth_Strategies") == "security"
+        assert _infer_domain("Security_Checklist") == "security"
+
+    def test_domain_backend_engineering_keywords(self) -> None:
+        from cli import _infer_domain
+        assert _infer_domain("FastAPI_Service") == "backend-engineering"
+        assert _infer_domain("Python_Architecture") == "backend-engineering"
+
+    def test_domain_default(self) -> None:
+        from cli import _infer_domain
+        assert _infer_domain("Some_Random_Topic") == "backend-engineering"
+
+    def test_type_checklist_keywords(self) -> None:
+        from cli import _infer_type
+        assert _infer_type("Security_Checklist") == "checklist"
+        assert _infer_type("Code_Review") == "checklist"
+
+    def test_type_guide_keywords(self) -> None:
+        from cli import _infer_type
+        assert _infer_type("Docker_Guide") == "guide"
+        assert _infer_type("Getting_Started_Tutorial") == "guide"
+
+    def test_type_concept_keywords(self) -> None:
+        from cli import _infer_type
+        assert _infer_type("API_Design_Principles") == "concept"
+        assert _infer_type("Design_Patterns") == "concept"
+        assert _infer_type("Caching_Strategies") == "concept"
+
+    def test_type_default(self) -> None:
+        from cli import _infer_type
+        assert _infer_type("Docker_Basics") == "concept"
+
+    def test_jwt_guide_generates_security_guide(self) -> None:
+        from cli import _make_suggestion
+        result = _make_suggestion("JWT_Authentication_Guide")
+        assert result["domain"] == "security"
+        assert result["type"] == "guide"
+        assert "JWT Authentication Guide" in result["prompt"]
+        assert "security engineers" in result["prompt"]
+
+    def test_docker_basics_generates_devops_concept(self) -> None:
+        from cli import _make_suggestion
+        result = _make_suggestion("Docker_Basics")
+        assert result["domain"] == "devops"
+        assert result["type"] == "concept"
+        assert "Docker Basics" in result["prompt"]
+        assert "DevOps engineers" in result["prompt"]
+
+    def test_format_json_output_contains_domain_and_type(self, tmp_path: Path, capsys) -> None:
+        """JSON output includes domain and type keys in each suggestion."""
+        from cli import cmd_gaps
+        _write_md(tmp_path, "Source.md", FRONTMATTER_TEMPLATE.format(
+            title="Source",
+            related="[[Docker_Basics]] [[JWT_Auth_Guide]]",
+        ))
+        cmd_gaps(_make_args(path=str(tmp_path), format="json"))
+        out = capsys.readouterr().out
+        parsed = json.loads(out)
+        assert len(parsed) == 2
+        for item in parsed:
+            assert "prompt" in item
+            assert "domain" in item
+            assert "type" in item
+            # Prompt must follow the format
+            assert item["prompt"].startswith("Create a ")
+            assert " on " in item["prompt"]
+            assert " for " in item["prompt"]
