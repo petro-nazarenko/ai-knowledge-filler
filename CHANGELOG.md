@@ -1,6 +1,22 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.6] — 2026-03-18
+
+### Chores
+
+- Remove chromadb from requirements.lock ([`36c5cac`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/36c5cac41f9f7c06cb0777efa121039f6f80373c))
+- Bump version to 1.0.6 ([`873f5a0`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/873f5a020ec0362f28d3c8be9a731a35b39d7bdb))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.5 ([`5ae5eda`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/5ae5eda49fac4143bb43171947dd5261e537305b))
+- Add batch knowledge base guide ([`b8ba74e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b8ba74e2c67a9378992e3892d4fdd08bee6a4596))
+
+### Features
+
+- Add `akf gaps` subcommand for detecting broken WikiLinks ([`a06d211`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/a06d21130e497fa8b89be92815cb82f8629a86de))
+
 ## [1.0.5] — 2026-03-17
 
 ### Bug Fixes
