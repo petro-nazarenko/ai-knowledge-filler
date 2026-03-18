@@ -382,7 +382,7 @@ class MarketAnalysisPipeline:
 
     def analyze_market(self, request: str) -> StageResult:
         """Stage 1 — market analysis (size, trends, segments, drivers)."""
-        self._log(f"Stage 1/3 — Market Analysis: {request[:60]}...")
+        self._log(f"Stage 1/4 — Market Analysis: {request[:60]}...")
         t0 = time.monotonic()
         try:
             prompt = _MARKET_ANALYSIS_PROMPT.format(request=request)
@@ -409,7 +409,7 @@ class MarketAnalysisPipeline:
         market_context: str,
     ) -> StageResult:
         """Stage 2 — competitor comparison using Stage 1 context."""
-        self._log("Stage 2/3 — Competitor Analysis...")
+        self._log("Stage 2/4 — Competitor Analysis...")
         t0 = time.monotonic()
         try:
             prompt = _COMPETITOR_ANALYSIS_PROMPT.format(
@@ -444,7 +444,7 @@ class MarketAnalysisPipeline:
         Only meaningful when a concrete market request is present.
         Requires both market_context and competitor_context to be non-empty.
         """
-        self._log("Stage 3/3 — Positioning Determination...")
+        self._log("Stage 3/4 — Positioning Determination...")
         if not market_context.strip():
             return StageResult(
                 success=False, content="", stage="positioning",
