@@ -1,6 +1,16 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.9] — 2026-03-18
+
+### Bug Fixes
+
+- Move pydantic to server optional, add pip install hints ([`f329d16`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/f329d16b976dee247853debf4fe1b4d86c926255))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.8 ([`b34c1c5`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/b34c1c5b0821f3bde0746ff86b769142da390559))
+
 ## [1.0.8] — 2026-03-18
 
 ### Bug Fixes
