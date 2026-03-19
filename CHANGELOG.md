@@ -1,6 +1,17 @@
 # Changelog
 
 All notable changes to AKF are documented here.
+## [1.0.10] — 2026-03-19
+
+### Bug Fixes
+
+- Improve missing dependency error messages for [rag] and [server] extras ([`be2240e`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/be2240e58042baa6ff64101cb81f38023dd8d24d))
+- Improve missing dependency hints for [rag] and [server] extras ([`aa1d728`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/aa1d7288b204d5280e6a0d987940c76cc5f6d5a1))
+
+### Documentation
+
+- Update CHANGELOG for v1.0.9 ([`3cb3e2c`](https://github.com/petrnzrnk-creator/ai-knowledge-filler/commit/3cb3e2c3599e44145f747e94daad87485a5c06ca))
+
 ## [1.0.9] — 2026-03-18
 
 ### Bug Fixes
