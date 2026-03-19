@@ -90,6 +90,7 @@ def validate_file(filepath: str, strict: bool = False) -> tuple[list[str], list[
 
 def cmd_validate(args: argparse.Namespace) -> None:
     import glob
+    import json
 
     # Resolve file list
     if args.file:
@@ -103,30 +104,43 @@ def cmd_validate(args: argparse.Namespace) -> None:
     files = [f for f in files if not any(x in f for x in CLI_EXCLUDE_PATTERNS)]
 
     strict = getattr(args, "strict", False)
-    mode = " [STRICT]" if strict else ""
-    info(f"Checking {len(files)} files{mode}...")
+    json_output = getattr(args, "json_output", False)
+
+    if not json_output:
+        mode = " [STRICT]" if strict else ""
+        info(f"Checking {len(files)} files{mode}...")
 
     total = valid = warned = failed = 0
+    file_results = []
     for filepath in sorted(files):
         total += 1
         errors, warnings = validate_file(filepath, strict=strict)
         rel = filepath
         if errors:
             failed += 1
-            print(f"{RED}❌ {rel}{NC}")
-            for e in errors:
-                print(f"   {RED}{e}{NC}")
+            if not json_output:
+                print(f"{RED}❌ {rel}{NC}")
+                for e in errors:
+                    print(f"   {RED}{e}{NC}")
+            file_results.append({"file": rel, "valid": False, "errors": errors, "warnings": warnings})
         elif warnings:
             warned += 1
-            print(f"{YELLOW}⚠  {rel}{NC}")
-            for w in warnings:
-                print(f"   {YELLOW}{w}{NC}")
+            if not json_output:
+                print(f"{YELLOW}⚠  {rel}{NC}")
+                for w in warnings:
+                    print(f"   {YELLOW}{w}{NC}")
+            file_results.append({"file": rel, "valid": True, "errors": [], "warnings": warnings})
         else:
             valid += 1
-            print(f"{GREEN}✅ {rel}{NC}")
+            if not json_output:
+                print(f"{GREEN}✅ {rel}{NC}")
+            file_results.append({"file": rel, "valid": True, "errors": [], "warnings": []})
 
-    print()
-    info(f"Total: {total} | OK: {valid} | Warnings: {warned} | Errors: {failed}")
+    if json_output:
+        print(json.dumps({"valid_count": valid + warned, "error_count": failed, "files": file_results}))
+    else:
+        print()
+        info(f"Total: {total} | OK: {valid} | Warnings: {warned} | Errors: {failed}")
     if failed > 0:
         sys.exit(1)
 
@@ -1116,6 +1130,12 @@ def main() -> int:
     val.add_argument("--file", "-f", help="Validate single file")
     val.add_argument("--path", "-p", help="Validate all .md files in folder")
     val.add_argument("--strict", "-s", action="store_true", help="Promote warnings to errors")
+    val.add_argument(
+        "--json-output",
+        action="store_true",
+        dest="json_output",
+        help='Output JSON: {"valid_count": N, "error_count": M, "files": [...]}',
+    )
 
     # Enrich command
     enr = sub.add_parser("enrich", help="Add YAML frontmatter to existing Markdown files")
