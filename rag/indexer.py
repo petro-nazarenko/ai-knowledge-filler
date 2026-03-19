@@ -28,7 +28,7 @@ def _load_frontmatter_module() -> Any:
         import frontmatter
     except ImportError as exc:
         raise ImportError(
-            "Missing dependency 'python-frontmatter'. Install with: pip install python-frontmatter"
+            "Missing dependency 'python-frontmatter'. Install with: pip install 'ai-knowledge-filler[rag]'"
         ) from exc
     return frontmatter
 

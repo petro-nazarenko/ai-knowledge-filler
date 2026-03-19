@@ -1297,7 +1297,7 @@ def cmd_serve(args):
     try:
         import uvicorn
     except ImportError:
-        err("uvicorn not installed. Run: pip install uvicorn")
+        err("uvicorn not installed. Run: pip install 'ai-knowledge-filler[server]'")
         sys.exit(1)
 
     host = getattr(args, "host", "0.0.0.0")
