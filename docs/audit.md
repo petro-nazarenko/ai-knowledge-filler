@@ -4,7 +4,7 @@ type: audit
 domain: akf-core
 level: intermediate
 status: active
-version: v1.0
+version: v1.1
 tags: [audit, architecture, coverage, security, ci-cd, documentation, open-issues]
 related:
   - "ARCHITECTURE.md"
@@ -12,18 +12,18 @@ related:
   - "CHANGELOG.md"
   - "CONTRIBUTING.md"
 created: 2026-03-16
-updated: 2026-03-16
+updated: 2026-04-02
 ---
 
 # AKF Repository Audit
 
-**Scope:** `ai-knowledge-filler` · v1.0.1 · Full-repo audit covering architecture, code quality, test coverage, security, documentation, and CI/CD.
+**Scope:** `ai-knowledge-filler` · v1.0.10 · Full-repo audit covering architecture, code quality, test coverage, security, documentation, and CI/CD.
 
 ---
 
 ## Executive Summary
 
-The project is in a stable, production-ready state. The core pipeline is fully implemented and well-tested. Three public interfaces are declared and versioned (CLI, Python SDK, REST API). Security posture is sound. Documentation is comprehensive. Two low-severity coverage gaps remain open. The MCP server interface is partially implemented and not yet declared stable.
+The project is in a stable, production-ready state at v1.0.10. The core pipeline is fully implemented and well-tested. Three public interfaces are declared and versioned (CLI, Python SDK, REST API). Security posture is sound: all previously identified high and medium findings have been resolved. Documentation is comprehensive. One packaging defect was identified and fixed in this audit cycle: `slowapi` was missing from `dev` extras, which prevented full test execution with a plain `pip install -e ".[dev]"` and caused coverage to drop below the 85% gate. With the fix applied, overall coverage is **93%**. Four low-severity gaps remain open.
 
 ---
 
@@ -96,17 +96,22 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 
 ## Code Coverage
 
-**Overall:** 91% (560+ tests) — CI enforced.
+**Overall:** 93% (779 tests) — CI enforced at ≥85%.
 
 | Module | Coverage | Open Gap |
 |--------|----------|----------|
-| `pipeline.py` | 86% | COV-1: batch error paths not covered |
-| `validator.py` | 92% | COV-2: legacy `taxonomy_path` branch not covered |
-| All other modules | ≥92% | No open gaps |
+| `pipeline.py` | 89% | COV-1: batch error paths not covered |
+| `validator.py` | 94% | COV-2: legacy `taxonomy_path` branch not covered |
+| `mcp_server.py` | 76% | COV-3: MCP tool error paths not exercised |
+| All other modules | ≥93% | No open gaps |
 
-**COV-1** (Medium): The `batch_generate()` error-handling paths inside `pipeline.py` are not exercised by tests. A partial LLM failure during batch processing may mask silent data loss.
+**COV-1** (Low): The `batch_generate()` error-handling paths inside `pipeline.py` are not exercised by tests. The error-handling logic is present but untested; adding test coverage for partial failure scenarios would improve confidence in batch operations.
 
 **COV-2** (Low): A legacy `taxonomy_path` branch in `validator.py` is unreachable via the current public API but remains in the codebase.
+
+**COV-3** (Low): Several error paths in `mcp_server.py` — import errors and exception handlers — are not exercised by the test suite (76% coverage).
+
+**Packaging defect (FIXED — DEV-1):** The `dev` extras in `pyproject.toml` were missing `slowapi>=0.1.9`. This caused `tests/unit/test_server.py` to fail at import time when installed with `pip install -e ".[dev]"`, reducing measured coverage to 79% (below the 85% CI gate). Fixed by adding `slowapi>=0.1.9` and `pydantic>=2.0` to `dev` extras.
 
 ---
 
@@ -120,6 +125,7 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | SEC-M2 | `--output` path traversal not sanitized in `sanitize_filename` | Medium | v0.6.2 |
 | SEC-L2 | `akf init --force` performed no backup before overwrite | Low | v0.6.2 |
 | SEC-L3 | Windows reserved filename check missing in commit gate | Low | v1.0.0 |
+| SEC-2 | `akf ask` question parameter had no max-length enforcement | Low | v1.0.8 |
 
 ### Current Posture
 
@@ -133,8 +139,8 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | Secret scanning in CI | ✅ `secret-scan.yml` workflow active |
 | Dependency pinning | ✅ `requirements.lock` + `uv.lock` |
 | Supply chain: GitHub Actions pinned to SHA | ✅ Enforced in `ci.yml` |
+| `/v1/ask` query max-length | ✅ Fixed (v1.0.8) — `max_length=2000` enforced |
 | RAG corpus input sanitization | ⚠️ No explicit guardrails on corpus content used in LLM context |
-| `akf ask` input length not bounded | ⚠️ No max-length check on question parameter |
 
 ---
 
@@ -180,12 +186,12 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 
 | ID | Description | Severity | Status |
 |----|-------------|----------|--------|
-| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | Open |
-| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | Open |
+| COV-1 | `pipeline.py` 89% — batch error paths uncovered | Low | Open |
+| COV-2 | `validator.py` 94% — legacy `taxonomy_path` branch | Low | Open |
+| COV-3 | `mcp_server.py` 76% — error paths in MCP tools uncovered | Low | Open |
 | DOC-1 | MCP server interface not declared in public API docs | Low | Open |
 | DOC-2 | Telemetry JSONL schema not documented | Low | Open |
 | SEC-1 | RAG corpus content used in LLM context without explicit sanitization guardrails | Low | Open |
-| SEC-2 | `akf ask` question parameter has no max-length enforcement | Low | Open |
 
 ---
 
@@ -194,8 +200,8 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | Area | Rating | Notes |
 |------|--------|-------|
 | Architecture | ✅ Excellent | Clean determinism boundary, consistent DI, atomic writes |
-| Code coverage | ✅ Good | 91% overall; two low-severity gaps open (COV-1, COV-2) |
-| Security | ✅ Good | All medium/high issues resolved; two low-severity items open |
+| Code coverage | ✅ Good | 93% overall; three low-severity gaps open (COV-1, COV-2, COV-3) |
+| Security | ✅ Good | All medium/high issues resolved; one low-severity item open (SEC-1) |
 | Documentation | ✅ Good | Comprehensive across all public interfaces; MCP and telemetry schema gaps |
 | CI/CD | ✅ Excellent | Multi-version matrix, locked deps, secret scanning, changelog automation |
 | Public API | ✅ Stable | Three interfaces + two contracts declared with semver policy |
