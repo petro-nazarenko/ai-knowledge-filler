@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import collections
+import hmac
 import os
 import re
 import threading
@@ -12,9 +14,6 @@ from fastapi import FastAPI, Depends, HTTPException, Request, Security, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
 from logger import get_logger
 from akf.pipeline import Pipeline, GenerateResult, ValidateResult
@@ -34,7 +33,7 @@ _OUTPUT_BASE = Path(os.getenv("AKF_OUTPUT_DIR", "./output")).expanduser().resolv
 
 _security = HTTPBearer(auto_error=False)
 _logger = get_logger("akf.server", level=_LOG_LEVEL, json_output=_JSON_LOGS)
-_SAFE_OUTPUT_NAME = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
+_SAFE_OUTPUT_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 def _api_key() -> str:
@@ -58,19 +57,51 @@ def verify_key(
         return
     if not key:
         raise HTTPException(status_code=503, detail="AKF_API_KEY must be configured")
-    if credentials is None or credentials.credentials != key:
+    if credentials is None or not hmac.compare_digest(credentials.credentials, key):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
 # ─── RATE LIMITING ────────────────────────────────────────────────────────────
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[_DEFAULT_RATE_LIMIT])
+
+def _parse_rate_limit(spec: str) -> tuple[int, float]:
+    """Parse a rate limit string like '60/minute' into (count, window_seconds)."""
+    _windows = {"second": 1.0, "minute": 60.0, "hour": 3600.0}
+    try:
+        count_str, period = spec.split("/", 1)
+        return int(count_str), _windows[period.strip().lower()]
+    except (ValueError, KeyError):
+        return 60, 60.0
+
+
+class _InMemoryRateLimiter:
+    """Simple sliding-window in-memory rate limiter, keyed by remote address."""
+
+    def __init__(self, max_requests: int, window_seconds: float) -> None:
+        self._max = max_requests
+        self._window = window_seconds
+        self._lock = threading.Lock()
+        self._buckets: dict[str, collections.deque] = {}
+
+    def is_allowed(self, key: str) -> bool:
+        now = time.monotonic()
+        cutoff = now - self._window
+        with self._lock:
+            dq = self._buckets.setdefault(key, collections.deque())
+            while dq and dq[0] < cutoff:
+                dq.popleft()
+            if len(dq) >= self._max:
+                return False
+            dq.append(now)
+            return True
+
+
+_rl_count, _rl_window = _parse_rate_limit(_DEFAULT_RATE_LIMIT)
+_rate_limiter = _InMemoryRateLimiter(_rl_count, _rl_window)
 
 # ─── APP ──────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="AKF API", version="1.0.0")
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.state.ready = False
 app.state.concurrency_semaphore = threading.BoundedSemaphore(_MAX_CONCURRENCY)
 app.state.metrics_lock = threading.Lock()
@@ -133,6 +164,13 @@ async def request_context_middleware(request: Request, call_next):
         response = Response(status_code=413, content="Request body too large")
         response.headers["X-Request-ID"] = request_id
         _update_metrics(request.url.path, response.status_code, 0)
+        return response
+
+    client_ip = request.client.host if request.client else "unknown"
+    if not _rate_limiter.is_allowed(client_ip):
+        response = Response(status_code=429, content="Rate limit exceeded")
+        response.headers["X-Request-ID"] = request_id
+        _update_metrics(request.url.path, 429, 0)
         return response
 
     sem = app.state.concurrency_semaphore

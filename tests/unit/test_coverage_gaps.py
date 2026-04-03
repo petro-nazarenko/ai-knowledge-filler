@@ -190,7 +190,7 @@ class TestPipelineGenerate:
             patch("akf.commit_gate.commit", return_value=fake_commit),
         ):
             r = p.generate("prompt")
-        assert not r.success and r.file_path is not None and r.file_path.exists()
+        assert not r.success and r.file_path is not None and not r.file_path.exists()
 
     def test_rejected_domain_candidates(self, tmp_path):
         p = Pipeline(output=str(tmp_path))

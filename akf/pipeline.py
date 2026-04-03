@@ -302,7 +302,6 @@ class Pipeline:
                 duration_ms=total_duration_ms,
             )
         else:
-            output_path.write_text(content, encoding="utf-8")
             return GenerateResult(
                 success=False,
                 content=content,
