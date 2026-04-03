@@ -57,7 +57,9 @@ def verify_key(
         return
     if not key:
         raise HTTPException(status_code=503, detail="AKF_API_KEY must be configured")
-    if credentials is None or not hmac.compare_digest(credentials.credentials, key):
+    if credentials is None or not hmac.compare_digest(
+        credentials.credentials.encode(), key.encode()
+    ):
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
@@ -166,7 +168,7 @@ async def request_context_middleware(request: Request, call_next):
         _update_metrics(request.url.path, response.status_code, 0)
         return response
 
-    client_ip = request.client.host if request.client else "unknown"
+    client_ip = request.client.host if request.client else request_id
     if not _rate_limiter.is_allowed(client_ip):
         response = Response(status_code=429, content="Rate limit exceeded")
         response.headers["X-Request-ID"] = request_id
