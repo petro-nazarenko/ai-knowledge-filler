@@ -22,6 +22,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -251,6 +252,7 @@ def load_config(path: Optional[Path | str] = None) -> AKFConfig:
 # ─── SINGLETON ────────────────────────────────────────────────────────────────
 # Module-level singleton. Call reset_config() in tests to clear between cases.
 
+_config_lock = threading.Lock()
 _config_cache: Optional[AKFConfig] = None
 
 
@@ -265,7 +267,9 @@ def get_config(path: Optional[Path | str] = None) -> AKFConfig:
     """
     global _config_cache
     if _config_cache is None:
-        _config_cache = load_config(path)
+        with _config_lock:
+            if _config_cache is None:
+                _config_cache = load_config(path)
     return _config_cache
 
 
@@ -278,4 +282,5 @@ def reset_config() -> None:
             reset_config()
     """
     global _config_cache
-    _config_cache = None
+    with _config_lock:
+        _config_cache = None

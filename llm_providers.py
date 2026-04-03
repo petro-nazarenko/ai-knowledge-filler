@@ -332,7 +332,7 @@ class OllamaProvider(LLMProvider):
             model: Ollama model name. If None, uses OLLAMA_MODEL env var or default.
         """
         self.model = model or os.getenv("OLLAMA_MODEL", "llama3.2:3b")
-        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://0.0.0.0:8080")
+        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 
     def generate(self, prompt: str, system_prompt: str) -> str:
         try:

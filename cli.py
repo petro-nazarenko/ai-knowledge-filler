@@ -1255,7 +1255,7 @@ def main() -> int:
     # Serve command
 
     srv = sub.add_parser("serve", help="Start REST API server or MCP server")
-    srv.add_argument("--host", default="0.0.0.0")
+    srv.add_argument("--host", default="127.0.0.1")
     srv.add_argument("--port", type=int, default=8000)
     srv.add_argument(
         "--mcp",
