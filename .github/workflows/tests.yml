@@ -40,7 +40,7 @@ jobs:
         pytest --cov=akf --cov-report=term-missing --cov-report=xml --cov-fail-under=85 -v
     - name: Upload coverage to Codecov (main only, non-blocking)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         files: ./coverage.xml
         flags: unittests
