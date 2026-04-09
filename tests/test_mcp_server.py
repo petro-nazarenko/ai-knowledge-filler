@@ -311,3 +311,137 @@ class TestAkfBatchTool:
         assert response["total"] == 3
         assert response["ok"] == 2
         assert response["failed"] == 1
+
+
+# ─── TestAkfValidateStrictMode ───────────────────────────────────────────────
+
+
+class TestAkfValidateStrictMode:
+
+    @patch("akf.mcp_server.validate")
+    def test_strict_file_includes_warnings(self, mock_validate, tmp_path):
+        """strict=True on a file → warnings also included in errors list."""
+        f = tmp_path / "warn.md"
+        f.write_text(VALID_MD, encoding="utf-8")
+
+        from akf.validation_error import Severity
+
+        warn = _make_validation_error("warning")
+        mock_validate.return_value = [warn]
+
+        from akf.mcp_server import akf_validate
+
+        response = akf_validate(path=str(f), strict=True)
+
+        assert response["is_valid"] is False
+        assert len(response["errors"]) == 1
+
+    @patch("akf.mcp_server.validate")
+    def test_strict_directory_includes_warnings(self, mock_validate, tmp_path):
+        """strict=True on a directory → warnings also included in errors list."""
+        (tmp_path / "a.md").write_text(VALID_MD, encoding="utf-8")
+        (tmp_path / "b.md").write_text(VALID_MD, encoding="utf-8")
+
+        from akf.validation_error import Severity
+
+        warn = _make_validation_error("warning")
+        mock_validate.return_value = [warn]
+
+        from akf.mcp_server import akf_validate
+
+        response = akf_validate(path=str(tmp_path), strict=True)
+
+        assert response["total"] == 2
+        assert response["failed"] == 2
+
+
+# ─── TestAkfEnrichErrorPaths ──────────────────────────────────────────────────
+
+
+class TestAkfEnrichErrorPaths:
+
+    @patch("akf.mcp_server.Pipeline")
+    def test_directory_enriched(self, MockPipeline, tmp_path):
+        """Directory path → all .md files processed."""
+        (tmp_path / "a.md").write_text(NO_FRONTMATTER_MD, encoding="utf-8")
+        (tmp_path / "b.md").write_text(NO_FRONTMATTER_MD, encoding="utf-8")
+
+        MockPipeline.return_value.enrich.side_effect = [
+            _enrich_result(str(tmp_path / "a.md"), "enriched"),
+            _enrich_result(str(tmp_path / "b.md"), "enriched"),
+        ]
+
+        from akf.mcp_server import akf_enrich
+
+        response = akf_enrich(path=str(tmp_path))
+
+        assert response["total"] == 2
+        assert response["enriched"] == 2
+
+    @patch("akf.mcp_server.Pipeline")
+    def test_enrich_exception_caught(self, MockPipeline, tmp_path):
+        """pipeline.enrich raises → caught and counted as failed."""
+        f = tmp_path / "bad.md"
+        f.write_text(NO_FRONTMATTER_MD, encoding="utf-8")
+
+        MockPipeline.return_value.enrich.side_effect = RuntimeError("LLM error")
+
+        from akf.mcp_server import akf_enrich
+
+        response = akf_enrich(path=str(f))
+
+        assert response["total"] == 1
+        assert response["failed"] == 1
+
+    def test_nonexistent_path_returns_error(self):
+        """Non-existent path → error key in response."""
+        from akf.mcp_server import akf_enrich
+
+        response = akf_enrich(path="/nonexistent/path")
+
+        assert "error" in response
+
+
+# ─── TestMcpRun ───────────────────────────────────────────────────────────────
+
+
+class TestMcpRun:
+
+    def test_run_raises_import_error_when_mcp_missing(self):
+        """ImportError raised when mcp package is not installed."""
+        import builtins
+        import sys
+        from unittest.mock import patch
+
+        original_import = builtins.__import__
+
+        def import_blocker(name, *args, **kwargs):
+            if name == "mcp.server.fastmcp" or name.startswith("mcp.server"):
+                raise ImportError(f"No module named '{name}'")
+            return original_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=import_blocker):
+            from akf.mcp_server import run
+
+            with pytest.raises(ImportError, match="mcp package not installed"):
+                run()
+
+    def test_run_registers_tools_and_calls_mcp_run(self):
+        """run() registers the four tools and calls mcp.run()."""
+        from unittest.mock import MagicMock, patch
+
+        mock_mcp_instance = MagicMock()
+        mock_fastmcp_class = MagicMock(return_value=mock_mcp_instance)
+        mock_mcp_module = MagicMock()
+        mock_mcp_module.FastMCP = mock_fastmcp_class
+
+        import sys
+
+        with patch.dict(sys.modules, {"mcp.server.fastmcp": mock_mcp_module}):
+            from akf.mcp_server import run
+
+            run(transport="stdio")
+
+        mock_fastmcp_class.assert_called_once_with("akf")
+        assert mock_mcp_instance.tool.call_count == 4
+        mock_mcp_instance.run.assert_called_once_with(transport="stdio")

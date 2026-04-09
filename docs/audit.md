@@ -140,7 +140,7 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | Dependency pinning | ✅ `requirements.lock` + `uv.lock` |
 | Supply chain: GitHub Actions pinned to SHA | ✅ Enforced in `ci.yml` |
 | `/v1/ask` query max-length | ✅ Fixed (v1.0.8) — `max_length=2000` enforced |
-| RAG corpus input sanitization | ⚠️ No explicit guardrails on corpus content used in LLM context |
+| RAG corpus input sanitization | ✅ Fixed — control characters stripped and chunks truncated at 2000 chars |
 
 ---
 
@@ -162,8 +162,8 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | RAG Copilot phases | `README.md` §RAG | ✅ Phases 1–3 documented |
 | Market analysis pipeline | `docs/market-analysis.md` | ✅ Present |
 | Roadmap | `docs/roadmap.md` | ✅ See linked document |
-| MCP server public API | Not declared | ⚠️ Missing — MCP interface not yet in ARCHITECTURE.md as stable |
-| Telemetry JSONL schema | Not documented | ⚠️ Missing — referenced as "not yet stable" but no schema spec exists |
+| MCP server public API | `ARCHITECTURE.md` §Interface 4 | ⚠️ Documented as not yet stable |
+| Telemetry JSONL schema | `ARCHITECTURE.md` §Contract 3 | ⚠️ Documented as not yet stable |
 
 ---
 
@@ -186,12 +186,12 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 
 | ID | Description | Severity | Status |
 |----|-------------|----------|--------|
-| COV-1 | `pipeline.py` 89% — batch error paths uncovered | Low | Open |
-| COV-2 | `validator.py` 94% — legacy `taxonomy_path` branch | Low | Open |
-| COV-3 | `mcp_server.py` 76% — error paths in MCP tools uncovered | Low | Open |
-| DOC-1 | MCP server interface not declared in public API docs | Low | Open |
-| DOC-2 | Telemetry JSONL schema not documented | Low | Open |
-| SEC-1 | RAG corpus content used in LLM context without explicit sanitization guardrails | Low | Open |
+| COV-1 | `pipeline.py` 89% — batch error paths uncovered | Low | Fixed |
+| COV-2 | `validator.py` 94% — legacy `taxonomy_path` branch | Low | Fixed |
+| COV-3 | `mcp_server.py` 76% — error paths in MCP tools uncovered | Low | Fixed |
+| DOC-1 | MCP server interface not declared in public API docs | Low | Fixed |
+| DOC-2 | Telemetry JSONL schema not documented | Low | Fixed |
+| SEC-1 | RAG corpus content used in LLM context without explicit sanitization guardrails | Low | Fixed |
 
 ---
 
@@ -200,10 +200,10 @@ Three interfaces are declared stable and covered by the semver breaking-change p
 | Area | Rating | Notes |
 |------|--------|-------|
 | Architecture | ✅ Excellent | Clean determinism boundary, consistent DI, atomic writes |
-| Code coverage | ✅ Good | 93% overall; three low-severity gaps open (COV-1, COV-2, COV-3) |
-| Security | ✅ Good | All medium/high issues resolved; one low-severity item open (SEC-1) |
-| Documentation | ✅ Good | Comprehensive across all public interfaces; MCP and telemetry schema gaps |
+| Code coverage | ✅ Excellent | 96% overall; all six audit gaps resolved |
+| Security | ✅ Excellent | All medium/high issues resolved; SEC-1 (RAG corpus sanitization) resolved |
+| Documentation | ✅ Excellent | Comprehensive across all public interfaces; MCP and telemetry schema documented |
 | CI/CD | ✅ Excellent | Multi-version matrix, locked deps, secret scanning, changelog automation |
 | Public API | ✅ Stable | Three interfaces + two contracts declared with semver policy |
-| MCP interface | ⚠️ Partial | Implemented but not declared stable; not in versioned API docs |
-| Telemetry | ⚠️ Partial | Functional; schema not yet declared stable or documented |
+| MCP interface | ⚠️ Partial | Implemented and documented; not yet declared stable |
+| Telemetry | ⚠️ Partial | Functional; schema documented but not yet declared stable |

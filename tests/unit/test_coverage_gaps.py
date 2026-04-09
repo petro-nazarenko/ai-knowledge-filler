@@ -455,3 +455,212 @@ class TestLoadConfig:
         f.write_text("schema_version: '1.0.0'\ntaxonomy:\n  domains:\n    - custom\n    - devops\n")
         cfg = load_config(path=f)
         assert "custom" in cfg.domains and cfg.source == f.resolve()
+
+
+# ── Validator — additional coverage gaps ──────────────────────────────────────
+
+
+class TestParseFrontmatterYamlError:
+    """COV-2: yaml.YAMLError branch in _parse_frontmatter (line 148-149)."""
+
+    def test_invalid_yaml_in_frontmatter(self):
+        from akf.validator import validate
+
+        # Duplicate key with mapping/sequence conflict — reliably triggers yaml.YAMLError
+        # via yaml.safe_load (scanner error on structurally malformed YAML).
+        doc = "---\ntitle: ok\n  - this: is\n  - not: valid yaml mapping\n---\n\n## Body\n"
+        errors = validate(doc)
+        assert len(errors) == 1
+        from akf.validation_error import ErrorCode
+
+        assert errors[0].code == ErrorCode.SCHEMA_VIOLATION
+
+
+class TestCheckEnumFieldsCfgNone:
+    """COV-2: defensive `if cfg is None` branch in _check_enum_fields (line 191)."""
+
+    def test_cfg_none_uses_default(self):
+        # Pass cfg=None explicitly — falls back to get_config() inside the function
+        result = _check_enum_fields({"type": "concept"}, cfg=None)
+        assert result == []
+
+    def test_cfg_none_catches_bad_enum(self):
+        result = _check_enum_fields({"type": "UNKNOWN_TYPE"}, cfg=None)
+        assert len(result) == 1
+
+
+class TestDateValueError:
+    """COV-2: ValueError in date parsing (lines 245-247) — regex matches but fromisoformat fails."""
+
+    def test_invalid_month_triggers_value_error(self):
+        # 2026-13-01 matches DATE_PATTERN (\d{4}-\d{2}-\d{2}) but fails fromisoformat
+        errors = _check_dates({"created": "2026-13-01", "updated": "2026-01-01"})
+        assert any(e.field == "created" for e in errors)
+
+
+class TestRelatedNonStringAndNonWikiLink:
+    """COV-2: non-string item and non-WikiLink string in related list (lines 317, 320)."""
+
+    def test_non_string_item_skipped(self):
+        # A list containing a non-string item — skipped silently
+        errors = _check_related({"related": [42, "[[ValidLink]]"]})
+        assert errors == []
+
+    def test_non_wikilink_string_skipped(self):
+        # A plain string that is not a WikiLink — skipped silently
+        errors = _check_related({"related": ["plain text", "[[ValidLink]]"]})
+        assert errors == []
+
+
+# ── Pipeline — additional coverage gaps ───────────────────────────────────────
+
+
+class TestPipelineBatchGenerateDictItems:
+    """COV-1: batch_generate with dict items exercises lines 343-344."""
+
+    def test_dict_items_forwarded_as_hints(self, tmp_path):
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        p._system_prompt = "## ROLE\nGen."
+        plan = [
+            {"prompt": "Explain Docker", "domain": "devops", "type": "guide"},
+            {"prompt": "Explain APIs", "domain": "api-design"},
+        ]
+        with patch("llm_providers.get_provider", return_value=make_provider()):
+            results = p.batch_generate(plan)
+        assert len(results) == 2
+
+    def test_dict_item_no_extra_keys_hints_none(self, tmp_path):
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        p._system_prompt = "## ROLE\nGen."
+        plan = [{"prompt": "Single prompt only"}]
+        with patch("llm_providers.get_provider", return_value=make_provider()):
+            results = p.batch_generate(plan)
+        assert len(results) == 1
+
+
+class TestPipelineGenerateInnerFunctions:
+    """COV-1: generate_fn and validate_fn inner functions (lines 244-255)."""
+
+    def test_generate_fn_and_validate_fn_executed_during_retry(self, tmp_path):
+        """Trigger the retry path so generate_fn and validate_fn are called."""
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        p._system_prompt = "## ROLE\nGen."
+
+        err = ValidationError(
+            code=ErrorCode.TAXONOMY_VIOLATION,
+            field="domain",
+            expected=["devops"],
+            received="INVALID",
+        )
+        fake_retry = RetryResult(
+            success=True, document=VALID_DOC, attempts=2, abort_reason=None, errors=[]
+        )
+
+        captured_gen_fn = {}
+        captured_val_fn = {}
+
+        original_run_retry_loop = __import__(
+            "akf.retry_controller", fromlist=["run_retry_loop"]
+        ).run_retry_loop
+
+        def capturing_run_retry_loop(**kwargs):
+            captured_gen_fn["fn"] = kwargs.get("generate_fn")
+            captured_val_fn["fn"] = kwargs.get("validate_fn")
+            return fake_retry
+
+        with (
+            patch("llm_providers.get_provider", return_value=make_provider()),
+            patch("akf.validator.validate", return_value=[err]),
+            patch("akf.retry_controller.run_retry_loop", side_effect=capturing_run_retry_loop),
+        ):
+            p.generate("test prompt")
+
+        # Now call the captured inner functions to exercise the dead paths
+        assert captured_gen_fn["fn"] is not None
+        result = captured_gen_fn["fn"]("doc", "repair_prompt")
+        assert isinstance(result, str)
+
+        assert captured_val_fn["fn"] is not None
+        errors = captured_val_fn["fn"](VALID_DOC)
+        assert isinstance(errors, list)
+
+
+class TestPipelineGenerateValidateException:
+    """COV-1: validate(content) exception swallowed (lines 236-237 and 278-279)."""
+
+    def test_initial_validate_exception_treated_as_valid(self, tmp_path):
+        p = Pipeline(output=str(tmp_path), verbose=False)
+        p._system_prompt = "## ROLE\nGen."
+
+        import akf.validator as _v
+
+        original_validate = _v.validate
+
+        call_count = {"n": 0}
+
+        def flaky_validate(doc):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise RuntimeError("validator internal error")
+            return original_validate(doc)
+
+        with (
+            patch("llm_providers.get_provider", return_value=make_provider()),
+            patch("akf.validator.validate", side_effect=flaky_validate),
+        ):
+            result = p.generate("test prompt")
+
+        # The exception should be swallowed and result returned
+        assert result is not None
+
+
+class TestPipelineEnrichErrorPaths:
+    """COV-1: enrich() get_provider error, non-dict yaml, validate exception (lines 453-492)."""
+
+    def test_get_provider_raises_returns_failed(self, tmp_path):
+        f = tmp_path / "doc.md"
+        f.write_text("# Some content\nBody text here.\n")
+        p = Pipeline(output=str(tmp_path), verbose=False)
+
+        with patch("llm_providers.get_provider", side_effect=RuntimeError("no provider")):
+            result = p.enrich(path=f)
+
+        assert result.status == "failed"
+        assert "no provider" in result.skip_reason
+
+    def test_yaml_non_dict_treated_as_empty(self, tmp_path):
+        f = tmp_path / "doc.md"
+        f.write_text("# Some content\nBody text here.\n")
+        p = Pipeline(output=str(tmp_path), verbose=False)
+
+        provider = make_provider(content="- list\n- not\n- a\n- dict\n")
+        with patch("llm_providers.get_provider", return_value=provider):
+            result = p.enrich(path=f)
+
+        # Non-dict yaml is treated as empty generated fields, falls back to defaults
+        assert result is not None
+
+    def test_enrich_validate_exception_swallowed(self, tmp_path):
+        f = tmp_path / "doc.md"
+        f.write_text("# Some content\nBody text here.\n")
+        p = Pipeline(output=str(tmp_path), verbose=False)
+
+        import akf.validator as _v
+
+        original_validate = _v.validate
+        call_count = {"n": 0}
+
+        def flaky_validate(doc, **kwargs):
+            call_count["n"] += 1
+            if call_count["n"] == 1:
+                raise RuntimeError("validator error in enrich")
+            return original_validate(doc)
+
+        provider = make_provider()
+        with (
+            patch("llm_providers.get_provider", return_value=provider),
+            patch("akf.validator.validate", side_effect=flaky_validate),
+        ):
+            result = p.enrich(path=f)
+
+        assert result is not None

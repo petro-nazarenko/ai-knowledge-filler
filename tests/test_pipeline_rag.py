@@ -229,3 +229,59 @@ def test_try_retrieve_formats_multiple_hits():
     assert "[File_One.md]\nContent one." in output
     assert "[File_Two.md]\nContent two." in output
     assert "\n\n---\n\n" in output
+
+
+# ─── TEST 6: _sanitize_corpus_chunk guardrails (SEC-1) ────────────────────────
+
+
+def test_sanitize_corpus_chunk_strips_control_chars():
+    """_sanitize_corpus_chunk removes null bytes and other control characters."""
+    from akf.pipeline import _sanitize_corpus_chunk
+
+    dirty = "Normal text\x00with null\x01bytes\x1f and more"
+    result = _sanitize_corpus_chunk(dirty)
+    assert "\x00" not in result
+    assert "\x01" not in result
+    assert "\x1f" not in result
+    assert "Normal text" in result
+    assert "with null" in result
+
+
+def test_sanitize_corpus_chunk_preserves_tabs_and_newlines():
+    """_sanitize_corpus_chunk keeps tab, newline, and carriage return."""
+    from akf.pipeline import _sanitize_corpus_chunk
+
+    text = "Line one\nLine two\tindented\r\nWindows line"
+    result = _sanitize_corpus_chunk(text)
+    assert "\n" in result
+    assert "\t" in result
+    assert "\r" in result
+
+
+def test_sanitize_corpus_chunk_truncates_long_content():
+    """_sanitize_corpus_chunk truncates content exceeding _CORPUS_CHUNK_MAX_CHARS."""
+    from akf.pipeline import _sanitize_corpus_chunk, _CORPUS_CHUNK_MAX_CHARS
+
+    long_text = "x" * (_CORPUS_CHUNK_MAX_CHARS + 500)
+    result = _sanitize_corpus_chunk(long_text)
+    assert len(result) == _CORPUS_CHUNK_MAX_CHARS
+
+
+def test_try_retrieve_sanitizes_chunk_content():
+    """_try_retrieve sanitizes content before including it in context string."""
+    from akf.pipeline import _try_retrieve
+
+    dirty_hit = RetrievalHit(
+        chunk_id="id1",
+        content="Clean content\x00with null byte",
+        metadata={"filename": "File\x01.md"},
+        distance=0.1,
+    )
+    mock_result = RetrievalResult(query="test query", top_k=1, hits=[dirty_hit])
+
+    with patch("rag.retriever.retrieve", return_value=mock_result):
+        output = _try_retrieve("test query", top_k=1)
+
+    assert "\x00" not in output
+    assert "\x01" not in output
+    assert "Clean content" in output

@@ -148,6 +148,57 @@ GET  /docs
 
 ---
 
+### Interface 4 — MCP Server (⚠️ Not yet stable)
+
+Started via `akf serve --mcp`. Transport: `stdio` (default) or `streamable-http`.
+
+```python
+# Tool signatures (FastMCP)
+
+akf_generate(
+    prompt: str,
+    output: str = "./vault",
+    domain: str | None = None,
+    type: str | None = None,
+    model: str = "auto",
+) -> dict
+# Returns: {"success": bool, "file_path": str | None, "attempts": int,
+#            "generation_id": str, "errors": [str, ...]}
+
+akf_validate(
+    path: str,
+    strict: bool = False,
+) -> dict
+# Single file: {"is_valid": bool, "errors": [str, ...]}
+# Directory:   {"total": int, "ok": int, "failed": int, "results": [...]}
+# Not found:   {"error": str}
+
+akf_enrich(
+    path: str,
+    force: bool = False,
+    dry_run: bool = False,
+    model: str = "auto",
+) -> dict
+# Returns: {"total": int, "enriched": int, "skipped": int, "failed": int,
+#            "results": [{"file": str, "status": str}, ...]}
+# Not found: {"error": str}
+
+akf_batch(
+    plan: list,
+    output: str = "./vault",
+    model: str = "auto",
+) -> dict
+# Returns: {"total": int, "ok": int, "failed": int,
+#            "results": [{"prompt": str, "success": bool,
+#                         "file_path": str | None, "attempts": int}, ...]}
+```
+
+**Status:** In progress — tool signatures may change before declaration as stable. Not subject to semver breaking-change policy until declared stable.
+
+**Install:** `pip install ai-knowledge-filler[mcp]`
+
+---
+
 ### Contract 1 — ValidationError
 
 ```python
@@ -213,6 +264,124 @@ relationship_types:             # valid labels for [[Note|type]] syntax
 
 ---
 
+### Contract 3 — Telemetry JSONL Schema (⚠️ Not yet stable)
+
+All events are written to `telemetry/events.jsonl` as newline-delimited JSON. Each line is one event object. The `event_type` field identifies the schema.
+
+**Common fields (all events):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `event_type` | string | Event discriminator (see types below) |
+| `event_id` | string (UUID v4) | Unique event identifier |
+| `timestamp` | string (ISO 8601 UTC) | Event emission time, e.g. `"2026-03-01T12:00:00.000Z"` |
+| `generation_id` | string (UUID v4) | Links events from the same pipeline run |
+
+**`generation_attempt`** — emitted by RetryController after each attempt:
+
+```json
+{
+  "event_type": "generation_attempt",
+  "event_id": "<uuid>",
+  "timestamp": "<iso8601>",
+  "generation_id": "<uuid>",
+  "document_id": "My_Document",
+  "schema_version": "1.0.0",
+  "attempt": 1,
+  "max_attempts": 3,
+  "is_final_attempt": false,
+  "converged": false,
+  "errors": [{"code": "E001", "field": "type", "expected": [...], "received": "...", "severity": "error"}],
+  "model": "claude-3-5-sonnet",
+  "temperature": 0,
+  "top_p": 1,
+  "duration_ms": 1200
+}
+```
+
+**`generation_summary`** — emitted by CommitGate after a session completes:
+
+```json
+{
+  "event_type": "generation_summary",
+  "event_id": "<uuid>",
+  "timestamp": "<iso8601>",
+  "generation_id": "<uuid>",
+  "document_id": "My_Document",
+  "schema_version": "1.0.0",
+  "total_attempts": 2,
+  "converged": true,
+  "abort_reason": null,
+  "rejected_candidates": ["Technology"],
+  "final_domain": "backend-engineering",
+  "model": "claude-3-5-sonnet",
+  "temperature": 0,
+  "total_duration_ms": 3400
+}
+```
+
+**`enrich`** — emitted by `Pipeline.enrich()` per enriched file:
+
+```json
+{
+  "event_type": "enrich",
+  "event_id": "<uuid>",
+  "timestamp": "<iso8601>",
+  "generation_id": "<uuid>",
+  "file": "vault/My_Note.md",
+  "schema_version": "1.0.0",
+  "existing_fields": ["title"],
+  "generated_fields": ["type", "domain", "level", "status", "tags", "created", "updated"],
+  "attempts": 1,
+  "converged": true,
+  "skipped": false,
+  "skip_reason": "",
+  "model": "claude-3-5-sonnet",
+  "temperature": 0.0
+}
+```
+
+**`ask_query`** — emitted by `/v1/ask` endpoint:
+
+```json
+{
+  "event_type": "ask_query",
+  "event_id": "<uuid>",
+  "timestamp": "<iso8601>",
+  "generation_id": "<uuid>",
+  "tenant_id": "default",
+  "mode": "synthesis",
+  "model": "auto",
+  "top_k": 5,
+  "no_llm": false,
+  "max_distance": null,
+  "hits_used": 3,
+  "insufficient_context": false,
+  "duration_ms": 820
+}
+```
+
+**`market_analysis`** — emitted by `MarketAnalysisPipeline` per stage:
+
+```json
+{
+  "event_type": "market_analysis",
+  "event_id": "<uuid>",
+  "timestamp": "<iso8601>",
+  "generation_id": "<uuid>",
+  "request": "AI knowledge management market...",
+  "stage": "market_analysis",
+  "success": true,
+  "duration_ms": 2100,
+  "model": "claude-3-5-sonnet",
+  "error": ""
+}
+```
+
+**Status:** Schema not yet declared stable. Fields may be added or reorganized before `schema_version: "2.0.0"` is declared.
+
+---
+
 ## Pipeline Architecture
 
 ```
@@ -264,7 +433,7 @@ Scripts/
   validate_yaml.py     Standalone YAML frontmatter validator
   analyze_telemetry.py Telemetry aggregation — retry rate, ontology friction
 
-tests/                 560+ tests, 91.5% coverage
+tests/                 799+ tests, 95.9% coverage
 .github/workflows/     ci.yml · tests.yml · validate.yml · changelog.yml · release.yml · secret-scan.yml
 ```
 
@@ -355,5 +524,9 @@ The following are internal and may change without a MAJOR increment:
 | SEC-M2 | `--output` path traversal not sanitized | Medium | Fixed v0.6.2 |
 | SEC-L2 | `akf init --force` no backup before overwrite | Low | Fixed v0.6.2 |
 | SEC-L3 | Windows reserved filename check missing | Low | Fixed v1.0.0 |
-| COV-1 | `pipeline.py` 86% — batch error paths uncovered | Low | Open |
-| COV-2 | `validator.py` 92% — legacy `taxonomy_path` branch | Low | Open |
+| COV-1 | `pipeline.py` batch error paths uncovered | Low | Fixed |
+| COV-2 | `validator.py` legacy `taxonomy_path` branch | Low | Fixed |
+| COV-3 | `mcp_server.py` error paths in MCP tools uncovered | Low | Fixed |
+| DOC-1 | MCP server interface not declared in public API docs | Low | Fixed |
+| DOC-2 | Telemetry JSONL schema not documented | Low | Fixed |
+| SEC-1 | RAG corpus content used in LLM context without sanitization guardrails | Low | Fixed |

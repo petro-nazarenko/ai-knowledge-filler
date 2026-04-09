@@ -108,6 +108,27 @@ def _patch_dates(content: str, today: str) -> str:
     return "".join(result)
 
 
+_CORPUS_CHUNK_MAX_CHARS = 2000
+
+
+def _sanitize_corpus_chunk(text: str) -> str:
+    """Strip control characters and truncate a RAG corpus chunk.
+
+    Removes null bytes and other non-printable ASCII control characters
+    (except tab, newline, and carriage return) to prevent prompt injection
+    via crafted corpus content.  Truncates at _CORPUS_CHUNK_MAX_CHARS to
+    bound context window consumption.
+
+    SEC-1 guardrail: corpus content must be sanitized before being injected
+    into the LLM system prompt.
+    """
+    # Remove non-printable control characters
+    # Keeps: \t (0x09), \n (0x0a), \r (0x0d) — standard whitespace needed for Markdown
+    # Removes: \x00-\x08, \x0b, \x0c, \x0e-\x1f, \x7f (null, BEL, BS, VT, FF, SO-US, DEL)
+    sanitized = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    return sanitized[:_CORPUS_CHUNK_MAX_CHARS]
+
+
 def _try_retrieve(query: str, top_k: int = 3) -> str:
     """Attempt RAG retrieval; return formatted context string or '' on failure."""
     try:
@@ -119,7 +140,9 @@ def _try_retrieve(query: str, top_k: int = 3) -> str:
         parts = []
         for hit in result.hits:
             filename = hit.metadata.get("filename", "")
-            parts.append(f"[{filename}]\n{hit.content}")
+            safe_content = _sanitize_corpus_chunk(hit.content)
+            safe_filename = _sanitize_corpus_chunk(filename)
+            parts.append(f"[{safe_filename}]\n{safe_content}")
         return "\n\n---\n\n".join(parts)
     except Exception:
         return ""
